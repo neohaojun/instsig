@@ -1,0 +1,10 @@
+{
+  "publishes": {
+    "marine-marvel-eb63": {
+      "siteUrl": "https://marine-marvel-eb63.here.now/",
+      "claimToken": "7865a505c066035020cd78b374c1767d7ae0a733b1d932a74cd1d41b80421f21",
+      "claimUrl": "https://here.now/claim?slug=marine-marvel-eb63&token=7865a505c066035020cd78b374c1767d7ae0a733b1d932a74cd1d41b80421f21",
+      "expiresAt": "2026-06-12T07:49:11.670Z"
+    }
+  }
+}
