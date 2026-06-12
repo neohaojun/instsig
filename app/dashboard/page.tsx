@@ -55,6 +55,11 @@ function buildProfilesMap(profiles: ProfileRecord[] | null | undefined) {
   return Object.fromEntries((profiles ?? []).map((profile) => [profile.id, profile]));
 }
 
+const requestPathByKind = {
+  report_sick: "/requests/report-sick",
+  external_appointment: "/requests/external-appointment",
+} as const;
+
 function RequestSubcard({
   href,
   title,
@@ -160,13 +165,13 @@ export default async function DashboardPage() {
               </div>
             </CardHeader>
             <CardContent className="grid gap-3 p-8 pt-0">
-              {recentRequestHistory.map((request) => (
-                <RequestSubcard
-                  key={request.id}
-                  href={`/requests/${request.kind}?id=${request.id}`}
-                  title={requestKindLabels[request.kind]}
-                  meta={formatRequestWhen(request)}
-                  status={request.status}
+                {recentRequestHistory.map((request) => (
+                  <RequestSubcard
+                    key={request.id}
+                    href={`${requestPathByKind[request.kind]}?id=${request.id}`}
+                    title={requestKindLabels[request.kind]}
+                    meta={formatRequestWhen(request)}
+                    status={request.status}
                 />
               ))}
               <div className="pt-2">
