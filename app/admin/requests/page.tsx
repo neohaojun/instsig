@@ -6,7 +6,6 @@ import { Sidebar } from "@/components/layout/sidebar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { StatusPill } from "@/components/request/status-pill";
 import type { ProfileRecord, RequestRecord } from "@/lib/types";
 import { requestKindLabels } from "@/lib/request-meta";
@@ -82,19 +81,11 @@ function PendingRequestsCard({
                   className={`group rounded-2xl border border-white/10 bg-white/[0.03] p-4 transition hover:border-white/20 hover:bg-white/[0.05] ${index === 0 ? "animate-enter-soft animate-delay-1" : ""
                     }`}
                 >
-                  <div className="flex flex-wrap items-center justify-between gap-4 text-left">
+                  <div className="flex flex-wrap items-start justify-between gap-4 text-left">
                     <div className="min-w-0 space-y-2">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="truncate text-sm font-medium text-zinc-100">
-                          {formatProfileName(requester, request.requester_email)}
-                        </p>
-                        <Badge variant="outline" className="border-white/10 bg-white/[0.03] text-zinc-300">
-                          {requestKindLabels[request.kind]}
-                        </Badge>
-                      </div>
-                      <p className="text-xs uppercase tracking-[0.12em] text-zinc-500">
-                        {formatPendingRequestWhen(request)}
-                      </p>
+                      <p className="truncate text-sm font-medium text-zinc-100">{formatProfileName(requester, request.requester_email)}</p>
+                      <p className="max-w-[36rem] text-sm text-zinc-400">{requestKindLabels[request.kind]}</p>
+                      <p className="text-xs uppercase tracking-[0.12em] text-zinc-500">{formatPendingRequestWhen(request)}</p>
                     </div>
                     <StatusPill status={request.status} />
                   </div>
