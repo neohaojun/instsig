@@ -27,7 +27,9 @@
 
 html {
   min-height: 100%;
+  height: -webkit-fill-available;
   color-scheme: dark;
+  background-color: #09090b;
   background:
     radial-gradient(circle at top left, rgba(255, 255, 255, 0.04), transparent 28%),
     radial-gradient(circle at top right, rgba(255, 255, 255, 0.02), transparent 22%),
@@ -45,12 +47,15 @@ html {
 body {
   min-height: 100vh;
   min-height: 100dvh;
+  height: -webkit-fill-available;
+  margin: 0;
   color: hsl(var(--foreground));
   background-color: #09090b;
   background:
     radial-gradient(circle at top left, rgba(255, 255, 255, 0.04), transparent 28%),
     radial-gradient(circle at top right, rgba(255, 255, 255, 0.02), transparent 22%),
     linear-gradient(180deg, #09090b 0%, #111113 55%, #09090b 100%);
+  background-attachment: fixed;
 }
 
 .bg-grid {
