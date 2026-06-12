@@ -9,7 +9,7 @@ const userNav = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/requests/report-sick", label: "Report sick" },
   { href: "/requests/external-appointment", label: "External appointment" },
-  { href: "/history", label: "History" },
+  { href: "/history", label: "Existing requests" },
 ];
 
 const adminNav = [

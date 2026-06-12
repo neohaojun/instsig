@@ -98,11 +98,6 @@ export default async function DashboardPage() {
                     </Link>
                   </Button>
                 </div>
-                <div className="pt-2">
-                  <Button asChild variant="link" className="h-auto px-0 text-zinc-200">
-                    <Link href="/history">View request history</Link>
-                  </Button>
-                </div>
               </CardHeader>
             </Card>
 
@@ -112,6 +107,11 @@ export default async function DashboardPage() {
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="space-y-2">
                       <CardTitle className="text-3xl">Existing Requests</CardTitle>
+                    </div>
+                    <div>
+                      <Button asChild variant="link" className="h-auto px-0 text-zinc-200">
+                        <Link href="/history">View existing requests</Link>
+                      </Button>
                     </div>
                   </div>
                 </CardHeader>

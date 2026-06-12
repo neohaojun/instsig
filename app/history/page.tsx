@@ -78,6 +78,10 @@ function HistoryCard({
   );
 }
 
+function isExistingRequest(request: RequestRecord) {
+  return request.status !== "draft";
+}
+
 export default async function HistoryPage() {
   const supabase = await createSupabaseServerClient();
   const {
@@ -91,13 +95,10 @@ export default async function HistoryPage() {
     supabase.from("requests").select("*").eq("requester_id", user.id).order("created_at", { ascending: false }),
   ]);
 
-  const reportSickHistory = (requests ?? []).filter(
-    (request) =>
-      request.kind === "report_sick" && ["finalized", "rejected"].includes(request.status),
-  );
+  const reportSickRequests = (requests ?? []).filter((request) => request.kind === "report_sick" && isExistingRequest(request));
 
-  const externalAppointmentHistory = (requests ?? []).filter(
-    (request) => request.kind === "external_appointment" && ["approved", "rejected"].includes(request.status),
+  const externalAppointmentRequests = (requests ?? []).filter(
+    (request) => request.kind === "external_appointment" && isExistingRequest(request),
   );
 
   return (
@@ -109,9 +110,9 @@ export default async function HistoryPage() {
             <CardHeader className="space-y-4 p-8">
               <div className="space-y-2">
                 <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-zinc-500">Request archive</p>
-                <CardTitle className="text-3xl">History</CardTitle>
+                <CardTitle className="text-3xl">Existing requests</CardTitle>
                 <CardDescription className="text-base leading-7 text-zinc-400">
-                  Completed and older requests are shown here.
+                  All submitted requests are shown here, including ones still in progress.
                 </CardDescription>
               </div>
               <div>
@@ -124,7 +125,7 @@ export default async function HistoryPage() {
           </Card>
           <HistoryCard
             title="Report Sick"
-            requests={reportSickHistory}
+            requests={reportSickRequests}
             emptyText="None found."
             getHref={(request) => `/requests/report-sick?id=${request.id}`}
             getMeta={formatReportSickReportedAt}
@@ -132,7 +133,7 @@ export default async function HistoryPage() {
 
           <HistoryCard
             title="External Appointment"
-            requests={externalAppointmentHistory}
+            requests={externalAppointmentRequests}
             emptyText="None found."
             getHref={(request) => `/requests/external-appointment?id=${request.id}`}
             getMeta={formatExternalAppointmentWhen}
