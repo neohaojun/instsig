@@ -25,6 +25,15 @@
   --radius: 0.875rem;
 }
 
+html {
+  min-height: 100%;
+  color-scheme: dark;
+  background:
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.04), transparent 28%),
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.02), transparent 22%),
+    linear-gradient(180deg, #09090b 0%, #111113 55%, #09090b 100%);
+}
+
 * {
   border-color: hsl(var(--border));
 }
@@ -35,7 +44,9 @@ html {
 
 body {
   min-height: 100vh;
+  min-height: 100dvh;
   color: hsl(var(--foreground));
+  background-color: #09090b;
   background:
     radial-gradient(circle at top left, rgba(255, 255, 255, 0.04), transparent 28%),
     radial-gradient(circle at top right, rgba(255, 255, 255, 0.02), transparent 22%),
