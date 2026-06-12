@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { ChevronDown, UserCircle2 } from "lucide-react";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { formatProfileName } from "@/lib/profile-display";
@@ -9,9 +10,11 @@ import type { ProfileRecord } from "@/lib/types";
 export function ProfileMenu({
   profile,
   email,
+  role,
 }: {
   profile?: Pick<ProfileRecord, "full_name" | "rank"> | null;
   email?: string | null;
+  role?: "user" | "admin";
 }) {
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
@@ -79,6 +82,15 @@ export function ProfileMenu({
             </div>
           </div>
           <div className="px-2 pb-2">
+            {role === "admin" ? (
+              <Link
+                href="/admin/users"
+                className="mb-2 flex items-center rounded-xl px-3 py-2 text-sm text-zinc-200 transition hover:bg-white/5"
+                onClick={() => setOpen(false)}
+              >
+                User management
+              </Link>
+            ) : null}
             <SignOutButton />
           </div>
         </div>
