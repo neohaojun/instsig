@@ -1,7 +1,6 @@
 import { redirect, notFound } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { TopBar } from "@/components/layout/topbar";
-import { Sidebar } from "@/components/layout/sidebar";
 import { RequestSummary } from "@/components/request/request-summary";
 import { AdminReviewPanel } from "@/components/request/admin-review-panel";
 import { ReportSickInitialRequestCard } from "@/components/request/report-sick-followup-form";
@@ -47,29 +46,26 @@ export default async function AdminRequestDetailPage({
   return (
     <main className="min-h-screen bg-[#09090b]">
       <TopBar role="admin" userName={profile?.full_name} userRank={profile?.rank} userEmail={user.email} />
-      <div className="mx-auto flex max-w-7xl">
-        <Sidebar pathname="/admin/requests" role="admin" />
-        <section className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
-          <div className="grid gap-6 xl:grid-cols-[1fr_0.92fr]">
-            <div className="animate-enter">
-              {request.kind === "report_sick" ? (
-                <ReportSickInitialRequestCard request={request} profilesById={profilesById} />
-              ) : (
-                <RequestSummary
-                  request={request}
-                  followup={updates?.[0] ?? null}
-                  profilesById={profilesById}
-                  showLifecycle={false}
-                  showAdminNote={false}
-                />
-              )}
-            </div>
-            <div className="animate-enter-soft animate-delay-1 self-start xl:sticky xl:top-24">
-              <AdminReviewPanel request={request} adminId={profile.id} adminEmail={user.email ?? ""} />
-            </div>
+      <section className="mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-6 lg:px-8">
+        <div className="grid gap-6 xl:grid-cols-[1fr_0.92fr]">
+          <div className="animate-enter">
+            {request.kind === "report_sick" ? (
+              <ReportSickInitialRequestCard request={request} profilesById={profilesById} />
+            ) : (
+              <RequestSummary
+                request={request}
+                followup={updates?.[0] ?? null}
+                profilesById={profilesById}
+                showLifecycle={false}
+                showAdminNote={false}
+              />
+            )}
           </div>
-        </section>
-      </div>
+          <div className="animate-enter-soft animate-delay-1 self-start xl:sticky xl:top-24">
+            <AdminReviewPanel request={request} adminId={profile.id} adminEmail={user.email ?? ""} />
+          </div>
+        </div>
+      </section>
     </main>
   );
 }

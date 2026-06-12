@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import { format, parseISO } from "date-fns";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { TopBar } from "@/components/layout/topbar";
-import { Sidebar } from "@/components/layout/sidebar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -127,28 +126,23 @@ export default async function AdminRequestsPage() {
   return (
     <main className="min-h-screen bg-[#09090b]">
       <TopBar role="admin" userName={profile?.full_name} userRank={profile?.rank} userEmail={user.email} />
-      <div className="mx-auto flex max-w-7xl">
-        <Sidebar pathname="/admin/requests" role="admin" />
-        <section className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
-          <div className="grid gap-6">
-            <Card className="overflow-hidden animate-enter">
-              <CardHeader className="space-y-4 p-8">
-                <div className="space-y-2">
-                  <CardTitle className="text-3xl">Pending Requests</CardTitle>
-                </div>
-                <div className="flex flex-wrap gap-3">
-                  <Button asChild variant="outline">
-                    <Link href="/dashboard">Back to dashboard</Link>
-                  </Button>
-                </div>
-              </CardHeader>
-            </Card>
+      <section className="mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-6 lg:px-8">
+        <Card className="overflow-hidden animate-enter">
+          <CardHeader className="space-y-4 p-8">
+            <div className="space-y-2">
+              <CardTitle className="text-3xl">Pending Requests</CardTitle>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <Button asChild variant="outline">
+                <Link href="/dashboard">Back to dashboard</Link>
+              </Button>
+            </div>
+          </CardHeader>
+        </Card>
 
-            <PendingRequestsCard title="Report Sick" requests={reportSickRequests} profilesById={requestersById} />
-            <PendingRequestsCard title="External Appointment" requests={externalAppointmentRequests} profilesById={requestersById} />
-          </div>
-        </section>
-      </div>
+        <PendingRequestsCard title="Report Sick" requests={reportSickRequests} profilesById={requestersById} />
+        <PendingRequestsCard title="External Appointment" requests={externalAppointmentRequests} profilesById={requestersById} />
+      </section>
     </main>
   );
 }
