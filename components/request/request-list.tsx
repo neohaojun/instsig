@@ -7,6 +7,11 @@ import { StatusPill } from "@/components/request/status-pill";
 import { Badge } from "@/components/ui/badge";
 import { formatProfileName } from "@/lib/profile-display";
 
+const requestPathByKind = {
+  report_sick: "/requests/report-sick",
+  external_appointment: "/requests/external-appointment",
+} as const;
+
 export function RequestList({
   requests,
   getHref,
@@ -37,9 +42,10 @@ export function RequestList({
         {requests.map((request, index) => {
           const requester = profilesById[request.requester_id];
           const submittedLabel = format(new Date(request.created_at), "dd MMM yyyy, HH:mm");
+          const href = getHref?.(request) ?? `${requestPathByKind[request.kind]}?id=${request.id}`;
 
           return (
-            <Link key={request.id} href={(getHref?.(request) ?? `/requests/${request.kind}?id=${request.id}`) as never} className="block">
+            <Link key={request.id} href={href as never} className="block">
               <div
                 className={`group rounded-2xl border border-white/10 bg-white/[0.03] p-4 transition hover:border-white/20 hover:bg-white/[0.05] ${
                   index === 0 ? "animate-enter-soft animate-delay-1" : ""
