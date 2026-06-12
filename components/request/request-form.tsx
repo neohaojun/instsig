@@ -239,7 +239,7 @@ function ReportSickFields({ form }: { form: any }) {
       </div>
       <div className="grid gap-2">
         <Label htmlFor="timeReportingSick">Time Reporting Sick</Label>
-        <Input id="timeReportingSick" type="time" {...form.register("timeReportingSick")} />
+        <Input id="timeReportingSick" type="time" className="text-left" {...form.register("timeReportingSick")} />
       </div>
       <div className="grid gap-2">
         <Label htmlFor="where">Where are you reporting sick?</Label>

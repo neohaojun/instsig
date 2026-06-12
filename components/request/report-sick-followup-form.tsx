@@ -220,7 +220,14 @@ export function ReportSickInitialRequestCard({
           </div>
           <div className="grid gap-2">
             <Label htmlFor="timeReportingSick">Time Reporting Sick</Label>
-            <Input id="timeReportingSick" type="time" value={String(payload.timeReportingSick ?? "")} readOnly disabled />
+            <Input
+              id="timeReportingSick"
+              type="time"
+              className="text-left"
+              value={String(payload.timeReportingSick ?? "")}
+              readOnly
+              disabled
+            />
           </div>
           <div className="grid gap-2">
             <Label htmlFor="where">Where are you reporting sick?</Label>
