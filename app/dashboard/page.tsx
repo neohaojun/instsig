@@ -9,7 +9,6 @@ import { FileText, CalendarClock } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import type { ProfileRecord, RequestRecord } from "@/lib/types";
 import { StatusPill } from "@/components/request/status-pill";
-import { Badge } from "@/components/ui/badge";
 import { requestKindLabels } from "@/lib/request-meta";
 import { formatProfileName } from "@/lib/profile-display";
 
@@ -62,14 +61,12 @@ function RequestSubcard({
   title,
   meta,
   status,
-  badge,
   description,
 }: {
   href: string;
   title: string;
   meta: string;
   status: RequestRecord["status"];
-  badge?: string;
   description?: string;
 }) {
   return (
@@ -77,14 +74,7 @@ function RequestSubcard({
       <div className="group rounded-2xl border border-white/10 bg-white/[0.03] p-4 transition hover:border-white/20 hover:bg-white/[0.05]">
         <div className="flex items-start justify-between gap-4 text-left">
           <div className="min-w-0 space-y-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <p className="truncate text-sm font-medium text-zinc-100">{title}</p>
-              {badge ? (
-                <Badge variant="outline" className="border-white/10 bg-white/[0.03] text-zinc-300">
-                  {badge}
-                </Badge>
-              ) : null}
-            </div>
+            <p className="truncate text-sm font-medium text-zinc-100">{title}</p>
             <p className="text-xs uppercase tracking-[0.12em] text-zinc-500">{meta}</p>
             {description ? <p className="max-w-[36rem] text-sm text-zinc-400">{description}</p> : null}
           </div>
@@ -216,7 +206,7 @@ export default async function DashboardPage() {
                           title={title}
                           meta={when}
                           status={request.status}
-                          badge={requestKindLabels[request.kind]}
+                          description={requestKindLabels[request.kind]}
                         />
                       );
                     })
