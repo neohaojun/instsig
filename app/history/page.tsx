@@ -110,7 +110,7 @@ export default async function HistoryPage() {
             <CardHeader className="space-y-4 p-8">
               <div className="space-y-2">
                 <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-zinc-500">Request archive</p>
-                <CardTitle className="text-3xl">Existing requests</CardTitle>
+                <CardTitle className="text-3xl">Request History</CardTitle>
                 <CardDescription className="text-base leading-7 text-zinc-400">
                   All submitted requests are shown here, including ones still in progress.
                 </CardDescription>
