@@ -83,10 +83,14 @@ export function RequestSummary({
   request,
   followup,
   profilesById = {},
+  showLifecycle = true,
+  showAdminNote = true,
 }: {
   request: RequestRecord;
   followup?: RequestUpdateRecord | null;
   profilesById?: Record<string, ProfileRecord | null | undefined>;
+  showLifecycle?: boolean;
+  showAdminNote?: boolean;
 }) {
   const approvedBy = request.approved_by ? profilesById[request.approved_by] : null;
   const rejectedBy = request.rejected_by ? profilesById[request.rejected_by] : null;
@@ -143,36 +147,38 @@ export function RequestSummary({
           </div>
         </section>
 
-        <section className="grid gap-4">
-          {sectionTitle("Lifecycle", "Approval and finalization metadata are shown here.")}
-          <div className="grid gap-3 md:grid-cols-2">
-            <ReadOnlyField label="Submitted" value={formatDateTime(request.submitted_at ?? request.created_at)} />
-            {request.rejected_at ? (
-              <ReadOnlyField label="Rejected" value={`${displayPerson(rejectedBy, request.rejected_by)} · ${formatDateTime(request.rejected_at)}`} />
-            ) : null}
-            {followupSubmittedAt ? <ReadOnlyField label="Follow-up submitted" value={formatDateTime(followupSubmittedAt)} /> : null}
-            {request.approved_at ? (
-              <div className="md:col-span-2">
-                <ApprovalBanner
-                  label="Approved"
-                  name={displayPerson(approvedBy, request.approved_by)}
-                  when={formatDateTime(request.approved_at)}
-                />
-              </div>
-            ) : null}
-            {request.finalized_at ? (
-              <div className="md:col-span-2">
-                <ApprovalBanner
-                  label="Finalized"
-                  name={displayPerson(finalizedBy, request.finalized_by)}
-                  when={formatDateTime(request.finalized_at)}
-                />
-              </div>
-            ) : null}
-          </div>
-        </section>
+        {showLifecycle ? (
+          <section className="grid gap-4">
+            {sectionTitle("Lifecycle", "Approval and finalization metadata are shown here.")}
+            <div className="grid gap-3 md:grid-cols-2">
+              <ReadOnlyField label="Submitted" value={formatDateTime(request.submitted_at ?? request.created_at)} />
+              {request.rejected_at ? (
+                <ReadOnlyField label="Rejected" value={`${displayPerson(rejectedBy, request.rejected_by)} · ${formatDateTime(request.rejected_at)}`} />
+              ) : null}
+              {followupSubmittedAt ? <ReadOnlyField label="Follow-up submitted" value={formatDateTime(followupSubmittedAt)} /> : null}
+              {request.approved_at ? (
+                <div className="md:col-span-2">
+                  <ApprovalBanner
+                    label="Approved"
+                    name={displayPerson(approvedBy, request.approved_by)}
+                    when={formatDateTime(request.approved_at)}
+                  />
+                </div>
+              ) : null}
+              {request.finalized_at ? (
+                <div className="md:col-span-2">
+                  <ApprovalBanner
+                    label="Finalized"
+                    name={displayPerson(finalizedBy, request.finalized_by)}
+                    when={formatDateTime(request.finalized_at)}
+                  />
+                </div>
+              ) : null}
+            </div>
+          </section>
+        ) : null}
 
-        {request.review_note ? (
+        {showAdminNote && request.review_note ? (
           <section className="grid gap-3">
             {sectionTitle("Admin note")}
             <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm leading-6 text-zinc-200">{request.review_note}</div>

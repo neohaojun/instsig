@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { format, parseISO } from "date-fns";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { TopBar } from "@/components/layout/topbar";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusPill } from "@/components/request/status-pill";
 import Link from "next/link";
 import type { RequestRecord } from "@/lib/types";
@@ -105,12 +105,23 @@ export default async function HistoryPage() {
       <TopBar userName={profile?.full_name} userRank={profile?.rank} userEmail={user.email} />
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         <div className="grid gap-6">
-          <div className="flex justify-start">
-            <Link href="/dashboard" className="inline-flex items-center gap-2 text-sm text-zinc-300 transition hover:text-zinc-100">
-              <ChevronLeft className="h-4 w-4" />
-              Dashboard
-            </Link>
-          </div>
+          <Card className="overflow-hidden animate-enter">
+            <CardHeader className="space-y-4 p-8">
+              <div className="space-y-2">
+                <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-zinc-500">Request archive</p>
+                <CardTitle className="text-3xl">History</CardTitle>
+                <CardDescription className="text-base leading-7 text-zinc-400">
+                  Completed and older requests are shown here.
+                </CardDescription>
+              </div>
+              <div>
+                <Link href="/dashboard" className="inline-flex items-center gap-2 text-sm text-zinc-300 transition hover:text-zinc-100">
+                  <ChevronLeft className="h-4 w-4" />
+                  Dashboard
+                </Link>
+              </div>
+            </CardHeader>
+          </Card>
           <HistoryCard
             title="Report Sick"
             requests={reportSickHistory}
