@@ -53,6 +53,9 @@ UI expectations:
 
 - show who approved and when
 - show who finalized and when
+- keep report-sick forms and associated read-only/follow-up viewers on a black page background from top to bottom
+- report-sick read-only viewers and follow-up surfaces should include a clear cancel/return action for users
+- prefer a descriptive report-sick lifecycle progress bar over a standalone status badge when showing the current stage inside the report-sick form/viewer
 - keep the report sick page split into two halves once a request exists:
   - initial request
   - post-visit details
@@ -227,3 +230,8 @@ If the app reports a missing table or schema cache issue for a known object such
 - for follow-up submission failures, prefer the existing table write path over adding a new RPC call that can get stuck behind schema cache drift
 - assume some Supabase projects may already have older versions of `public.requests`, `public.request_updates`, or related policies; prefer additive `alter table ... add column if not exists ...`, `create index if not exists`, and `drop policy if exists` / recreate patterns so rerunning `supabase/schema.sql` upgrades an existing project cleanly
 - if a rerun fails on a missing column such as `followup_submitted_at`, treat that as schema drift from an older table definition and patch `supabase/schema.sql` to be rerunnable rather than relying on a fresh-project-only `create table if not exists` path
+
+# Environment Notes
+
+- Supabase browser/client setup should support `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` and the legacy `NEXT_PUBLIC_SUPABASE_ANON_KEY` so older Vercel environments do not crash on startup.
+- Keep `typedRoutes: true` at the top level of `next.config.mjs`; do not move it under `experimental`.

@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusPill } from "@/components/request/status-pill";
 import { ApprovalBanner } from "@/components/request/approval-banner";
 import { ReportSickFollowupFields } from "@/components/request/report-sick-followup-display";
+import { ReportSickStageProgress } from "@/components/request/report-sick-stage-progress";
 import { cn } from "@/lib/utils";
 import { formatProfileName } from "@/lib/profile-display";
 
@@ -91,10 +92,14 @@ export function RequestSummary({
               <p className="text-base leading-7 text-zinc-400">Submitted by {request.requester_email}</p>
             </div>
           </div>
-          <StatusPill status={request.status} />
+          {request.kind === "report_sick" ? null : <StatusPill status={request.status} />}
         </div>
       </CardHeader>
       <CardContent className="grid gap-6 p-8 pt-0">
+        {request.kind === "report_sick" ? (
+          <ReportSickStageProgress request={request} hasFollowup={Boolean(followup)} />
+        ) : null}
+
         <section className="grid gap-4">
           {sectionTitle("Initial request")}
           <div className="grid gap-3 md:grid-cols-2">
