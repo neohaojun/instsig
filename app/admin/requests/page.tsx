@@ -6,9 +6,27 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { StatusPill } from "@/components/request/status-pill";
-import type { ProfileRecord, RequestRecord } from "@/lib/types";
+import { Badge } from "@/components/ui/badge";
+import type { ProfileRecord, RequestRecord, RequestStatus } from "@/lib/types";
 import { requestKindLabels } from "@/lib/request-meta";
 import { formatProfileName } from "@/lib/profile-display";
+import { cn } from "@/lib/utils";
+
+type RequestStatusView = "pending" | "all" | "approved" | "rejected" | "finalized";
+
+const statusViews: { value: RequestStatusView; label: string }[] = [
+  { value: "pending", label: "Pending" },
+  { value: "all", label: "All Requests" },
+  { value: "approved", label: "Approved" },
+  { value: "rejected", label: "Rejected" },
+  { value: "finalized", label: "Finalized" },
+];
+
+const exactStatusByView: Partial<Record<RequestStatusView, RequestStatus>> = {
+  approved: "approved",
+  rejected: "rejected",
+  finalized: "finalized",
+};
 
 function isIncompleteRequest(request: RequestRecord) {
   if (request.kind === "report_sick") {
@@ -46,26 +64,79 @@ function formatPendingRequestWhen(request: RequestRecord) {
   }
 }
 
+function formatSubmittedWhen(request: RequestRecord) {
+  return format(new Date(request.submitted_at ?? request.created_at), "dd/MM/yyyy, HH:mm");
+}
+
 function buildProfilesMap(profiles: ProfileRecord[] | null | undefined) {
   return Object.fromEntries((profiles ?? []).map((profile) => [profile.id, profile]));
 }
 
-function PendingRequestsCard({
+function filterRequestsByView(requests: RequestRecord[], statusView: RequestStatusView) {
+  if (statusView === "all") return requests;
+  if (statusView === "pending") return requests.filter(isIncompleteRequest);
+
+  const exactStatus = exactStatusByView[statusView];
+  return exactStatus ? requests.filter((request) => request.status === exactStatus) : requests;
+}
+
+function resolveStatusView(status: string | string[] | undefined): RequestStatusView {
+  const value = Array.isArray(status) ? status[0] : status;
+  return statusViews.some((view) => view.value === value) ? (value as RequestStatusView) : "pending";
+}
+
+function RequestStatusTabs({ activeView }: { activeView: RequestStatusView }) {
+  return (
+    <div className="flex flex-wrap gap-2 rounded-2xl border border-white/10 bg-white/[0.03] p-1">
+      {statusViews.map((view) => {
+        const isActive = view.value === activeView;
+        const href =
+          view.value === "pending"
+            ? { pathname: "/admin/requests" }
+            : { pathname: "/admin/requests", query: { status: view.value } };
+
+        return (
+          <Link
+            key={view.value}
+            href={href}
+            className={cn(
+              "rounded-xl px-3 py-2 text-sm font-medium text-zinc-400 transition hover:bg-white/[0.04] hover:text-zinc-100",
+              isActive && "bg-zinc-100 text-zinc-950 hover:bg-zinc-100 hover:text-zinc-950",
+            )}
+          >
+            {view.label}
+          </Link>
+        );
+      })}
+    </div>
+  );
+}
+
+function RequestsByKindCard({
   title,
   requests,
   profilesById,
+  statusView,
 }: {
   title: string;
   requests: RequestRecord[];
   profilesById: Record<string, ProfileRecord | null | undefined>;
+  statusView: RequestStatusView;
 }) {
+  const emptyLabel =
+    statusView === "pending"
+      ? `No pending ${title.toLowerCase()} requests right now.`
+      : `No ${title.toLowerCase()} requests found for this view.`;
+
   return (
     <Card className="overflow-hidden animate-enter-soft">
       <CardHeader className="space-y-4 p-8">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="space-y-2">
             <CardTitle className="text-3xl">{title}</CardTitle>
-            <CardDescription>{requests.length} pending</CardDescription>
+            <CardDescription>
+              {requests.length} {requests.length === 1 ? "request" : "requests"}
+            </CardDescription>
           </div>
         </div>
       </CardHeader>
@@ -77,13 +148,25 @@ function PendingRequestsCard({
             return (
               <Link key={request.id} href={`/admin/requests/${request.id}`} className="block">
                 <div
-                  className={`group rounded-2xl border border-white/10 bg-white/[0.03] p-4 transition hover:border-white/20 hover:bg-white/[0.05] ${index === 0 ? "animate-enter-soft animate-delay-1" : ""
-                    }`}
+                  className={cn(
+                    "group rounded-2xl border border-white/10 bg-white/[0.03] p-4 transition hover:border-white/20 hover:bg-white/[0.05]",
+                    index === 0 && "animate-enter-soft animate-delay-1",
+                  )}
                 >
                   <div className="flex flex-wrap items-start justify-between gap-4 text-left">
                     <div className="min-w-0 space-y-2">
-                      <p className="truncate text-sm font-medium text-zinc-100">{formatProfileName(requester, request.requester_email)}</p>
-                      <p className="text-xs uppercase tracking-[0.12em] text-zinc-500">{formatPendingRequestWhen(request)}</p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="truncate text-sm font-medium text-zinc-100">
+                          {formatProfileName(requester, request.requester_email)}
+                        </p>
+                        <Badge variant="outline" className="border-white/10 bg-white/[0.03] text-zinc-300">
+                          {requestKindLabels[request.kind]}
+                        </Badge>
+                      </div>
+                      <p className="text-xs uppercase tracking-[0.12em] text-zinc-500">
+                        Request date: {formatPendingRequestWhen(request)}
+                      </p>
+                      <p className="text-sm text-zinc-400">Submitted {formatSubmittedWhen(request)}</p>
                     </div>
                     <StatusPill status={request.status} />
                   </div>
@@ -93,7 +176,7 @@ function PendingRequestsCard({
           })
         ) : (
           <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] p-4 text-sm text-zinc-400">
-            No pending requests right now.
+            {emptyLabel}
           </div>
         )}
       </CardContent>
@@ -101,7 +184,13 @@ function PendingRequestsCard({
   );
 }
 
-export default async function AdminRequestsPage() {
+export default async function AdminRequestsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ status?: string | string[] }>;
+}) {
+  const { status } = await searchParams;
+  const statusView = resolveStatusView(status);
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -112,11 +201,11 @@ export default async function AdminRequestsPage() {
   if (profile?.role !== "admin") redirect("/dashboard");
 
   const { data: requests } = await supabase.from("requests").select("*").order("created_at", { ascending: false });
-  const pendingRequests = (requests ?? []).filter(isIncompleteRequest);
-  const reportSickRequests = pendingRequests.filter((request) => request.kind === "report_sick");
-  const externalAppointmentRequests = pendingRequests.filter((request) => request.kind === "external_appointment");
+  const visibleRequests = filterRequestsByView(requests ?? [], statusView);
+  const reportSickRequests = visibleRequests.filter((request) => request.kind === "report_sick");
+  const externalAppointmentRequests = visibleRequests.filter((request) => request.kind === "external_appointment");
 
-  const requesterIds = Array.from(new Set(pendingRequests.map((request) => request.requester_id)));
+  const requesterIds = Array.from(new Set(visibleRequests.map((request) => request.requester_id)));
   const { data: requesters } = requesterIds.length
     ? await supabase.from("profiles").select("*").in("id", requesterIds)
     : { data: [] as ProfileRecord[] };
@@ -129,8 +218,10 @@ export default async function AdminRequestsPage() {
         <Card className="overflow-hidden animate-enter">
           <CardHeader className="space-y-4 p-8">
             <div className="space-y-2">
-              <CardTitle className="text-3xl">Pending Requests</CardTitle>
+              <CardTitle className="text-3xl">Request Queue</CardTitle>
+              <CardDescription>Review priority requests first, or switch views to audit older records.</CardDescription>
             </div>
+            <RequestStatusTabs activeView={statusView} />
             <div className="flex flex-wrap gap-3">
               <Button asChild variant="outline">
                 <Link href="/dashboard">Back to dashboard</Link>
@@ -139,8 +230,18 @@ export default async function AdminRequestsPage() {
           </CardHeader>
         </Card>
 
-        <PendingRequestsCard title="Report Sick" requests={reportSickRequests} profilesById={requestersById} />
-        <PendingRequestsCard title="External Appointment" requests={externalAppointmentRequests} profilesById={requestersById} />
+        <RequestsByKindCard
+          title="Report Sick"
+          requests={reportSickRequests}
+          profilesById={requestersById}
+          statusView={statusView}
+        />
+        <RequestsByKindCard
+          title="External Appointment"
+          requests={externalAppointmentRequests}
+          profilesById={requestersById}
+          statusView={statusView}
+        />
       </section>
     </main>
   );
