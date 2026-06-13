@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { TopBar } from "@/components/layout/topbar";
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { ArrowUpRight, FileText, Users } from "lucide-react";
@@ -27,9 +27,6 @@ export default async function AdminPage() {
             </Badge>
             <div className="max-w-3xl space-y-3">
               <CardTitle className="text-3xl leading-tight sm:text-4xl">Choose a workspace</CardTitle>
-              <CardDescription className="max-w-2xl text-base leading-7">
-                Jump straight to the request queue or the user directory.
-              </CardDescription>
             </div>
           </CardHeader>
         </Card>
@@ -46,9 +43,6 @@ export default async function AdminPage() {
                 </div>
                 <div className="space-y-2">
                   <CardTitle className="text-2xl">Request queue</CardTitle>
-                  <CardDescription className="leading-7">
-                    Review report sick and external appointment requests.
-                  </CardDescription>
                 </div>
               </CardHeader>
             </Card>
@@ -65,9 +59,6 @@ export default async function AdminPage() {
                 </div>
                 <div className="space-y-2">
                   <CardTitle className="text-2xl">User directory</CardTitle>
-                  <CardDescription className="leading-7">
-                    View profiles, ranks, batches, and platoon assignments.
-                  </CardDescription>
                 </div>
               </CardHeader>
             </Card>

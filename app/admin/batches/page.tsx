@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { TopBar } from "@/components/layout/topbar";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -35,7 +35,6 @@ export default async function AdminBatchesPage() {
           <CardHeader className="space-y-4 p-8">
             <Badge variant="outline" className="w-fit">Batches</Badge>
             <CardTitle className="text-4xl leading-tight sm:text-5xl">Batch records</CardTitle>
-            <CardDescription className="text-base leading-7">View and prepare batch data for later assignment workflows.</CardDescription>
             <div className="flex flex-wrap gap-3 pt-2">
               <Button asChild>
                 <Link href="/admin">Back to overview</Link>

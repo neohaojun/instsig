@@ -2,7 +2,7 @@ import Link from "next/link";
 import { format } from "date-fns";
 import type { ProfileRecord, RequestRecord } from "@/lib/types";
 import { requestKindLabels } from "@/lib/request-meta";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusPill } from "@/components/request/status-pill";
 import { Badge } from "@/components/ui/badge";
 import { formatProfileName } from "@/lib/profile-display";
@@ -26,7 +26,6 @@ export function RequestList({
       <Card className="overflow-hidden animate-enter-soft">
         <CardHeader className="space-y-2 p-8">
           <CardTitle className="text-3xl">No requests yet</CardTitle>
-          <CardDescription>Start with a sick report or an external appointment request.</CardDescription>
         </CardHeader>
       </Card>
     );
@@ -36,7 +35,6 @@ export function RequestList({
     <Card className="overflow-hidden animate-enter-soft">
       <CardHeader className="space-y-2 p-8">
         <CardTitle className="text-3xl">Recent requests</CardTitle>
-        <CardDescription>Track status updates and open requests for review.</CardDescription>
       </CardHeader>
       <CardContent className="grid gap-3 p-8 pt-0">
         {requests.map((request, index) => {
@@ -62,9 +60,7 @@ export function RequestList({
                       </Badge>
                     </div>
                     <p className="text-xs uppercase tracking-[0.12em] text-zinc-500">{submittedLabel}</p>
-                    <p className="max-w-[36rem] text-sm text-zinc-400">
-                      {request.review_note ? request.review_note : "No admin note yet."}
-                    </p>
+                    {request.review_note ? <p className="max-w-[36rem] text-sm text-zinc-400">{request.review_note}</p> : null}
                   </div>
                   <div className="flex items-center gap-3">
                     <StatusPill status={request.status} />

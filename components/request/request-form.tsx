@@ -10,7 +10,7 @@ import { format, parseISO, isValid } from "date-fns";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { ExternalAppointmentPayload, ReportSickPayload, RequestKind, RequestRecord } from "@/lib/types";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -35,14 +35,12 @@ const externalAppointmentSchema = z.object({
 
 type FormValues = z.infer<typeof reportSickSchema> | z.infer<typeof externalAppointmentSchema>;
 
-const kindFormMeta: Record<RequestKind, { title: string; description: string }> = {
+const kindFormMeta: Record<RequestKind, { title: string }> = {
   report_sick: {
     title: "Report Sick",
-    description: "",
   },
   external_appointment: {
     title: "External appointment",
-    description: "Submit your appointment details and the lessons affected.",
   },
 };
 
@@ -147,7 +145,6 @@ export function RequestForm({
     <Card className="mx-auto w-full max-w-5xl">
       <CardHeader>
         <CardTitle>{kindFormMeta[kind].title}</CardTitle>
-        {kindFormMeta[kind].description ? <CardDescription>{kindFormMeta[kind].description}</CardDescription> : null}
       </CardHeader>
       <CardContent>
         <form

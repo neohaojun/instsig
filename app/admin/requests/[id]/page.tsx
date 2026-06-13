@@ -5,7 +5,7 @@ import { RequestSummary } from "@/components/request/request-summary";
 import { AdminReviewPanel } from "@/components/request/admin-review-panel";
 import { AdminReportSickFollowupCard } from "@/components/request/admin-report-sick-followup-card";
 import { ReportSickInitialRequestCard } from "@/components/request/report-sick-followup-form";
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatProfileName } from "@/lib/profile-display";
 import type { BatchRecord, ProfileRecord } from "@/lib/types";
 
@@ -77,10 +77,10 @@ export default async function AdminRequestDetailPage({
               <Card className="overflow-hidden">
                 <CardHeader className="space-y-2 p-6">
                   <CardTitle className="text-base font-semibold text-zinc-100">Submitted by</CardTitle>
-                  <CardDescription className="text-sm leading-6 text-zinc-400">
+                  <p className="text-sm leading-6 text-zinc-400">
                     {requesterDisplayName}
                     {requesterSummary ? ` · ${requesterSummary}` : ""}
-                  </CardDescription>
+                  </p>
                 </CardHeader>
               </Card>
             );
