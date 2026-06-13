@@ -3,29 +3,6 @@
 @tailwind utilities;
 
 :root {
-  --background: 0 0% 3.9%;
-  --foreground: 0 0% 98%;
-  --card: 0 0% 6.5%;
-  --card-foreground: 0 0% 98%;
-  --popover: 0 0% 6.5%;
-  --popover-foreground: 0 0% 98%;
-  --primary: 0 0% 92%;
-  --primary-foreground: 0 0% 9%;
-  --secondary: 0 0% 14.9%;
-  --secondary-foreground: 0 0% 98%;
-  --muted: 0 0% 14.9%;
-  --muted-foreground: 0 0% 63.9%;
-  --accent: 0 0% 14.9%;
-  --accent-foreground: 0 0% 98%;
-  --destructive: 0 62.8% 30.6%;
-  --destructive-foreground: 0 0% 98%;
-  --border: 0 0% 14.9%;
-  --input: 0 0% 14.9%;
-  --ring: 0 0% 83.1%;
-  --radius: 0.875rem;
-}
-
-.light {
   --background: 0 0% 98%;
   --foreground: 240 10% 3.9%;
   --card: 0 0% 100%;
@@ -45,26 +22,49 @@
   --border: 240 5.9% 86%;
   --input: 240 5.9% 86%;
   --ring: 240 5.9% 10%;
+  --radius: 0.875rem;
+}
+
+.dark {
+  --background: 0 0% 3.9%;
+  --foreground: 0 0% 98%;
+  --card: 0 0% 6.5%;
+  --card-foreground: 0 0% 98%;
+  --popover: 0 0% 6.5%;
+  --popover-foreground: 0 0% 98%;
+  --primary: 0 0% 92%;
+  --primary-foreground: 0 0% 9%;
+  --secondary: 0 0% 14.9%;
+  --secondary-foreground: 0 0% 98%;
+  --muted: 0 0% 14.9%;
+  --muted-foreground: 0 0% 63.9%;
+  --accent: 0 0% 14.9%;
+  --accent-foreground: 0 0% 98%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 0 0% 14.9%;
+  --input: 0 0% 14.9%;
+  --ring: 0 0% 83.1%;
 }
 
 html {
   min-height: 100%;
   height: -webkit-fill-available;
+  color-scheme: light;
+  background-color: #ffffff;
+  background:
+    radial-gradient(circle at top left, rgba(24, 24, 27, 0.035), transparent 28%),
+    radial-gradient(circle at top right, rgba(24, 24, 27, 0.025), transparent 22%),
+    linear-gradient(180deg, #ffffff 0%, #fafafa 48%, #f4f4f5 100%);
+}
+
+html.dark {
   color-scheme: dark;
   background-color: #09090b;
   background:
     radial-gradient(circle at top left, rgba(255, 255, 255, 0.04), transparent 28%),
     radial-gradient(circle at top right, rgba(255, 255, 255, 0.02), transparent 22%),
     linear-gradient(180deg, #09090b 0%, #111113 55%, #09090b 100%);
-}
-
-.light {
-  color-scheme: light;
-  background-color: #f4f4f5;
-  background:
-    radial-gradient(circle at top left, rgba(39, 39, 42, 0.05), transparent 28%),
-    radial-gradient(circle at top right, rgba(39, 39, 42, 0.035), transparent 22%),
-    linear-gradient(180deg, #fafafa 0%, #f4f4f5 55%, #e4e4e7 100%);
 }
 
 * {
@@ -81,21 +81,21 @@ body {
   height: -webkit-fill-available;
   margin: 0;
   color: hsl(var(--foreground));
+  background-color: #ffffff;
+  background:
+    radial-gradient(circle at top left, rgba(24, 24, 27, 0.035), transparent 28%),
+    radial-gradient(circle at top right, rgba(24, 24, 27, 0.025), transparent 22%),
+    linear-gradient(180deg, #ffffff 0%, #fafafa 48%, #f4f4f5 100%);
+  background-attachment: fixed;
+}
+
+html.dark body {
+  color: hsl(var(--foreground));
   background-color: #09090b;
   background:
     radial-gradient(circle at top left, rgba(255, 255, 255, 0.04), transparent 28%),
     radial-gradient(circle at top right, rgba(255, 255, 255, 0.02), transparent 22%),
     linear-gradient(180deg, #09090b 0%, #111113 55%, #09090b 100%);
-  background-attachment: fixed;
-}
-
-.light body {
-  color: hsl(var(--foreground));
-  background-color: #f4f4f5;
-  background:
-    radial-gradient(circle at top left, rgba(39, 39, 42, 0.05), transparent 28%),
-    radial-gradient(circle at top right, rgba(39, 39, 42, 0.035), transparent 22%),
-    linear-gradient(180deg, #fafafa 0%, #f4f4f5 55%, #e4e4e7 100%);
   background-attachment: fixed;
 }
 
@@ -140,7 +140,7 @@ body {
 .light .bg-zinc-950\/95,
 .light .bg-zinc-900,
 .light .bg-zinc-800 {
-  background-color: rgba(255, 255, 255, 0.82);
+  background-color: rgba(255, 255, 255, 0.88);
 }
 
 .light .bg-zinc-700 {
@@ -184,7 +184,6 @@ body {
   color: #71717a;
 }
 
-.light .text-white,
 .light .hover\:text-white:hover,
 .light .hover\:text-zinc-100:hover,
 .light .group:hover .group-hover\:text-zinc-300 {
