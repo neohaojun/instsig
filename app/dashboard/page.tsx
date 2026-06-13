@@ -9,7 +9,7 @@ import { format, parseISO } from "date-fns";
 import type { ProfileRecord, RequestRecord } from "@/lib/types";
 import { requestKindLabels } from "@/lib/request-meta";
 import { formatProfileName } from "@/lib/profile-display";
-import { ReportSickStageProgress } from "@/components/request/report-sick-stage-progress";
+import { StatusPill } from "@/components/request/status-pill";
 
 function isIncompleteRequest(request: RequestRecord) {
   if (request.kind === "report_sick") {
@@ -82,7 +82,7 @@ function RequestSubcard({
             {description ? <p className="max-w-[36rem] text-sm text-zinc-400">{description}</p> : null}
             <p className="text-xs uppercase tracking-[0.12em] text-zinc-500">{meta}</p>
           </div>
-          {request.kind === "report_sick" ? <ReportSickStageProgress request={request} /> : null}
+          <StatusPill status={request.status} />
         </div>
       </div>
     </Link>

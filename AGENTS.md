@@ -55,10 +55,9 @@ UI expectations:
 - show who finalized and when
 - keep report-sick forms and associated read-only/follow-up viewers on a black page background from top to bottom
 - report-sick read-only viewers and follow-up surfaces should include a clear `Close` action for users
-- use the 4-part circular report-sick lifecycle indicator on dashboard preview cards, not inside the report-sick form/detail page
-- the circular report-sick lifecycle indicator should use the sequence `Pending review`, `Approved`, `Pending finalization`, `Finalized`, with a center letter, visible circular gaps between segments, and hover/focus detail text
-- dashboard preview cards should not show separate request status text or status badges; keep them focused on request type, person where relevant, original date/time, and the circular report-sick lifecycle indicator where applicable
-- dashboard, history, and admin queue rows should keep status badges, but badge labels should be descriptive enough to distinguish pending review, approval, follow-up submission, finalization, and rejection
+- dashboard preview cards should show the request status badge alongside request type, person where relevant, and original date/time
+- status badge colors should use yellow for `Pending`, green for `Approved`, violet for `Submitted`, and blue for `Finalised`
+- dashboard, history, and admin queue rows should keep status badges with consistent labels and colors
 - form close controls should use consistent `Close` button UI/UX, successful form actions should return to the previous page after saving, and each form/detail page should show only one close button
 - keep the report sick page split into two halves once a request exists:
   - initial request
