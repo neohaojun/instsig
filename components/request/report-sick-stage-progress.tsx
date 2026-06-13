@@ -102,34 +102,3 @@ export function ReportSickStageProgress({
     </div>
   );
 }
-
-export function CompactReportSickStageProgress({
-  request,
-  className,
-}: {
-  request: RequestRecord;
-  className?: string;
-}) {
-  const rejected = request.status === "rejected" || Boolean(request.rejected_at);
-  const currentIndex = getStageIndex(request, Boolean(request.followup_submitted_at));
-  const stageCount = getStageCount(request, currentIndex);
-  const progressPercent = getProgressPercent(request, currentIndex);
-  const currentStage = stages[Math.max(0, Math.min(currentIndex - 1, stages.length - 1))];
-
-  return (
-    <div className={cn("min-w-44 rounded-xl border border-white/10 bg-zinc-950/35 px-3 py-2", className)}>
-      <div className="flex items-center justify-between gap-3">
-        <span className="truncate text-xs font-medium text-zinc-200">{rejected ? "Rejected" : currentStage}</span>
-        <span className="shrink-0 text-[11px] font-medium text-zinc-500">
-          {rejected ? "Stopped" : `${stageCount}/${stages.length}`}
-        </span>
-      </div>
-      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
-        <div
-          className={cn("h-full rounded-full bg-zinc-100 transition-all", rejected && "bg-rose-400")}
-          style={{ width: `${progressPercent}%` }}
-        />
-      </div>
-    </div>
-  );
-}
