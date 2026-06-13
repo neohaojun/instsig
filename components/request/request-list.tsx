@@ -70,7 +70,9 @@ export function RequestList({
                     <StatusPill status={request.status} />
                     <div className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-xs font-medium text-zinc-200">
                       {request.kind === "report_sick"
-                        ? request.status === "approved"
+                        ? request.followup_submitted_at
+                          ? "View"
+                          : request.status === "approved"
                           ? "Continue"
                           : request.status === "submitted" || request.status === "finalized" || request.status === "rejected"
                             ? "View"

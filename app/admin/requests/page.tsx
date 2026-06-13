@@ -83,7 +83,6 @@ function PendingRequestsCard({
                   <div className="flex flex-wrap items-start justify-between gap-4 text-left">
                     <div className="min-w-0 space-y-2">
                       <p className="truncate text-sm font-medium text-zinc-100">{formatProfileName(requester, request.requester_email)}</p>
-                      <p className="max-w-[36rem] text-sm text-zinc-400">{requestKindLabels[request.kind]}</p>
                       <p className="text-xs uppercase tracking-[0.12em] text-zinc-500">{formatPendingRequestWhen(request)}</p>
                     </div>
                     <StatusPill status={request.status} />

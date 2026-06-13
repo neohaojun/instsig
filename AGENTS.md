@@ -77,6 +77,7 @@ Date Reporting Sick UI expectations:
 - the calendar should float below the field as an overlay
 - highlight today
 - grey out and disable future dates
+- keep `Time Reporting Sick` left aligned in both editable and read-only views
 
 Current post-visit fields:
 
@@ -114,19 +115,41 @@ UI expectations:
 Expected flow:
 
 1. new request entry points stay on the dashboard
-2. the dashboard keeps a single compact pending-requests card for admins with a `View all` link
-3. request history remains focused on completed or older records
-4. the admin request queue lives on `/admin/requests`
+2. the dashboard shows a compact `Request History` card with up to 2 recent requests and a `View all` link at the bottom
+3. the dashboard keeps a compact pending-requests preview for admins with up to 2 subcards and a `View all` link at the bottom
+4. the `/history` page remains focused on completed or older records
+5. the admin request queue lives on `/admin/requests`
 
 UI expectations:
 
 - keep dashboard request cards task-oriented and compact
 - use colored status badges that reflect the request state
+- build request links with the hyphenated route slugs (`/requests/report-sick` and `/requests/external-appointment`), not the raw underscored `RequestKind` values
+- the dashboard request history card may surface in-progress requests so users can resume them
 - the admin queue page should split pending requests into separate `Report Sick` and `External Appointment` cards, mirroring the history page structure
 - each admin queue card should list requester name, request type badge, original submitted date/time, and status
 - admin queue rows should link directly to the matching admin request detail page
 - do not show "start new request" controls inside the existing report sick dashboard list
 - do not duplicate the live report sick request list in history
+- on the dashboard pending-requests preview, fold the request type into the row description instead of showing a separate type badge
+
+## Admin Landing and Users
+
+Expected flow:
+
+1. `/admin` acts as a minimal gateway page
+2. `/admin` only links to `/admin/requests` and `/admin/users`
+3. `/admin/users` presents a mobile-friendly profile directory
+
+UI expectations:
+
+- keep the `/admin` landing page compact and task-oriented
+- do not add extra admin modules, counters, or dashboard-style summaries on `/admin`
+- `/admin/users` should use the same gray glass-card language as the rest of the app
+- prefer stacked cards or responsive grids over wide tables on mobile
+- make sure `/admin/users` shows the available profile data that matters for admin lookup, including rank, email, role, batch, NR, SSCC batch, common term platoon, and specialisation phase platoon
+- prefer the shared rank-prefixed display format when showing linked person names
+- keep any missing profile values readable with a safe fallback such as `Not set`
 
 ## Admin Request Detail
 
@@ -134,7 +157,12 @@ UI expectations:
 
 - the admin request detail page should mirror the user report-sick follow-up form layout as closely as practical
 - keep the request summary in a form-like read-only card treatment rather than a generic admin summary panel
-- admin actions should be limited to approve or reject on the detail page
+- the requester card should be compact, titled `Submitted by`, and use the description line for name, rank, batch numbers, platoon names, and other key identifiers instead of nested subcards
+- the requester card should sit at the top of the admin request detail page before the request/follow-up card layout
+- for report sick, the post-visit details card on the admin detail page should look like the actual user follow-up form with disabled controls, not like a generic summary card
+- do not add an extra submission-details subcard inside the post-visit details card
+- admin actions should follow the request lifecycle: approve or reject before review, show a waiting state after approval, and allow finalization only after report-sick follow-up details exist
+- `Cancel` should return the admin to the previous page without mutating request data
 - do not show lifecycle history blocks or separate admin review forms on this page
 
 # Data Model Notes
@@ -164,10 +192,13 @@ When showing a person name linked to a profile, prefer the shared rank-prefixed 
 
 # Important Files
 
+- `app/admin/page.tsx`
+- `app/admin/users/page.tsx`
 - `app/requests/report-sick/page.tsx`
 - `app/requests/external-appointment/page.tsx`
 - `app/admin/requests/[id]/page.tsx`
 - `components/request/request-form.tsx`
+- `components/request/admin-report-sick-followup-card.tsx`
 - `components/request/report-sick-followup-form.tsx`
 - `components/request/request-summary.tsx`
 - `components/request/admin-review-panel.tsx`
@@ -194,3 +225,5 @@ If the app reports a missing table or schema cache issue for a known object such
 - apply the matching SQL to the actual Supabase project, then refresh the schema cache in Supabase if needed
 - avoid rendering the raw SQL/Supabase error text in page banners or inline cards
 - for follow-up submission failures, prefer the existing table write path over adding a new RPC call that can get stuck behind schema cache drift
+- assume some Supabase projects may already have older versions of `public.requests`, `public.request_updates`, or related policies; prefer additive `alter table ... add column if not exists ...`, `create index if not exists`, and `drop policy if exists` / recreate patterns so rerunning `supabase/schema.sql` upgrades an existing project cleanly
+- if a rerun fails on a missing column such as `followup_submitted_at`, treat that as schema drift from an older table definition and patch `supabase/schema.sql` to be rerunnable rather than relying on a fresh-project-only `create table if not exists` path

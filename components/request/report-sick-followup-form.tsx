@@ -99,6 +99,60 @@ function firstErrorMessage(errors: unknown): string | null {
   return null;
 }
 
+type SupabaseErrorSummary = {
+  code: string | null;
+  message: string | null;
+  details: string | null;
+  hint: string | null;
+  name: string | null;
+};
+
+function normalizeSupabaseError(error: unknown): SupabaseErrorSummary {
+  if (!error || typeof error !== "object") {
+    return {
+      code: null,
+      message: null,
+      details: null,
+      hint: null,
+      name: null,
+    };
+  }
+
+  const typedError = error as Record<string, unknown>;
+
+  return {
+    code: typeof typedError.code === "string" ? typedError.code : null,
+    message: typeof typedError.message === "string" ? typedError.message : null,
+    details: typeof typedError.details === "string" ? typedError.details : null,
+    hint: typeof typedError.hint === "string" ? typedError.hint : null,
+    name: typeof typedError.name === "string" ? typedError.name : null,
+  };
+}
+
+function isMissingRpcError(error: SupabaseErrorSummary) {
+  const combinedText = [error.message, error.details, error.hint].filter(Boolean).join(" ");
+  return error.code === "PGRST202" || (combinedText.includes("submit_report_sick_followup") && combinedText.includes("Could not find"));
+}
+
+function isMissingFollowupSchemaError(error: SupabaseErrorSummary) {
+  const combinedText = [error.message, error.details, error.hint].filter(Boolean).join(" ");
+  return combinedText.includes("request_updates") && combinedText.includes("Could not find");
+}
+
+function hasSupabaseError(error: SupabaseErrorSummary | null) {
+  return Boolean(error?.message || error?.code || error?.details || error?.hint);
+}
+
+function createSupabaseErrorSummary(partial: Partial<SupabaseErrorSummary>): SupabaseErrorSummary {
+  return {
+    code: partial.code ?? null,
+    message: partial.message ?? null,
+    details: partial.details ?? null,
+    hint: partial.hint ?? null,
+    name: partial.name ?? null,
+  };
+}
+
 function displayPerson(profile: ProfileRecord | null | undefined, fallback?: string | null) {
   return formatProfileName(profile, fallback);
 }
@@ -501,7 +555,10 @@ export function ReportSickFollowupForm({
         remarks: values.remarks ?? "",
       };
 
-      const { error: followupError } = await supabase.from("request_updates").upsert(
+      let followupErrorSummary: SupabaseErrorSummary | null = null;
+      const submittedAt = new Date().toISOString();
+
+      const { error: upsertError } = await supabase.from("request_updates").upsert(
         {
           request_id: request.id,
           kind: "doctor_followup",
@@ -512,12 +569,72 @@ export function ReportSickFollowupForm({
         { onConflict: "request_id,kind" },
       );
 
-      if (followupError) {
-        setBanner(followupError.message || "We couldn't save the follow-up right now. Please try again.");
+      const upsertErrorSummary = normalizeSupabaseError(upsertError);
+
+      if (hasSupabaseError(upsertErrorSummary)) {
+        if (isMissingFollowupSchemaError(upsertErrorSummary)) {
+          const { error: rpcError } = await supabase.rpc("submit_report_sick_followup", {
+            p_payload: payload,
+            p_request_id: request.id,
+          });
+
+          followupErrorSummary = normalizeSupabaseError(rpcError);
+        } else {
+          followupErrorSummary = upsertErrorSummary;
+        }
+      } else {
+        const { data: updatedRequests, error: requestUpdateError } = await supabase
+          .from("requests")
+          .update({
+            status: "submitted",
+            followup_submitted_at: submittedAt,
+            updated_at: submittedAt,
+          })
+          .eq("id", request.id)
+          .eq("status", "approved")
+          .select("id");
+
+        const requestUpdateErrorSummary = normalizeSupabaseError(requestUpdateError);
+
+        if (hasSupabaseError(requestUpdateErrorSummary)) {
+          const { error: rpcError } = await supabase.rpc("submit_report_sick_followup", {
+            p_payload: payload,
+            p_request_id: request.id,
+          });
+
+          followupErrorSummary = normalizeSupabaseError(rpcError);
+        } else if (!updatedRequests?.length) {
+          const { error: rpcError } = await supabase.rpc("submit_report_sick_followup", {
+            p_payload: payload,
+            p_request_id: request.id,
+          });
+
+          const rpcErrorSummary = normalizeSupabaseError(rpcError);
+          followupErrorSummary = hasSupabaseError(rpcErrorSummary)
+            ? rpcErrorSummary
+            : createSupabaseErrorSummary({
+              code: "FOLLOWUP_STATUS_NOT_UPDATED",
+              message: "The request follow-up row saved, but the follow-up timestamp could not be updated.",
+            });
+        }
+      }
+
+      if (hasSupabaseError(followupErrorSummary)) {
+        const errorSummary = followupErrorSummary ?? createSupabaseErrorSummary({
+          code: "UNKNOWN_FOLLOWUP_ERROR",
+          message: "Unknown follow-up submission error.",
+        });
+        console.warn("Failed to submit report sick follow-up", followupErrorSummary);
+        setBanner(
+          isMissingFollowupSchemaError(errorSummary)
+            ? "We couldn't save the post-visit details because the follow-up database setup is incomplete. Please apply the latest Supabase schema, then try again."
+            : "We couldn't save the post-visit details right now. Please try again.",
+        );
         return;
       }
 
-      setBanner("Follow-up submitted for review.");
+      setBanner("Follow-up submitted for review. Redirecting to the dashboard...");
+      router.replace("/dashboard");
       router.refresh();
     });
   }

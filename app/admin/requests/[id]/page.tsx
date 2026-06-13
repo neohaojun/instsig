@@ -3,11 +3,11 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { TopBar } from "@/components/layout/topbar";
 import { RequestSummary } from "@/components/request/request-summary";
 import { AdminReviewPanel } from "@/components/request/admin-review-panel";
+import { AdminReportSickFollowupCard } from "@/components/request/admin-report-sick-followup-card";
 import { ReportSickInitialRequestCard } from "@/components/request/report-sick-followup-form";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatProfileName } from "@/lib/profile-display";
-import type { ProfileRecord } from "@/lib/types";
+import type { BatchRecord, ProfileRecord } from "@/lib/types";
 
 function buildProfilesMap(profiles: ProfileRecord[] | null | undefined) {
   return Object.fromEntries((profiles ?? []).map((profile) => [profile.id, profile]));
@@ -34,6 +34,9 @@ export default async function AdminRequestDetailPage({
   ]);
   if (!request) notFound();
 
+  const followup = updates?.find((update) => update.kind === "doctor_followup") ?? null;
+  const { data: batches } = await supabase.from("batches").select("*").order("name", { ascending: true });
+
   const profileIds = [
     request.requester_id,
     request.approved_by,
@@ -45,58 +48,65 @@ export default async function AdminRequestDetailPage({
     ? await supabase.from("profiles").select("*").in("id", profileIds)
     : { data: [] as ProfileRecord[] };
   const profilesById = buildProfilesMap(people);
+  const batchesById = Object.fromEntries(((batches ?? []) as BatchRecord[]).map((batch) => [batch.id, batch]));
+  const showRightPane = request.kind === "report_sick";
 
   return (
     <main className="min-h-screen bg-[#09090b]">
       <TopBar role="admin" userName={profile?.full_name} userRank={profile?.rank} userEmail={user.email} />
       <section className="mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-6 lg:px-8">
-        <div className="grid gap-6 xl:grid-cols-[1fr_0.92fr]">
-          <div className="animate-enter">
-            <div className="grid gap-6">
-              {(() => {
-                const requester = profilesById[request.requester_id];
+        <div className="animate-enter">
+          {(() => {
+            const requester = profilesById[request.requester_id];
+            const requesterBatch = requester?.batch_id ? batchesById[requester.batch_id] : null;
+            const requesterDisplayName = formatProfileName(requester, request.requester_email);
+            const batchNumbers = [requesterBatch?.name, requester?.sscc_batch].filter(Boolean).join(" / ");
+            const platoonNames = [requester?.common_term_platoon, requester?.specialisation_phase_platoon].filter(Boolean).join(" / ");
+            const requesterSummary = [
+              requester?.rank,
+              requester?.full_name,
+              batchNumbers ? `Batch numbers: ${batchNumbers}` : null,
+              platoonNames ? `Platoon names: ${platoonNames}` : null,
+              requester?.nr ? `NR: ${requester.nr}` : null,
+              request.requester_email,
+            ]
+              .filter(Boolean)
+              .join(" · ");
 
-                return (
-                  <Card className="overflow-hidden">
-                    <CardHeader className="space-y-4 p-8">
-                      <Badge variant="outline" className="w-fit">
-                        Requester
-                      </Badge>
-                      <div className="space-y-2">
-                        <CardTitle className="text-3xl">{formatProfileName(requester, request.requester_email)}</CardTitle>
-                        <p className="text-sm text-zinc-400">{request.requester_email}</p>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="grid gap-4 p-8 pt-0">
-                      <div className="grid gap-3 md:grid-cols-2">
-                        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                          <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-zinc-500">Rank</p>
-                          <p className="mt-2 text-sm text-zinc-200">{requester?.rank ?? "Not set"}</p>
-                        </div>
-                        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                          <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-zinc-500">Full name</p>
-                          <p className="mt-2 text-sm text-zinc-200">{requester?.full_name ?? "Not set"}</p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })()}
-              {request.kind === "report_sick" ? (
-                <ReportSickInitialRequestCard request={request} profilesById={profilesById} />
-              ) : (
-                <RequestSummary
-                  request={request}
-                  followup={updates?.[0] ?? null}
-                  profilesById={profilesById}
-                  showLifecycle={false}
-                  showAdminNote={false}
-                />
-              )}
-            </div>
+            return (
+              <Card className="overflow-hidden">
+                <CardHeader className="space-y-2 p-6">
+                  <CardTitle className="text-base font-semibold text-zinc-100">Submitted by</CardTitle>
+                  <CardDescription className="text-sm leading-6 text-zinc-400">
+                    {requesterDisplayName}
+                    {requesterSummary ? ` · ${requesterSummary}` : ""}
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+            );
+          })()}
+        </div>
+
+        <div className={`grid gap-6 ${showRightPane ? "xl:grid-cols-2" : "xl:grid-cols-[1fr_0.92fr]"}`}>
+          <div className="animate-enter">
+            {request.kind === "report_sick" ? (
+              <ReportSickInitialRequestCard request={request} profilesById={profilesById} />
+            ) : (
+              <RequestSummary
+                request={request}
+                followup={followup}
+                profilesById={profilesById}
+                showLifecycle={false}
+                showAdminNote={false}
+              />
+            )}
           </div>
+
           <div className="animate-enter-soft animate-delay-1 self-start xl:sticky xl:top-24">
-            <AdminReviewPanel request={request} adminId={profile.id} adminEmail={user.email ?? ""} />
+            <div className="grid gap-4">
+              {request.kind === "report_sick" && followup ? <AdminReportSickFollowupCard followup={followup} /> : null}
+              <AdminReviewPanel request={request} adminId={profile.id} adminEmail={user.email ?? ""} hasFollowup={Boolean(followup)} />
+            </div>
           </div>
         </div>
       </section>
