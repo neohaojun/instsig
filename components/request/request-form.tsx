@@ -134,9 +134,8 @@ export function RequestForm({
         return;
       }
 
-      setBanner(requestId ? "Request updated." : "Request submitted.");
-      router.push("/dashboard");
       router.refresh();
+      router.back();
     });
   }
 
@@ -189,7 +188,7 @@ export function RequestForm({
 
           <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
             <Button type="button" variant="outline" onClick={() => router.back()}>
-              Cancel
+              Close
             </Button>
             <Button type="submit" disabled={pending}>
               {pending ? "Saving..." : isEditing ? "Update Request" : "Submit Request"}

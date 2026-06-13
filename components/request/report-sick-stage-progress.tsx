@@ -3,26 +3,42 @@ import { cn } from "@/lib/utils";
 
 type StageState = "complete" | "current" | "upcoming" | "rejected";
 
-const stages = ["Initial request", "Admin approval", "Post-visit details", "Final review"] as const;
+const stages = [
+  {
+    key: "pending-review",
+    letter: "P",
+    shortLabel: "Pending",
+    label: "Pending review",
+    description: "Initial request submitted and waiting for admin review.",
+  },
+  {
+    key: "approved",
+    letter: "A",
+    shortLabel: "Approved",
+    label: "Approved",
+    description: "Admin approved the initial request. Post-visit details are next.",
+  },
+  {
+    key: "pending-final",
+    letter: "P",
+    shortLabel: "Pending",
+    label: "Pending finalization",
+    description: "Post-visit details submitted for final admin review.",
+  },
+  {
+    key: "finalized",
+    letter: "F",
+    shortLabel: "Finalized",
+    label: "Finalized",
+    description: "Request finalized.",
+  },
+] as const;
 
 function getStageIndex(request: RequestRecord, hasFollowup: boolean) {
   if (request.status === "finalized" || request.finalized_at) return 4;
-  if (request.status === "submitted" || request.followup_submitted_at || hasFollowup) return 4;
-  if (request.status === "approved" || request.approved_at) return 3;
-  if (request.status === "rejected" || request.rejected_at) return 2;
-  if (request.status === "draft" || request.status === "needs_changes") return 1;
-  return 2;
-}
-
-function getStageCount(request: RequestRecord, currentIndex: number) {
-  if (request.status === "finalized" || request.finalized_at) return stages.length;
-  return Math.max(1, currentIndex - 1);
-}
-
-function getProgressPercent(request: RequestRecord, currentIndex: number) {
-  if (request.status === "rejected" || request.rejected_at) return 50;
-  if (request.status === "finalized" || request.finalized_at) return 100;
-  return ((currentIndex - 1) / (stages.length - 1)) * 100;
+  if (request.status === "submitted" || request.followup_submitted_at || hasFollowup) return 3;
+  if (request.status === "approved" || request.approved_at) return 2;
+  return 1;
 }
 
 function getStageDescription(request: RequestRecord, hasFollowup: boolean) {
@@ -33,6 +49,20 @@ function getStageDescription(request: RequestRecord, hasFollowup: boolean) {
   if (request.status === "needs_changes") return "Initial request needs changes before review can continue.";
   if (request.status === "draft") return "Initial request is still being prepared.";
   return "Initial request submitted and waiting for admin review.";
+}
+
+function getStageState(stageNumber: number, currentIndex: number, rejected: boolean): StageState {
+  if (rejected && stageNumber === currentIndex) return "rejected";
+  if (stageNumber < currentIndex) return "complete";
+  if (stageNumber === currentIndex) return "current";
+  return "upcoming";
+}
+
+function getStageColor(state: StageState) {
+  if (state === "complete") return "#f4f4f5";
+  if (state === "current") return "rgba(244,244,245,0.58)";
+  if (state === "rejected") return "#fb7185";
+  return "rgba(255,255,255,0.12)";
 }
 
 export function ReportSickStageProgress({
@@ -46,58 +76,50 @@ export function ReportSickStageProgress({
 }) {
   const rejected = request.status === "rejected" || Boolean(request.rejected_at);
   const currentIndex = getStageIndex(request, hasFollowup);
-  const stageCount = getStageCount(request, currentIndex);
-  const progressPercent = getProgressPercent(request, currentIndex);
+  const currentStage = stages[Math.max(0, Math.min(currentIndex - 1, stages.length - 1))];
+  const ringColors = stages.map((_, index) => getStageColor(getStageState(index + 1, currentIndex, rejected)));
+  const ringStyle = {
+    background: `conic-gradient(${ringColors[0]} 0deg 88deg, transparent 88deg 90deg, ${ringColors[1]} 90deg 178deg, transparent 178deg 180deg, ${ringColors[2]} 180deg 268deg, transparent 268deg 270deg, ${ringColors[3]} 270deg 358deg, transparent 358deg 360deg)`,
+  };
 
   return (
-    <div className={cn("rounded-2xl border border-white/10 bg-zinc-950/35 p-4", className)}>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p className="text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">Request stage</p>
-          <p className="mt-1 text-sm leading-6 text-zinc-300">{getStageDescription(request, hasFollowup)}</p>
+    <div
+      className={cn("group relative flex items-center gap-4 rounded-2xl border border-white/10 bg-zinc-950/35 p-4", className)}
+      tabIndex={0}
+      title={getStageDescription(request, hasFollowup)}
+    >
+      <div className="relative h-20 w-20 shrink-0 rounded-full p-2 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]" style={ringStyle}>
+        <div className="flex h-full w-full items-center justify-center rounded-full border border-white/10 bg-zinc-950 text-2xl font-semibold text-zinc-100">
+          {rejected ? "R" : currentStage.letter}
         </div>
-        <p className="text-sm font-medium text-zinc-100">
-          {rejected ? "Rejected" : `${stageCount} of ${stages.length}`}
-        </p>
       </div>
-
-      <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/10">
-        <div
-          className={cn("h-full rounded-full bg-zinc-100 transition-all", rejected && "bg-rose-400")}
-          style={{ width: `${progressPercent}%` }}
-        />
+      <div className="min-w-0 space-y-2">
+        <p className="text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">Request stage</p>
+        <p className="text-base font-semibold text-zinc-100">{rejected ? "Rejected" : currentStage.label}</p>
+        <div className="grid grid-cols-4 gap-2">
+          {stages.map((stage, index) => {
+            const state = getStageState(index + 1, currentIndex, rejected);
+            return (
+              <div key={stage.key} className="min-w-0">
+                <div
+                  className={cn(
+                    "h-1.5 rounded-full bg-white/10",
+                    state === "complete" && "bg-zinc-100",
+                    state === "current" && "bg-white/50",
+                    state === "rejected" && "bg-rose-400",
+                  )}
+                />
+                <p className={cn("mt-1 truncate text-[11px] text-zinc-500", state === "current" && "text-zinc-200", state === "rejected" && "text-rose-200")}>
+                  {stage.shortLabel}
+                </p>
+              </div>
+            );
+          })}
+        </div>
       </div>
-
-      <div className="mt-4 grid gap-3 sm:grid-cols-4">
-        {stages.map((stage, index) => {
-          const stageNumber = index + 1;
-          const state: StageState = rejected && index === 1
-            ? "rejected"
-            : stageNumber < currentIndex || (!rejected && stageCount === stages.length)
-              ? "complete"
-              : stageNumber === currentIndex
-                ? "current"
-                : "upcoming";
-
-          return (
-            <div key={stage} className="flex items-center gap-2 text-xs text-zinc-400 sm:block">
-              <span
-                className={cn(
-                  "flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-[11px] font-semibold sm:mb-2",
-                  state === "complete" && "border-zinc-100 bg-zinc-100 text-zinc-950",
-                  state === "current" && "border-white/30 bg-white/10 text-zinc-100",
-                  state === "upcoming" && "border-white/10 bg-white/[0.03] text-zinc-500",
-                  state === "rejected" && "border-rose-400/50 bg-rose-400/15 text-rose-200",
-                )}
-              >
-                {stageNumber}
-              </span>
-              <span className={cn("font-medium", state === "current" && "text-zinc-100", state === "rejected" && "text-rose-200")}>
-                {stage}
-              </span>
-            </div>
-          );
-        })}
+      <div className="pointer-events-none absolute left-4 top-full z-20 mt-2 w-[min(22rem,calc(100vw-2rem))] rounded-2xl border border-white/10 bg-zinc-950/95 p-4 text-sm leading-6 text-zinc-300 opacity-0 shadow-soft transition group-hover:opacity-100 group-focus:opacity-100">
+        <p className="font-medium text-zinc-100">{rejected ? "Rejected" : currentStage.label}</p>
+        <p className="mt-1">{getStageDescription(request, hasFollowup)}</p>
       </div>
     </div>
   );
