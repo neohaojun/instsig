@@ -6,7 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { StatusPill } from "@/components/request/status-pill";
-import { Badge } from "@/components/ui/badge";
 import type { ProfileRecord, RequestRecord } from "@/lib/types";
 import { requestKindLabels } from "@/lib/request-meta";
 import { formatProfileName } from "@/lib/profile-display";
@@ -53,10 +52,6 @@ function formatPendingRequestWhen(request: RequestRecord) {
   } catch {
     return when;
   }
-}
-
-function formatSubmittedWhen(request: RequestRecord) {
-  return format(new Date(request.submitted_at ?? request.created_at), "dd/MM/yyyy, HH:mm");
 }
 
 function buildProfilesMap(profiles: ProfileRecord[] | null | undefined) {
@@ -143,20 +138,15 @@ function RequestsByKindCard({
                     index === 0 && "animate-enter-soft animate-delay-1",
                   )}
                 >
-                  <div className="flex flex-wrap items-start justify-between gap-4 text-left">
+                  <div className="flex items-center justify-between gap-4 text-left">
                     <div className="min-w-0 space-y-2">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="truncate text-sm font-medium text-zinc-100">
-                          {formatProfileName(requester, request.requester_email)}
-                        </p>
-                        <Badge variant="outline" className="border-white/10 bg-white/[0.03] text-zinc-300">
-                          {requestKindLabels[request.kind]}
-                        </Badge>
-                      </div>
-                      <p className="text-xs uppercase tracking-[0.12em] text-zinc-500">
-                        Request date: {formatPendingRequestWhen(request)}
+                      <p className="truncate text-sm font-medium text-zinc-100">
+                        {formatProfileName(requester, request.requester_email)}
                       </p>
-                      <p className="text-sm text-zinc-400">Submitted {formatSubmittedWhen(request)}</p>
+                      <p className="max-w-[36rem] text-sm text-zinc-400">{requestKindLabels[request.kind]}</p>
+                      <p className="text-xs uppercase tracking-[0.12em] text-zinc-500">
+                        {formatPendingRequestWhen(request)}
+                      </p>
                     </div>
                     <StatusPill status={request.status} />
                   </div>
