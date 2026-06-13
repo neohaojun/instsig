@@ -46,6 +46,15 @@ create table if not exists public.batches (
   updated_at timestamptz not null default now()
 );
 
+alter table public.batches add column if not exists firestore_id text;
+alter table public.batches add column if not exists name text;
+alter table public.batches add column if not exists description text;
+alter table public.batches add column if not exists course_start timestamptz;
+alter table public.batches add column if not exists common_term_end timestamptz;
+alter table public.batches add column if not exists course_end timestamptz;
+alter table public.batches add column if not exists created_at timestamptz not null default now();
+alter table public.batches add column if not exists updated_at timestamptz not null default now();
+
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   email text not null unique,
@@ -60,6 +69,18 @@ create table if not exists public.profiles (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.profiles add column if not exists email text;
+alter table public.profiles add column if not exists full_name text;
+alter table public.profiles add column if not exists rank text;
+alter table public.profiles add column if not exists role public.app_role not null default 'user';
+alter table public.profiles add column if not exists batch_id uuid references public.batches(id) on delete set null;
+alter table public.profiles add column if not exists common_term_platoon text;
+alter table public.profiles add column if not exists sscc_batch text;
+alter table public.profiles add column if not exists specialisation_phase_platoon text;
+alter table public.profiles add column if not exists nr text;
+alter table public.profiles add column if not exists created_at timestamptz not null default now();
+alter table public.profiles add column if not exists updated_at timestamptz not null default now();
 
 create table if not exists public.requests (
   id uuid primary key default gen_random_uuid(),
@@ -82,6 +103,24 @@ create table if not exists public.requests (
   updated_at timestamptz not null default now()
 );
 
+alter table public.requests add column if not exists kind public.request_kind;
+alter table public.requests add column if not exists status public.request_status not null default 'pending';
+alter table public.requests add column if not exists requester_id uuid references public.profiles(id) on delete cascade;
+alter table public.requests add column if not exists requester_email text;
+alter table public.requests add column if not exists payload jsonb not null default '{}'::jsonb;
+alter table public.requests add column if not exists review_note text;
+alter table public.requests add column if not exists suggested_payload jsonb;
+alter table public.requests add column if not exists submitted_at timestamptz;
+alter table public.requests add column if not exists followup_submitted_at timestamptz;
+alter table public.requests add column if not exists approved_by uuid references public.profiles(id) on delete set null;
+alter table public.requests add column if not exists approved_at timestamptz;
+alter table public.requests add column if not exists rejected_by uuid references public.profiles(id) on delete set null;
+alter table public.requests add column if not exists rejected_at timestamptz;
+alter table public.requests add column if not exists finalized_by uuid references public.profiles(id) on delete set null;
+alter table public.requests add column if not exists finalized_at timestamptz;
+alter table public.requests add column if not exists created_at timestamptz not null default now();
+alter table public.requests add column if not exists updated_at timestamptz not null default now();
+
 create table if not exists public.request_updates (
   id uuid primary key default gen_random_uuid(),
   request_id uuid not null references public.requests(id) on delete cascade,
@@ -94,6 +133,14 @@ create table if not exists public.request_updates (
   unique (request_id, kind)
 );
 
+alter table public.request_updates add column if not exists request_id uuid references public.requests(id) on delete cascade;
+alter table public.request_updates add column if not exists kind public.request_update_kind;
+alter table public.request_updates add column if not exists payload jsonb not null default '{}'::jsonb;
+alter table public.request_updates add column if not exists created_by uuid references public.profiles(id) on delete set null;
+alter table public.request_updates add column if not exists created_by_email text;
+alter table public.request_updates add column if not exists created_at timestamptz not null default now();
+alter table public.request_updates add column if not exists updated_at timestamptz not null default now();
+
 create table if not exists public.request_events (
   id uuid primary key default gen_random_uuid(),
   request_id uuid not null references public.requests(id) on delete cascade,
@@ -105,9 +152,18 @@ create table if not exists public.request_events (
   created_at timestamptz not null default now()
 );
 
+alter table public.request_events add column if not exists request_id uuid references public.requests(id) on delete cascade;
+alter table public.request_events add column if not exists actor_id uuid references public.profiles(id) on delete set null;
+alter table public.request_events add column if not exists actor_email text;
+alter table public.request_events add column if not exists action text;
+alter table public.request_events add column if not exists note text;
+alter table public.request_events add column if not exists changes jsonb;
+alter table public.request_events add column if not exists created_at timestamptz not null default now();
+
 create index if not exists requests_requester_email_idx on public.requests (requester_email);
 create index if not exists requests_kind_status_idx on public.requests (kind, status);
 create index if not exists request_updates_request_id_idx on public.request_updates (request_id, kind);
+create unique index if not exists request_updates_request_id_kind_unique_idx on public.request_updates (request_id, kind);
 create index if not exists profiles_role_idx on public.profiles (role);
 
 create or replace function public.submit_report_sick_followup(
@@ -138,7 +194,7 @@ begin
     raise exception 'Only report sick requests can receive follow-up';
   end if;
 
-  if v_request.status <> 'approved'::public.request_status then
+  if v_request.status not in ('approved'::public.request_status, 'submitted'::public.request_status) then
     raise exception 'Follow-up can only be submitted after approval';
   end if;
 
@@ -169,7 +225,6 @@ begin
 
   update public.requests
   set
-    status = 'submitted'::public.request_status,
     followup_submitted_at = now(),
     updated_at = now()
   where id = p_request_id;
@@ -255,6 +310,21 @@ alter table public.request_updates enable row level security;
 alter table public.request_events enable row level security;
 alter table public.batches enable row level security;
 
+drop policy if exists "profiles self read" on public.profiles;
+drop policy if exists "profiles self update" on public.profiles;
+drop policy if exists "requests self read" on public.requests;
+drop policy if exists "requests self insert" on public.requests;
+drop policy if exists "requests self update" on public.requests;
+drop policy if exists "requests report sick followup update" on public.requests;
+drop policy if exists "request updates read" on public.request_updates;
+drop policy if exists "request updates requester insert" on public.request_updates;
+drop policy if exists "request updates requester update" on public.request_updates;
+drop policy if exists "request updates admin" on public.request_updates;
+drop policy if exists "events read" on public.request_events;
+drop policy if exists "events insert admin" on public.request_events;
+drop policy if exists "batches read admin" on public.batches;
+drop policy if exists "batches write admin" on public.batches;
+
 create policy "profiles self read" on public.profiles
 for select using (auth.uid() = id or public.is_admin());
 
@@ -272,6 +342,19 @@ create policy "requests self update" on public.requests
 for update using ((requester_id = auth.uid() and status in ('draft', 'pending', 'needs_changes')) or public.is_admin())
 with check ((requester_id = auth.uid() and status in ('draft', 'pending', 'needs_changes')) or public.is_admin());
 
+create policy "requests report sick followup update" on public.requests
+for update using (
+  requester_id = auth.uid()
+  and kind = 'report_sick'::public.request_kind
+  and status in ('approved'::public.request_status, 'submitted'::public.request_status)
+)
+with check (
+  requester_id = auth.uid()
+  and kind = 'report_sick'::public.request_kind
+  and status in ('approved'::public.request_status, 'submitted'::public.request_status)
+  and followup_submitted_at is not null
+);
+
 create policy "request updates read" on public.request_updates
 for select using (exists (
   select 1 from public.requests r
@@ -288,7 +371,7 @@ for insert with check (
     where r.id = request_id
       and r.requester_id = auth.uid()
       and r.kind = 'report_sick'::public.request_kind
-      and r.status in ('approved', 'needs_changes')
+      and r.status in ('approved', 'submitted', 'needs_changes')
   )
 );
 
@@ -299,7 +382,7 @@ for update using (
     where r.id = request_id
       and r.requester_id = auth.uid()
       and r.kind = 'report_sick'::public.request_kind
-      and r.status in ('approved', 'needs_changes')
+      and r.status in ('approved', 'submitted', 'needs_changes')
   )
 )
 with check (
@@ -308,7 +391,7 @@ with check (
     where r.id = request_id
       and r.requester_id = auth.uid()
       and r.kind = 'report_sick'::public.request_kind
-      and r.status in ('approved', 'needs_changes')
+      and r.status in ('approved', 'submitted', 'needs_changes')
   )
 );
 

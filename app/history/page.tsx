@@ -3,6 +3,7 @@ import { format, parseISO } from "date-fns";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { TopBar } from "@/components/layout/topbar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { StatusPill } from "@/components/request/status-pill";
 import Link from "next/link";
 import type { RequestRecord } from "@/lib/types";
@@ -109,20 +110,16 @@ export default async function HistoryPage() {
           <Card className="overflow-hidden animate-enter">
             <CardHeader className="space-y-4 p-8">
               <div className="space-y-2">
-                <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-zinc-500">Request archive</p>
                 <CardTitle className="text-3xl">Request History</CardTitle>
-                <CardDescription className="text-base leading-7 text-zinc-400">
-                  All submitted requests are shown here, including ones still in progress.
-                </CardDescription>
               </div>
-              <div>
-                <Link href="/dashboard" className="inline-flex items-center gap-2 text-sm text-zinc-300 transition hover:text-zinc-100">
-                  <ChevronLeft className="h-4 w-4" />
-                  Dashboard
-                </Link>
+              <div className="flex flex-wrap gap-3">
+                <Button asChild variant="outline">
+                  <Link href="/dashboard">Back to dashboard</Link>
+                </Button>
               </div>
             </CardHeader>
           </Card>
+
           <HistoryCard
             title="Report Sick"
             requests={reportSickRequests}

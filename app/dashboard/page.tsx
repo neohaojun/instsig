@@ -79,8 +79,8 @@ function RequestSubcard({
         <div className="flex items-start justify-between gap-4 text-left">
           <div className="min-w-0 space-y-2">
             <p className="truncate text-sm font-medium text-zinc-100">{title}</p>
-            <p className="text-xs uppercase tracking-[0.12em] text-zinc-500">{meta}</p>
             {description ? <p className="max-w-[36rem] text-sm text-zinc-400">{description}</p> : null}
+            <p className="text-xs uppercase tracking-[0.12em] text-zinc-500">{meta}</p>
           </div>
           <StatusPill status={status} />
         </div>
@@ -165,13 +165,13 @@ export default async function DashboardPage() {
               </div>
             </CardHeader>
             <CardContent className="grid gap-3 p-8 pt-0">
-                {recentRequestHistory.map((request) => (
-                  <RequestSubcard
-                    key={request.id}
-                    href={`${requestPathByKind[request.kind]}?id=${request.id}`}
-                    title={requestKindLabels[request.kind]}
-                    meta={formatRequestWhen(request)}
-                    status={request.status}
+              {recentRequestHistory.map((request) => (
+                <RequestSubcard
+                  key={request.id}
+                  href={`${requestPathByKind[request.kind]}?id=${request.id}`}
+                  title={requestKindLabels[request.kind]}
+                  meta={formatRequestWhen(request)}
+                  status={request.status}
                 />
               ))}
               <div className="pt-2">
