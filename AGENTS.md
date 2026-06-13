@@ -56,6 +56,7 @@ UI expectations:
 - keep report-sick forms and associated read-only/follow-up viewers on a black page background from top to bottom
 - report-sick read-only viewers and follow-up surfaces should include a clear cancel/return action for users
 - prefer a descriptive report-sick lifecycle progress bar over a standalone status badge when showing the current stage inside the report-sick form/viewer
+- report-sick dashboard, history, and admin queue rows should use a compact lifecycle progress strip instead of only a status badge
 - keep the report sick page split into two halves once a request exists:
   - initial request
   - post-visit details
