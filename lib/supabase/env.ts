@@ -6,10 +6,15 @@ function requirePublicSupabaseUrl() {
   return url;
 }
 
-function requirePublishableKey() {
-  const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+function requireClientKey() {
+  const key =
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
   if (!key) {
-    throw new Error("Missing NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY");
+    throw new Error(
+      "Missing Supabase client key. Set NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY or NEXT_PUBLIC_SUPABASE_ANON_KEY.",
+    );
   }
 
   return key;
@@ -18,6 +23,6 @@ function requirePublishableKey() {
 export function getSupabasePublicConfig() {
   return {
     url: requirePublicSupabaseUrl(),
-    key: requirePublishableKey(),
+    key: requireClientKey(),
   };
 }
