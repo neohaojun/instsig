@@ -11,7 +11,7 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { ProfileRecord, ReportSickFollowupPayload, ReportSickStatusEntry, ReportSickStatusType, RequestRecord, RequestUpdateRecord } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -643,9 +643,6 @@ export function ReportSickFollowupForm({
     <Card className="mx-auto w-full max-w-5xl">
       <CardHeader className="space-y-2">
         <CardTitle>Post-visit details</CardTitle>
-        <CardDescription className="text-sm leading-6">
-          Share the doctor-visit details after the request has been approved by admin.
-        </CardDescription>
       </CardHeader>
       <CardContent>
         <form

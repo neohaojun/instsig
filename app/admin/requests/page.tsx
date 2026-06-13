@@ -2,31 +2,22 @@ import { redirect } from "next/navigation";
 import { format, parseISO } from "date-fns";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { TopBar } from "@/components/layout/topbar";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { StatusPill } from "@/components/request/status-pill";
 import { Badge } from "@/components/ui/badge";
-import type { ProfileRecord, RequestRecord, RequestStatus } from "@/lib/types";
+import type { ProfileRecord, RequestRecord } from "@/lib/types";
 import { requestKindLabels } from "@/lib/request-meta";
 import { formatProfileName } from "@/lib/profile-display";
 import { cn } from "@/lib/utils";
 
-type RequestStatusView = "pending" | "all" | "approved" | "rejected" | "finalized";
+type RequestStatusView = "pending" | "all";
 
 const statusViews: { value: RequestStatusView; label: string }[] = [
   { value: "pending", label: "Pending" },
-  { value: "all", label: "All Requests" },
-  { value: "approved", label: "Approved" },
-  { value: "rejected", label: "Rejected" },
-  { value: "finalized", label: "Finalized" },
+  { value: "all", label: "All" },
 ];
-
-const exactStatusByView: Partial<Record<RequestStatusView, RequestStatus>> = {
-  approved: "approved",
-  rejected: "rejected",
-  finalized: "finalized",
-};
 
 function isIncompleteRequest(request: RequestRecord) {
   if (request.kind === "report_sick") {
@@ -74,10 +65,7 @@ function buildProfilesMap(profiles: ProfileRecord[] | null | undefined) {
 
 function filterRequestsByView(requests: RequestRecord[], statusView: RequestStatusView) {
   if (statusView === "all") return requests;
-  if (statusView === "pending") return requests.filter(isIncompleteRequest);
-
-  const exactStatus = exactStatusByView[statusView];
-  return exactStatus ? requests.filter((request) => request.status === exactStatus) : requests;
+  return requests.filter(isIncompleteRequest);
 }
 
 function resolveStatusView(status: string | string[] | undefined): RequestStatusView {
@@ -87,27 +75,29 @@ function resolveStatusView(status: string | string[] | undefined): RequestStatus
 
 function RequestStatusTabs({ activeView }: { activeView: RequestStatusView }) {
   return (
-    <div className="flex flex-wrap gap-2 rounded-2xl border border-white/10 bg-white/[0.03] p-1">
-      {statusViews.map((view) => {
-        const isActive = view.value === activeView;
-        const href =
-          view.value === "pending"
-            ? { pathname: "/admin/requests" }
-            : { pathname: "/admin/requests", query: { status: view.value } };
+    <div className="w-fit max-w-full rounded-2xl border border-white/10 bg-white/[0.03] p-1">
+      <div className="flex flex-wrap gap-2">
+        {statusViews.map((view) => {
+          const isActive = view.value === activeView;
+          const href =
+            view.value === "pending"
+              ? { pathname: "/admin/requests" }
+              : { pathname: "/admin/requests", query: { status: view.value } };
 
-        return (
-          <Link
-            key={view.value}
-            href={href}
-            className={cn(
-              "rounded-xl px-3 py-2 text-sm font-medium text-zinc-400 transition hover:bg-white/[0.04] hover:text-zinc-100",
-              isActive && "bg-zinc-100 text-zinc-950 hover:bg-zinc-100 hover:text-zinc-950",
-            )}
-          >
-            {view.label}
-          </Link>
-        );
-      })}
+          return (
+            <Link
+              key={view.value}
+              href={href}
+              className={cn(
+                "rounded-xl px-3 py-2 text-sm font-medium text-zinc-400 transition hover:bg-white/[0.04] hover:text-zinc-100",
+                isActive && "bg-zinc-100 text-zinc-950 hover:bg-zinc-100 hover:text-zinc-950",
+              )}
+            >
+              {view.label}
+            </Link>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -134,9 +124,9 @@ function RequestsByKindCard({
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="space-y-2">
             <CardTitle className="text-3xl">{title}</CardTitle>
-            <CardDescription>
+            <p className="text-sm text-zinc-400">
               {requests.length} {requests.length === 1 ? "request" : "requests"}
-            </CardDescription>
+            </p>
           </div>
         </div>
       </CardHeader>
@@ -219,9 +209,7 @@ export default async function AdminRequestsPage({
           <CardHeader className="space-y-4 p-8">
             <div className="space-y-2">
               <CardTitle className="text-3xl">Request Queue</CardTitle>
-              <CardDescription>Review priority requests first, or switch views to audit older records.</CardDescription>
             </div>
-            <RequestStatusTabs activeView={statusView} />
             <div className="flex flex-wrap gap-3">
               <Button asChild variant="outline">
                 <Link href="/dashboard">Back to dashboard</Link>
@@ -229,6 +217,8 @@ export default async function AdminRequestsPage({
             </div>
           </CardHeader>
         </Card>
+
+        <RequestStatusTabs activeView={statusView} />
 
         <RequestsByKindCard
           title="Report Sick"

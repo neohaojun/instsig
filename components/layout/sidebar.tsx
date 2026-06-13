@@ -73,14 +73,12 @@ export function Sidebar({
       {role === "admin" ? (
         <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4">
           <p className="text-sm font-medium text-zinc-100">Admin access</p>
-          <p className="mt-1 text-xs leading-5 text-zinc-500">Review requests, manage users, and prepare batch data.</p>
         </div>
       ) : null}
 
       <div className="mt-auto space-y-4 pt-6">
         <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
           <p className="text-sm font-medium text-zinc-100">Session</p>
-          <p className="mt-1 text-xs leading-5 text-zinc-500">Sign out when you’re finished.</p>
           <div className="mt-3">
             <SignOutButton />
           </div>

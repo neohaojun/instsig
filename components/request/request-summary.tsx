@@ -2,7 +2,7 @@ import { format } from "date-fns";
 import type { ProfileRecord, RequestRecord, RequestUpdateRecord } from "@/lib/types";
 import { requestKindLabels } from "@/lib/request-meta";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusPill } from "@/components/request/status-pill";
 import { ApprovalBanner } from "@/components/request/approval-banner";
 import { ReportSickFollowupFields } from "@/components/request/report-sick-followup-display";
@@ -49,11 +49,10 @@ export function ReadOnlyField({
   );
 }
 
-function sectionTitle(title: string, description?: string) {
+function sectionTitle(title: string) {
   return (
     <div className="space-y-1">
       <p className="text-base font-semibold text-zinc-100">{title}</p>
-      {description ? <p className="text-sm text-zinc-400">{description}</p> : null}
     </div>
   );
 }
@@ -89,9 +88,7 @@ export function RequestSummary({
               <CardTitle className="text-3xl">
                 {request.kind === "report_sick" ? "Report sick request" : "External appointment request"}
               </CardTitle>
-              <CardDescription className="text-base leading-7 text-zinc-400">
-                Submitted by {request.requester_email}
-              </CardDescription>
+              <p className="text-base leading-7 text-zinc-400">Submitted by {request.requester_email}</p>
             </div>
           </div>
           <StatusPill status={request.status} />
@@ -99,7 +96,7 @@ export function RequestSummary({
       </CardHeader>
       <CardContent className="grid gap-6 p-8 pt-0">
         <section className="grid gap-4">
-          {sectionTitle("Initial request", "The original submission stays visible as a structured summary.")}
+          {sectionTitle("Initial request")}
           <div className="grid gap-3 md:grid-cols-2">
             {request.kind === "report_sick" ? (
               <>
@@ -128,7 +125,7 @@ export function RequestSummary({
 
         {showLifecycle ? (
           <section className="grid gap-4">
-            {sectionTitle("Lifecycle", "Approval and finalization metadata are shown here.")}
+            {sectionTitle("Lifecycle")}
             <div className="grid gap-3 md:grid-cols-2">
               <ReadOnlyField label="Submitted" value={formatDateTime(request.submitted_at ?? request.created_at)} />
               {request.rejected_at ? (
@@ -166,7 +163,7 @@ export function RequestSummary({
 
         {request.kind === "report_sick" && followup ? (
           <section className="grid gap-4">
-            {sectionTitle("Post-visit details", "The doctor-visit update uses the same locked form layout as the report sick page.")}
+            {sectionTitle("Post-visit details")}
             <div className="grid gap-4">
               <ReportSickFollowupFields payload={followup.payload} idPrefix="summary-report-sick-followup" />
               <ReadOnlyField

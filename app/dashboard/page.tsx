@@ -3,7 +3,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { TopBar } from "@/components/layout/topbar";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileText, CalendarClock } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import type { ProfileRecord, RequestRecord } from "@/lib/types";
@@ -189,7 +189,7 @@ export default async function DashboardPage() {
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="space-y-2">
                   <CardTitle className="text-3xl">Pending Requests</CardTitle>
-                  <CardDescription>{pendingRequests.length} pending</CardDescription>
+                  <p className="text-sm text-zinc-400">{pendingRequests.length} pending</p>
                 </div>
               </div>
             </CardHeader>

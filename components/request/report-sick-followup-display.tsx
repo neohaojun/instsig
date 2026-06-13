@@ -6,7 +6,7 @@ import type { ProfileRecord, ReportSickStatusEntry, ReportSickStatusType, Reques
 import { formatProfileName } from "@/lib/profile-display";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -329,9 +329,6 @@ export function ReportSickFollowupCard({
     <Card className={cn("h-full overflow-hidden", className)}>
       <CardHeader className={cn("space-y-2", headerClassName)}>
         <CardTitle className="text-2xl">Post-visit details</CardTitle>
-        <CardDescription className="text-sm leading-6 text-zinc-400">
-          The follow-up is shown in the same form language, but the fields stay locked.
-        </CardDescription>
       </CardHeader>
       <CardContent className={cn("space-y-6", contentClassName)}>
         <ReportSickFollowupFields payload={followup.payload} idPrefix={idPrefix} />

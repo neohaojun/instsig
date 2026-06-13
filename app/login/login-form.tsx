@@ -4,7 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -44,7 +44,6 @@ export function LoginForm() {
       <Card>
         <CardHeader className="space-y-2">
           <CardTitle className="text-2xl">instsig</CardTitle>
-          {/* <CardDescription>Sign in to continue.</CardDescription> */}
         </CardHeader>
         <CardContent className="space-y-5">
           <div className="grid gap-2">

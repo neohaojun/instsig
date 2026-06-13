@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { TopBar } from "@/components/layout/topbar";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -38,7 +38,7 @@ function UserProfileCard({
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0 space-y-1">
             <CardTitle className="truncate text-xl">{displayName}</CardTitle>
-            <CardDescription className="break-all text-sm text-zinc-400">{profileRow.email}</CardDescription>
+            <p className="break-all text-sm text-zinc-400">{profileRow.email}</p>
           </div>
           <Badge variant={profileRow.role === "admin" ? "default" : "secondary"} className="shrink-0">
             {profileRow.role}
@@ -112,9 +112,6 @@ export default async function AdminUsersPage() {
             </Badge>
             <div className="max-w-3xl space-y-3">
               <CardTitle className="text-3xl leading-tight sm:text-4xl">Users and roles</CardTitle>
-              <CardDescription className="text-base leading-7">
-                Review profiles, ranks, batches, and platoon assignments in a layout that works on mobile and desktop.
-              </CardDescription>
             </div>
             <div className="flex flex-wrap gap-3 pt-2">
               <Button asChild variant="outline">

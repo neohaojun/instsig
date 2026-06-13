@@ -92,17 +92,17 @@ export function AdminReviewPanel({
         {message ? <p className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-zinc-200">{message}</p> : null}
         {isWaitingForFollowup ? (
           <p className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-zinc-300">
-            This report has been approved. The next step is the requester&apos;s post-visit follow-up submission.
+            Waiting for post-visit follow-up.
           </p>
         ) : null}
         {isFinalized ? (
           <p className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-zinc-300">
-            This request has already been finalized.
+            Finalized.
           </p>
         ) : null}
         {isRejected ? (
           <p className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-zinc-300">
-            This request has already been rejected.
+            Rejected.
           </p>
         ) : null}
         <div className="flex flex-col gap-3 sm:flex-row">
