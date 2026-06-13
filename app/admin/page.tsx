@@ -17,7 +17,7 @@ export default async function AdminPage() {
   if (profile?.role !== "admin") redirect("/dashboard");
 
   return (
-    <main className="min-h-screen bg-[#09090b]">
+    <main className="min-h-screen bg-background text-foreground">
       <TopBar role="admin" userName={profile?.full_name} userRank={profile?.rank} userEmail={user.email} />
       <section className="mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-6 lg:px-8">
         <Card className="overflow-hidden animate-enter">
@@ -33,13 +33,13 @@ export default async function AdminPage() {
 
         <div className="grid gap-4 md:grid-cols-2">
           <Link href="/admin/requests" className="group block">
-            <Card className="h-full overflow-hidden transition hover:border-white/20 hover:bg-white/[0.04] animate-enter-soft animate-delay-1">
+            <Card className="h-full overflow-hidden transition hover:bg-accent/50 animate-enter-soft animate-delay-1">
               <CardHeader className="space-y-4 p-6 sm:p-8">
                 <div className="flex items-start justify-between gap-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03] text-zinc-100">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-border bg-secondary text-secondary-foreground">
                     <FileText className="h-5 w-5" />
                   </div>
-                  <ArrowUpRight className="h-5 w-5 text-zinc-500 transition group-hover:text-zinc-300" />
+                  <ArrowUpRight className="h-5 w-5 text-muted-foreground transition group-hover:text-foreground" />
                 </div>
                 <div className="space-y-2">
                   <CardTitle className="text-2xl">Request queue</CardTitle>
@@ -49,13 +49,13 @@ export default async function AdminPage() {
           </Link>
 
           <Link href="/admin/users" className="group block">
-            <Card className="h-full overflow-hidden transition hover:border-white/20 hover:bg-white/[0.04] animate-enter-soft animate-delay-2">
+            <Card className="h-full overflow-hidden transition hover:bg-accent/50 animate-enter-soft animate-delay-2">
               <CardHeader className="space-y-4 p-6 sm:p-8">
                 <div className="flex items-start justify-between gap-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03] text-zinc-100">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-border bg-secondary text-secondary-foreground">
                     <Users className="h-5 w-5" />
                   </div>
-                  <ArrowUpRight className="h-5 w-5 text-zinc-500 transition group-hover:text-zinc-300" />
+                  <ArrowUpRight className="h-5 w-5 text-muted-foreground transition group-hover:text-foreground" />
                 </div>
                 <div className="space-y-2">
                   <CardTitle className="text-2xl">User directory</CardTitle>

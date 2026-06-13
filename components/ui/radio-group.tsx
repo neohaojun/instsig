@@ -46,8 +46,8 @@ export function RadioGroup({
             className={cn(
               "flex min-h-12 cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 text-sm transition",
               checked
-                ? "border-white/25 bg-white/[0.08] text-zinc-100"
-                : "border-white/10 bg-white/[0.03] text-zinc-200 hover:bg-white/[0.05]",
+                ? "border-primary bg-primary/10 text-foreground"
+                : "border-border bg-card text-foreground hover:bg-accent",
               disabled && "cursor-not-allowed opacity-60",
               itemClassName,
             )}
@@ -72,7 +72,7 @@ export function RadioGroup({
             </span>
             <span className="min-w-0">
               <span className="block font-medium leading-5 text-inherit">{option.label}</span>
-              {option.description ? <span className="block text-xs leading-5 text-zinc-500">{option.description}</span> : null}
+              {option.description ? <span className="block text-xs leading-5 text-muted-foreground">{option.description}</span> : null}
             </span>
           </label>
         );

@@ -70,7 +70,7 @@ function resolveStatusView(status: string | string[] | undefined): RequestStatus
 
 function RequestStatusTabs({ activeView }: { activeView: RequestStatusView }) {
   return (
-    <div className="w-fit max-w-full rounded-2xl border border-white/10 bg-white/[0.03] p-1">
+    <div className="w-fit max-w-full rounded-2xl border border-border bg-muted p-1">
       <div className="flex flex-wrap gap-2">
         {statusViews.map((view) => {
           const isActive = view.value === activeView;
@@ -84,8 +84,8 @@ function RequestStatusTabs({ activeView }: { activeView: RequestStatusView }) {
               key={view.value}
               href={href}
               className={cn(
-                "rounded-xl px-3 py-2 text-sm font-medium text-zinc-400 transition hover:bg-white/[0.04] hover:text-zinc-100",
-                isActive && "bg-zinc-100 text-zinc-950 hover:bg-zinc-100 hover:text-zinc-950",
+                "rounded-xl px-3 py-2 text-sm font-medium text-muted-foreground transition hover:bg-background hover:text-foreground",
+                isActive && "bg-background text-foreground shadow-sm",
               )}
             >
               {view.label}
@@ -119,7 +119,7 @@ function RequestsByKindCard({
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="space-y-2">
             <CardTitle className="text-3xl">{title}</CardTitle>
-            <p className="text-sm text-zinc-400">
+            <p className="text-sm text-muted-foreground">
               {requests.length} {requests.length === 1 ? "request" : "requests"}
             </p>
           </div>
@@ -134,17 +134,17 @@ function RequestsByKindCard({
               <Link key={request.id} href={`/admin/requests/${request.id}`} className="block">
                 <div
                   className={cn(
-                    "group rounded-2xl border border-white/10 bg-white/[0.03] p-4 transition hover:border-white/20 hover:bg-white/[0.05]",
+                    "group rounded-2xl border border-border bg-card p-4 transition hover:bg-accent/50",
                     index === 0 && "animate-enter-soft animate-delay-1",
                   )}
                 >
                   <div className="flex items-center justify-between gap-4 text-left">
                     <div className="min-w-0 space-y-2">
-                      <p className="truncate text-sm font-medium text-zinc-100">
+                      <p className="truncate text-sm font-medium text-card-foreground">
                         {formatProfileName(requester, request.requester_email)}
                       </p>
-                      <p className="max-w-[36rem] text-sm text-zinc-400">{requestKindLabels[request.kind]}</p>
-                      <p className="text-xs uppercase tracking-[0.12em] text-zinc-500">
+                      <p className="max-w-[36rem] text-sm text-muted-foreground">{requestKindLabels[request.kind]}</p>
+                      <p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">
                         {formatPendingRequestWhen(request)}
                       </p>
                     </div>
@@ -155,7 +155,7 @@ function RequestsByKindCard({
             );
           })
         ) : (
-          <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] p-4 text-sm text-zinc-400">
+          <div className="rounded-2xl border border-dashed border-border bg-muted/40 p-4 text-sm text-muted-foreground">
             {emptyLabel}
           </div>
         )}
@@ -192,7 +192,7 @@ export default async function AdminRequestsPage({
   const requestersById = buildProfilesMap(requesters);
 
   return (
-    <main className="min-h-screen bg-[#09090b]">
+    <main className="min-h-screen bg-background text-foreground">
       <TopBar role="admin" userName={profile?.full_name} userRank={profile?.rank} userEmail={user.email} />
       <section className="mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-6 lg:px-8">
         <Card className="overflow-hidden animate-enter">

@@ -89,19 +89,19 @@ export function AdminReviewPanel({
   return (
     <Card className="overflow-hidden">
       <CardContent className="space-y-4 p-6">
-        {message ? <p className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-zinc-200">{message}</p> : null}
+        {message ? <p className="rounded-xl border border-border bg-muted/40 px-4 py-3 text-sm text-foreground">{message}</p> : null}
         {isWaitingForFollowup ? (
-          <p className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-zinc-300">
+          <p className="rounded-xl border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
             Waiting for post-visit follow-up.
           </p>
         ) : null}
         {isFinalized ? (
-          <p className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-zinc-300">
+          <p className="rounded-xl border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
             Finalized.
           </p>
         ) : null}
         {isRejected ? (
-          <p className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-zinc-300">
+          <p className="rounded-xl border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
             Rejected.
           </p>
         ) : null}

@@ -24,7 +24,7 @@ export default async function ExternalAppointmentPage({
 
   if (!id) {
     return (
-      <main className="min-h-dvh bg-black px-4 py-6 sm:px-6 lg:px-8">
+      <main className="min-h-dvh bg-background px-4 py-6 text-foreground sm:px-6 lg:px-8">
         <div className="mx-auto max-w-5xl">
           <div className="animate-enter">
             <RequestForm kind="external_appointment" userEmail={user.email!} userId={user.id} />
@@ -47,7 +47,7 @@ export default async function ExternalAppointmentPage({
   const profilesById = buildProfilesMap(profiles);
 
   return (
-    <main className="min-h-dvh bg-black px-4 py-6 sm:px-6 lg:px-8">
+    <main className="min-h-dvh bg-background px-4 py-6 text-foreground sm:px-6 lg:px-8">
       <div className="mx-auto max-w-5xl">
         <div className="animate-enter">
           {editable ? (

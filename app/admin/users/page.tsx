@@ -33,12 +33,12 @@ function UserProfileCard({
   const displayName = formatProfileName(profileRow, profileRow.email);
 
   return (
-    <Card className="overflow-hidden border-white/10 bg-white/[0.03] transition hover:border-white/20 hover:bg-white/[0.05]">
+    <Card className="overflow-hidden transition hover:bg-accent/50">
       <CardHeader className="space-y-4 p-5 sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0 space-y-1">
             <CardTitle className="truncate text-xl">{displayName}</CardTitle>
-            <p className="break-all text-sm text-zinc-400">{profileRow.email}</p>
+            <p className="break-all text-sm text-muted-foreground">{profileRow.email}</p>
           </div>
           <Badge variant={profileRow.role === "admin" ? "default" : "secondary"} className="shrink-0">
             {profileRow.role}
@@ -74,8 +74,8 @@ function InfoField({
 }) {
   return (
     <div className={className}>
-      <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-zinc-500">{label}</p>
-      <div className="mt-2 rounded-2xl border border-white/10 bg-zinc-950/35 px-4 py-3 text-sm leading-6 text-zinc-200">
+      <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">{label}</p>
+      <div className="mt-2 rounded-2xl border border-border bg-muted/40 px-4 py-3 text-sm leading-6 text-foreground">
         {value}
       </div>
     </div>
@@ -102,7 +102,7 @@ export default async function AdminUsersPage() {
   );
 
   return (
-    <main className="min-h-screen bg-[#09090b]">
+    <main className="min-h-screen bg-background text-foreground">
       <TopBar role="admin" userName={profile?.full_name} userRank={profile?.rank} userEmail={user.email} />
       <section className="mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-6 lg:px-8">
         <Card className="overflow-hidden animate-enter">

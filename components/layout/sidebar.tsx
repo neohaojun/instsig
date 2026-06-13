@@ -35,7 +35,7 @@ function NavList({
             href={item.href as never}
             className={cn(
               "flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition",
-              active ? "border border-white/10 bg-white/10 text-zinc-100 shadow-soft" : "text-zinc-400 hover:bg-white/5 hover:text-zinc-100",
+              active ? "border border-border bg-accent text-accent-foreground shadow-soft" : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
             )}
           >
             <Icon className="h-4 w-4" />
@@ -55,30 +55,30 @@ export function Sidebar({
   role: "user" | "admin";
 }) {
   return (
-    <aside className="hidden h-[calc(100vh-73px)] w-72 shrink-0 flex-col border-r border-white/10 bg-zinc-950/45 px-4 py-6 lg:flex">
+    <aside className="hidden h-[calc(100vh-73px)] w-72 shrink-0 flex-col border-r border-border bg-background px-4 py-6 lg:flex">
       <div className="space-y-5">
         <div>
-          <p className="mb-3 px-3 text-[11px] font-medium uppercase tracking-[0.24em] text-zinc-500">Overview</p>
+          <p className="mb-3 px-3 text-[11px] font-medium uppercase tracking-[0.24em] text-muted-foreground">Overview</p>
           <NavList items={userNav} pathname={pathname} />
         </div>
 
         {role === "admin" ? (
           <div>
-            <p className="mb-3 px-3 text-[11px] font-medium uppercase tracking-[0.24em] text-zinc-500">Admin</p>
+            <p className="mb-3 px-3 text-[11px] font-medium uppercase tracking-[0.24em] text-muted-foreground">Admin</p>
             <NavList items={adminNav} pathname={pathname} />
           </div>
         ) : null}
       </div>
 
       {role === "admin" ? (
-        <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4">
-          <p className="text-sm font-medium text-zinc-100">Admin access</p>
+        <div className="mt-6 rounded-2xl border border-border bg-card p-4">
+          <p className="text-sm font-medium text-card-foreground">Admin access</p>
         </div>
       ) : null}
 
       <div className="mt-auto space-y-4 pt-6">
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-          <p className="text-sm font-medium text-zinc-100">Session</p>
+        <div className="rounded-2xl border border-border bg-card p-4">
+          <p className="text-sm font-medium text-card-foreground">Session</p>
           <div className="mt-3">
             <SignOutButton />
           </div>
