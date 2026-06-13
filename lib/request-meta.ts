@@ -7,21 +7,21 @@ export const requestKindLabels: Record<RequestKind, string> = {
 
 export const statusLabels: Record<RequestStatus, string> = {
   draft: "Draft",
-  pending: "Pending review",
+  pending: "Pending",
   needs_changes: "Needs changes",
   approved: "Approved",
-  submitted: "Follow-up submitted",
-  finalized: "Finalized",
+  submitted: "Submitted",
+  finalized: "Finalised",
   rejected: "Rejected",
 };
 
 export const statusTone: Record<RequestStatus, string> = {
   draft: "border-zinc-700/60 bg-zinc-900/70 text-zinc-300",
-  pending: "border-amber-500/30 bg-amber-500/10 text-amber-300",
+  pending: "border-yellow-500/30 bg-yellow-500/10 text-yellow-300",
   needs_changes: "border-orange-500/30 bg-orange-500/10 text-orange-300",
-  approved: "border-emerald-500/30 bg-emerald-500/10 text-emerald-300",
-  submitted: "border-sky-500/30 bg-sky-500/10 text-sky-300",
-  finalized: "border-cyan-500/30 bg-cyan-500/10 text-cyan-300",
+  approved: "border-green-500/30 bg-green-500/10 text-green-300",
+  submitted: "border-violet-500/30 bg-violet-500/10 text-violet-300",
+  finalized: "border-blue-500/30 bg-blue-500/10 text-blue-300",
   rejected: "border-rose-500/30 bg-rose-500/10 text-rose-300",
 };
 
