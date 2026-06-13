@@ -5,6 +5,7 @@ import { TopBar } from "@/components/layout/topbar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { StatusPill } from "@/components/request/status-pill";
+import { CompactReportSickStageProgress } from "@/components/request/report-sick-stage-progress";
 import Link from "next/link";
 import type { RequestRecord } from "@/lib/types";
 import { requestKindLabels } from "@/lib/request-meta";
@@ -59,12 +60,16 @@ function HistoryCard({
                 className={`group rounded-2xl border border-white/10 bg-white/[0.03] p-4 transition hover:border-white/20 hover:bg-white/[0.05] ${index === 0 ? "animate-enter-soft animate-delay-1" : ""
                   }`}
               >
-                <div className="flex items-center justify-between gap-4 text-left">
+                <div className="flex flex-wrap items-center justify-between gap-4 text-left">
                   <div className="min-w-0 space-y-1">
                     <p className="text-sm font-medium text-zinc-100">{requestKindLabels[request.kind]}</p>
                     <p className="text-xs uppercase tracking-[0.12em] text-zinc-500">{getMeta(request)}</p>
                   </div>
-                  <StatusPill status={request.status} />
+                  {request.kind === "report_sick" ? (
+                    <CompactReportSickStageProgress request={request} className="w-full sm:w-56" />
+                  ) : (
+                    <StatusPill status={request.status} />
+                  )}
                 </div>
               </div>
             </Link>
