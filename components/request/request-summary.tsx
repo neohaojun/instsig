@@ -5,8 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusPill } from "@/components/request/status-pill";
 import { ApprovalBanner } from "@/components/request/approval-banner";
+import { ReportSickFollowupFields } from "@/components/request/report-sick-followup-display";
 import { cn } from "@/lib/utils";
-import type { ReportSickStatusEntry } from "@/lib/types";
 import { formatProfileName } from "@/lib/profile-display";
 
 function formatDateTime(value: string | null | undefined) {
@@ -16,27 +16,6 @@ function formatDateTime(value: string | null | undefined) {
 
 function displayPerson(profile: ProfileRecord | null | undefined, fallback?: string | null) {
   return formatProfileName(profile, fallback);
-}
-
-export function formatReportSickFollowupStatuses(
-  statuses: unknown,
-  noStatusReceived?: boolean | null,
-) {
-  if (noStatusReceived) return "No status received";
-  if (!Array.isArray(statuses) || !statuses.length) return "—";
-
-  return statuses
-    .map((status, index) => {
-      if (!status || typeof status !== "object") return null;
-      const entry = status as Partial<ReportSickStatusEntry>;
-      const start = String(entry.startDate ?? "—");
-      const end = String(entry.endDate ?? "—");
-      const days = Number(entry.days ?? 1);
-      const daysLabel = `${days} day${days === 1 ? "" : "s"}`;
-      return `${index + 1}. ${daysLabel} · ${String(entry.type ?? "—")} · ${start} → ${end}`;
-    })
-    .filter((line): line is string => Boolean(line))
-    .join("\n");
 }
 
 export function ReadOnlyField({
@@ -187,31 +166,12 @@ export function RequestSummary({
 
         {request.kind === "report_sick" && followup ? (
           <section className="grid gap-4">
-            {sectionTitle("Post-visit details", "The doctor-visit update is recorded separately from the initial request.")}
-            <div className="grid gap-3 md:grid-cols-2">
-              <ReadOnlyField label="Diagnosis" value={String((followup.payload as any).diagnosis ?? "")} multiline className="md:col-span-2" />
-              <ReadOnlyField
-                label="Status(es) received"
-                value={formatReportSickFollowupStatuses(
-                  (followup.payload as any).statusesReceived,
-                  Boolean((followup.payload as any).noStatusReceived ?? false),
-                )}
-                multiline
-                className="md:col-span-2"
-              />
-              <ReadOnlyField label="Swab" value={String((followup.payload as any).swab ?? "")} />
-              <ReadOnlyField label="SA-ART" value={String((followup.payload as any).saArt ?? "")} />
-              <ReadOnlyField label="HA-ART" value={String((followup.payload as any).haArt ?? "")} />
-              <ReadOnlyField label="PCR" value={String((followup.payload as any).pcr ?? "")} />
-              <ReadOnlyField label="Nature" value={String((followup.payload as any).nature ?? "")} />
-              <ReadOnlyField label="Safety" value={String((followup.payload as any).safety ?? "")} />
-              <ReadOnlyField label="Category" value={String((followup.payload as any).category ?? "")} />
-              <ReadOnlyField label="Medication" value={String((followup.payload as any).medication ?? "")} multiline className="md:col-span-2" />
-              <ReadOnlyField label="Remarks" value={String((followup.payload as any).remarks ?? "")} multiline className="md:col-span-2" />
+            {sectionTitle("Post-visit details", "The doctor-visit update uses the same locked form layout as the report sick page.")}
+            <div className="grid gap-4">
+              <ReportSickFollowupFields payload={followup.payload} idPrefix="summary-report-sick-followup" />
               <ReadOnlyField
                 label="Submitted by"
                 value={`${displayPerson(followupBy, followup.created_by_email)} · ${formatDateTime(followup.created_at)}`}
-                className="md:col-span-2"
               />
             </div>
           </section>
