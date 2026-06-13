@@ -699,7 +699,6 @@ export function ReportSickFollowupForm({
                   { value: "No", label: "No" },
                 ]}
                 layout="row"
-                disabled={Boolean(noStatusReceived)}
               />
 
               <RadioField

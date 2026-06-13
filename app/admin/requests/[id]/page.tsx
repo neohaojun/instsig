@@ -4,6 +4,7 @@ import { TopBar } from "@/components/layout/topbar";
 import { RequestSummary } from "@/components/request/request-summary";
 import { AdminReviewPanel } from "@/components/request/admin-review-panel";
 import { AdminReportSickFollowupCard } from "@/components/request/admin-report-sick-followup-card";
+import { ExternalAppointmentRequestCard } from "@/components/request/external-appointment-card";
 import { ReportSickInitialRequestCard } from "@/components/request/report-sick-followup-form";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatProfileName } from "@/lib/profile-display";
@@ -91,6 +92,8 @@ export default async function AdminRequestDetailPage({
           <div className="animate-enter">
             {request.kind === "report_sick" ? (
               <ReportSickInitialRequestCard request={request} profilesById={profilesById} />
+            ) : request.kind === "external_appointment" ? (
+              <ExternalAppointmentRequestCard request={request} profilesById={profilesById} />
             ) : (
               <RequestSummary
                 request={request}
