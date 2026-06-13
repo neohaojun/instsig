@@ -4,6 +4,7 @@ import { RequestForm } from "@/components/request/request-form";
 import { ReportSickFollowupForm, ReportSickInitialRequestCard } from "@/components/request/report-sick-followup-form";
 import { ReportSickFollowupCard } from "@/components/request/report-sick-followup-display";
 import { RequestSummary } from "@/components/request/request-summary";
+import { PageCloseButton } from "@/components/request/page-close-button";
 import type { ProfileRecord } from "@/lib/types";
 
 function buildProfilesMap(profiles: ProfileRecord[] | null | undefined) {
@@ -48,6 +49,8 @@ export default async function ReportSickPage({
   const editableInitial = ["draft", "pending", "needs_changes"].includes(request.status);
   const canEditFollowup = request.status === "approved";
   const hasRightPane = canEditFollowup || Boolean(followup);
+  const hasActiveForm = editableInitial || (canEditFollowup && !followup);
+  const showPageClose = !hasActiveForm;
 
   const profileIds = [
     request.approved_by,
@@ -67,7 +70,7 @@ export default async function ReportSickPage({
           {editableInitial ? (
             <RequestForm kind="report_sick" userEmail={user.email!} userId={user.id} initialRequest={request} />
           ) : request.kind === "report_sick" ? (
-            <ReportSickInitialRequestCard request={request} profilesById={profilesById} showReturnAction hasFollowup={Boolean(followup)} />
+            <ReportSickInitialRequestCard request={request} profilesById={profilesById} />
           ) : (
             <RequestSummary request={request} profilesById={profilesById} />
           )}
@@ -83,11 +86,11 @@ export default async function ReportSickPage({
                 followup={followup}
                 profilesById={profilesById}
                 idPrefix="user-report-sick-followup"
-                showReturnAction
               />
             ) : null}
           </div>
         ) : null}
+        {showPageClose ? <PageCloseButton className={hasRightPane ? "xl:col-span-2 flex justify-end" : "flex justify-end"} /> : null}
       </div>
     </main>
   );

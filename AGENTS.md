@@ -55,11 +55,11 @@ UI expectations:
 - show who finalized and when
 - keep report-sick forms and associated read-only/follow-up viewers on a black page background from top to bottom
 - report-sick read-only viewers and follow-up surfaces should include a clear `Close` action for users
-- prefer a 4-part circular report-sick lifecycle indicator over a standalone status badge when showing the current stage inside the report-sick form/viewer
-- the circular report-sick lifecycle indicator should use the sequence `Pending review`, `Approved`, `Pending finalization`, `Finalized`, with a center letter and hover/focus detail text
-- dashboard preview cards should not show request status information; keep them focused on request type, person where relevant, and original date/time
+- use the 4-part circular report-sick lifecycle indicator on dashboard preview cards, not inside the report-sick form/detail page
+- the circular report-sick lifecycle indicator should use the sequence `Pending review`, `Approved`, `Pending finalization`, `Finalized`, with a center letter, visible circular gaps between segments, and hover/focus detail text
+- dashboard preview cards should not show separate request status text or status badges; keep them focused on request type, person where relevant, original date/time, and the circular report-sick lifecycle indicator where applicable
 - dashboard, history, and admin queue rows should keep status badges, but badge labels should be descriptive enough to distinguish pending review, approval, follow-up submission, finalization, and rejection
-- form close controls should use consistent `Close` button UI/UX, and successful form actions should return to the previous page after saving
+- form close controls should use consistent `Close` button UI/UX, successful form actions should return to the previous page after saving, and each form/detail page should show only one close button
 - keep the report sick page split into two halves once a request exists:
   - initial request
   - post-visit details
@@ -168,6 +168,8 @@ UI expectations:
 - the requester card should sit at the top of the admin request detail page before the request/follow-up card layout
 - for report sick, the post-visit details card on the admin detail page should look like the actual user follow-up form with disabled controls, not like a generic summary card
 - do not add an extra submission-details subcard inside the post-visit details card
+- finalized-by metadata belongs at the bottom of the post-visit details card when post-visit details exist
+- do not add a separate submitted-by subcard inside the post-visit details card
 - admin actions should follow the request lifecycle: approve or reject before review, show a waiting state after approval, and allow finalization only after report-sick follow-up details exist
 - `Cancel` should return the admin to the previous page without mutating request data
 - do not show lifecycle history blocks or separate admin review forms on this page

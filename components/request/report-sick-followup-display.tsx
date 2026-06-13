@@ -1,7 +1,6 @@
 "use client";
 
 import { format, isValid, parseISO } from "date-fns";
-import { useRouter } from "next/navigation";
 import { Calendar as CalendarIcon, Plus } from "lucide-react";
 import type { ProfileRecord, ReportSickStatusEntry, ReportSickStatusType, RequestRecord, RequestUpdateRecord } from "@/lib/types";
 import { formatProfileName } from "@/lib/profile-display";
@@ -14,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup } from "@/components/ui/radio-group";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { ReportSickStageProgress } from "@/components/request/report-sick-stage-progress";
+import { ApprovalBanner } from "@/components/request/approval-banner";
 
 const statusTypeOptions = [
   "MC",
@@ -315,8 +314,6 @@ export function ReportSickFollowupCard({
   className,
   headerClassName,
   contentClassName,
-  showSubmittedMeta = true,
-  showReturnAction = false,
   idPrefix = "report-sick-followup",
 }: {
   request?: RequestRecord;
@@ -325,12 +322,9 @@ export function ReportSickFollowupCard({
   className?: string;
   headerClassName?: string;
   contentClassName?: string;
-  showSubmittedMeta?: boolean;
-  showReturnAction?: boolean;
   idPrefix?: string;
 }) {
-  const router = useRouter();
-  const submittedBy = followup.created_by ? profilesById[followup.created_by] : null;
+  const finalizedBy = request?.finalized_by ? profilesById[request.finalized_by] : null;
 
   return (
     <Card className={cn("h-full overflow-hidden", className)}>
@@ -338,19 +332,9 @@ export function ReportSickFollowupCard({
         <CardTitle className="text-2xl">Post-visit details</CardTitle>
       </CardHeader>
       <CardContent className={cn("space-y-6", contentClassName)}>
-        {request ? <ReportSickStageProgress request={request} hasFollowup /> : null}
         <ReportSickFollowupFields payload={followup.payload} idPrefix={idPrefix} />
-        {showSubmittedMeta ? (
-          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm leading-6 text-zinc-400">
-            Submitted by {formatProfileName(submittedBy, followup.created_by_email)} at {formatDateTime(followup.created_at)}
-          </div>
-        ) : null}
-        {showReturnAction ? (
-          <div className="flex justify-end">
-            <Button type="button" variant="outline" onClick={() => router.back()}>
-              Close
-            </Button>
-          </div>
+        {request?.finalized_at ? (
+          <ApprovalBanner label="Finalized" name={formatProfileName(finalizedBy, request.finalized_by)} when={formatDateTime(request.finalized_at)} />
         ) : null}
       </CardContent>
     </Card>

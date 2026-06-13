@@ -79,45 +79,25 @@ export function ReportSickStageProgress({
   const currentStage = stages[Math.max(0, Math.min(currentIndex - 1, stages.length - 1))];
   const ringColors = stages.map((_, index) => getStageColor(getStageState(index + 1, currentIndex, rejected)));
   const ringStyle = {
-    background: `conic-gradient(${ringColors[0]} 0deg 88deg, transparent 88deg 90deg, ${ringColors[1]} 90deg 178deg, transparent 178deg 180deg, ${ringColors[2]} 180deg 268deg, transparent 268deg 270deg, ${ringColors[3]} 270deg 358deg, transparent 358deg 360deg)`,
+    background: `conic-gradient(${ringColors[0]} 0deg 82deg, transparent 82deg 90deg, ${ringColors[1]} 90deg 172deg, transparent 172deg 180deg, ${ringColors[2]} 180deg 262deg, transparent 262deg 270deg, ${ringColors[3]} 270deg 352deg, transparent 352deg 360deg)`,
   };
 
   return (
     <div
-      className={cn("group relative flex items-center gap-4 rounded-2xl border border-white/10 bg-zinc-950/35 p-4", className)}
+      className={cn("group relative inline-flex shrink-0 items-center justify-center", className)}
       tabIndex={0}
       title={getStageDescription(request, hasFollowup)}
+      aria-label={getStageDescription(request, hasFollowup)}
     >
-      <div className="relative h-20 w-20 shrink-0 rounded-full p-2 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]" style={ringStyle}>
-        <div className="flex h-full w-full items-center justify-center rounded-full border border-white/10 bg-zinc-950 text-2xl font-semibold text-zinc-100">
+      <div
+        className="relative h-14 w-14 rounded-full p-1.5 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]"
+        style={ringStyle}
+      >
+        <div className="flex h-full w-full items-center justify-center rounded-full border border-white/10 bg-zinc-950 text-lg font-semibold text-zinc-100">
           {rejected ? "R" : currentStage.letter}
         </div>
       </div>
-      <div className="min-w-0 space-y-2">
-        <p className="text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">Request stage</p>
-        <p className="text-base font-semibold text-zinc-100">{rejected ? "Rejected" : currentStage.label}</p>
-        <div className="grid grid-cols-4 gap-2">
-          {stages.map((stage, index) => {
-            const state = getStageState(index + 1, currentIndex, rejected);
-            return (
-              <div key={stage.key} className="min-w-0">
-                <div
-                  className={cn(
-                    "h-1.5 rounded-full bg-white/10",
-                    state === "complete" && "bg-zinc-100",
-                    state === "current" && "bg-white/50",
-                    state === "rejected" && "bg-rose-400",
-                  )}
-                />
-                <p className={cn("mt-1 truncate text-[11px] text-zinc-500", state === "current" && "text-zinc-200", state === "rejected" && "text-rose-200")}>
-                  {stage.shortLabel}
-                </p>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-      <div className="pointer-events-none absolute left-4 top-full z-20 mt-2 w-[min(22rem,calc(100vw-2rem))] rounded-2xl border border-white/10 bg-zinc-950/95 p-4 text-sm leading-6 text-zinc-300 opacity-0 shadow-soft transition group-hover:opacity-100 group-focus:opacity-100">
+      <div className="pointer-events-none absolute right-0 top-full z-20 mt-2 w-[min(18rem,calc(100vw-2rem))] rounded-2xl border border-white/10 bg-zinc-950/95 p-4 text-sm leading-6 text-zinc-300 opacity-0 shadow-soft transition group-hover:opacity-100 group-focus:opacity-100">
         <p className="font-medium text-zinc-100">{rejected ? "Rejected" : currentStage.label}</p>
         <p className="mt-1">{getStageDescription(request, hasFollowup)}</p>
       </div>

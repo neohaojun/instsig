@@ -16,7 +16,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
-import { ReportSickStageProgress } from "@/components/request/report-sick-stage-progress";
 
 const reportSickSchema = z.object({
   dateReportingSick: z.string().min(1, "Date reporting sick is required"),
@@ -153,10 +152,6 @@ export function RequestForm({
             setBanner(firstErrorMessage(errors) ?? "Please fix the highlighted fields.");
           })}
         >
-          {kind === "report_sick" && initialRequest ? (
-            <ReportSickStageProgress request={initialRequest} />
-          ) : null}
-
           {kind === "report_sick" ? (
             <ReportSickFields form={form} />
           ) : (

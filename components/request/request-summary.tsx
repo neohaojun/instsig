@@ -6,7 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusPill } from "@/components/request/status-pill";
 import { ApprovalBanner } from "@/components/request/approval-banner";
 import { ReportSickFollowupFields } from "@/components/request/report-sick-followup-display";
-import { ReportSickStageProgress } from "@/components/request/report-sick-stage-progress";
 import { cn } from "@/lib/utils";
 import { formatProfileName } from "@/lib/profile-display";
 
@@ -74,7 +73,6 @@ export function RequestSummary({
   const approvedBy = request.approved_by ? profilesById[request.approved_by] : null;
   const rejectedBy = request.rejected_by ? profilesById[request.rejected_by] : null;
   const finalizedBy = request.finalized_by ? profilesById[request.finalized_by] : null;
-  const followupBy = followup?.created_by ? profilesById[followup.created_by] : null;
   const followupSubmittedAt = request.followup_submitted_at ?? followup?.created_at ?? null;
 
   return (
@@ -96,10 +94,6 @@ export function RequestSummary({
         </div>
       </CardHeader>
       <CardContent className="grid gap-6 p-8 pt-0">
-        {request.kind === "report_sick" ? (
-          <ReportSickStageProgress request={request} hasFollowup={Boolean(followup)} />
-        ) : null}
-
         <section className="grid gap-4">
           {sectionTitle("Initial request")}
           <div className="grid gap-3 md:grid-cols-2">
@@ -147,13 +141,15 @@ export function RequestSummary({
                 </div>
               ) : null}
               {request.finalized_at ? (
-                <div className="md:col-span-2">
-                  <ApprovalBanner
-                    label="Finalized"
-                    name={displayPerson(finalizedBy, request.finalized_by)}
-                    when={formatDateTime(request.finalized_at)}
-                  />
-                </div>
+                request.kind === "report_sick" && followup ? null : (
+                  <div className="md:col-span-2">
+                    <ApprovalBanner
+                      label="Finalized"
+                      name={displayPerson(finalizedBy, request.finalized_by)}
+                      when={formatDateTime(request.finalized_at)}
+                    />
+                  </div>
+                )
               ) : null}
             </div>
           </section>
@@ -171,10 +167,13 @@ export function RequestSummary({
             {sectionTitle("Post-visit details")}
             <div className="grid gap-4">
               <ReportSickFollowupFields payload={followup.payload} idPrefix="summary-report-sick-followup" />
-              <ReadOnlyField
-                label="Submitted by"
-                value={`${displayPerson(followupBy, followup.created_by_email)} · ${formatDateTime(followup.created_at)}`}
-              />
+              {request.finalized_at ? (
+                <ApprovalBanner
+                  label="Finalized"
+                  name={displayPerson(finalizedBy, request.finalized_by)}
+                  when={formatDateTime(request.finalized_at)}
+                />
+              ) : null}
             </div>
           </section>
         ) : null}
