@@ -25,7 +25,7 @@ export default async function ReportSickPage({
 
   if (!id) {
     return (
-      <main className="min-h-screen px-4 py-6 sm:px-6 lg:px-8">
+      <main className="min-h-dvh bg-black px-4 py-6 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-5xl">
           <div className="animate-enter">
             <RequestForm kind="report_sick" userEmail={user.email!} userId={user.id} />
@@ -61,13 +61,13 @@ export default async function ReportSickPage({
   const profilesById = buildProfilesMap(profiles);
 
   return (
-    <main className="min-h-screen px-4 py-6 sm:px-6 lg:px-8">
+    <main className="min-h-dvh bg-black px-4 py-6 sm:px-6 lg:px-8">
       <div className={`mx-auto grid max-w-7xl gap-6 ${hasRightPane ? "xl:grid-cols-2" : ""}`}>
         <div className="animate-enter">
           {editableInitial ? (
             <RequestForm kind="report_sick" userEmail={user.email!} userId={user.id} initialRequest={request} />
           ) : request.kind === "report_sick" ? (
-            <ReportSickInitialRequestCard request={request} profilesById={profilesById} />
+            <ReportSickInitialRequestCard request={request} profilesById={profilesById} showReturnAction hasFollowup={Boolean(followup)} />
           ) : (
             <RequestSummary request={request} profilesById={profilesById} />
           )}
@@ -78,7 +78,13 @@ export default async function ReportSickPage({
             {canEditFollowup && !followup ? (
               <ReportSickFollowupForm request={request} initialUpdate={followup} />
             ) : followup ? (
-              <ReportSickFollowupCard followup={followup} profilesById={profilesById} idPrefix="user-report-sick-followup" />
+              <ReportSickFollowupCard
+                request={request}
+                followup={followup}
+                profilesById={profilesById}
+                idPrefix="user-report-sick-followup"
+                showReturnAction
+              />
             ) : null}
           </div>
         ) : null}
