@@ -6,7 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { StatusPill } from "@/components/request/status-pill";
-import { CompactReportSickStageProgress } from "@/components/request/report-sick-stage-progress";
 import { Badge } from "@/components/ui/badge";
 import type { ProfileRecord, RequestRecord } from "@/lib/types";
 import { requestKindLabels } from "@/lib/request-meta";
@@ -159,11 +158,7 @@ function RequestsByKindCard({
                       </p>
                       <p className="text-sm text-zinc-400">Submitted {formatSubmittedWhen(request)}</p>
                     </div>
-                    {request.kind === "report_sick" ? (
-                      <CompactReportSickStageProgress request={request} className="w-full sm:w-56" />
-                    ) : (
-                      <StatusPill status={request.status} />
-                    )}
+                    <StatusPill status={request.status} />
                   </div>
                 </div>
               </Link>

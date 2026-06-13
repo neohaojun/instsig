@@ -4,7 +4,6 @@ import type { ProfileRecord, RequestRecord } from "@/lib/types";
 import { requestKindLabels } from "@/lib/request-meta";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusPill } from "@/components/request/status-pill";
-import { CompactReportSickStageProgress } from "@/components/request/report-sick-stage-progress";
 import { Badge } from "@/components/ui/badge";
 import { formatProfileName } from "@/lib/profile-display";
 
@@ -63,12 +62,8 @@ export function RequestList({
                     <p className="text-xs uppercase tracking-[0.12em] text-zinc-500">{submittedLabel}</p>
                     {request.review_note ? <p className="max-w-[36rem] text-sm text-zinc-400">{request.review_note}</p> : null}
                   </div>
-                  <div className="flex w-full flex-wrap items-center justify-end gap-3 sm:w-auto">
-                    {request.kind === "report_sick" ? (
-                      <CompactReportSickStageProgress request={request} className="w-full sm:w-56" />
-                    ) : (
-                      <StatusPill status={request.status} />
-                    )}
+                  <div className="flex items-center gap-3">
+                    <StatusPill status={request.status} />
                     <div className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-xs font-medium text-zinc-200">
                       {request.kind === "report_sick"
                         ? request.followup_submitted_at

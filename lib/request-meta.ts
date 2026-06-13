@@ -7,10 +7,10 @@ export const requestKindLabels: Record<RequestKind, string> = {
 
 export const statusLabels: Record<RequestStatus, string> = {
   draft: "Draft",
-  pending: "Pending",
+  pending: "Pending review",
   needs_changes: "Needs changes",
   approved: "Approved",
-  submitted: "Submitted",
+  submitted: "Follow-up submitted",
   finalized: "Finalized",
   rejected: "Rejected",
 };
