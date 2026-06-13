@@ -317,7 +317,7 @@ export function ReportSickInitialRequestCard({
           {showReturnAction ? (
             <div className="flex justify-end">
               <Button type="button" variant="outline" onClick={() => router.back()}>
-                Return
+                Close
               </Button>
             </div>
           ) : null}
@@ -647,9 +647,8 @@ export function ReportSickFollowupForm({
         return;
       }
 
-      setBanner("Follow-up submitted for review. Redirecting to the dashboard...");
-      router.replace("/dashboard");
       router.refresh();
+      router.back();
     });
   }
 
@@ -812,7 +811,7 @@ export function ReportSickFollowupForm({
 
           <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
             <Button type="button" variant="outline" onClick={() => router.back()}>
-              Cancel
+              Close
             </Button>
             <Button type="submit" disabled={pending}>
               {pending ? "Saving..." : initialUpdate ? "Update Follow-Up" : "Submit Follow-Up"}

@@ -77,8 +77,8 @@ export function AdminReviewPanel({
         changes: null,
       });
 
-      setMessage(actionType === "finalize" ? "Report finalized." : "Request updated.");
       router.refresh();
+      router.back();
     });
   }
 
@@ -121,8 +121,8 @@ export function AdminReviewPanel({
               {pending ? "Saving..." : "Finalize"}
             </Button>
           ) : null}
-          <Button type="button" variant="ghost" onClick={() => router.back()} className="sm:flex-1">
-            Cancel
+          <Button type="button" variant="outline" onClick={() => router.back()} className="sm:flex-1">
+            Close
           </Button>
         </div>
       </CardContent>

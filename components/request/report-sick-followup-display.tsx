@@ -348,7 +348,7 @@ export function ReportSickFollowupCard({
         {showReturnAction ? (
           <div className="flex justify-end">
             <Button type="button" variant="outline" onClick={() => router.back()}>
-              Return
+              Close
             </Button>
           </div>
         ) : null}
