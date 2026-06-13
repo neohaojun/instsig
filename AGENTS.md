@@ -113,7 +113,9 @@ Expected flow:
 
 UI expectations:
 
+- use the same form-like card treatment as report-sick request forms for editable, read-only, and admin review surfaces
 - show who approved and when
+- show who rejected and when
 - once reviewed, the request should be read-only to the user
 
 ## Dashboard and History

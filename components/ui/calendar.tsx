@@ -33,11 +33,13 @@ export function Calendar({
   selected,
   onSelect,
   initialFocus,
+  disableFuture = true,
 }: {
   mode?: "single";
   selected?: Date | null;
   onSelect?: (date: Date | undefined) => void;
   initialFocus?: boolean;
+  disableFuture?: boolean;
 }) {
   const [month, setMonth] = React.useState(() => selected ?? new Date());
   const today = React.useMemo(() => startOfDay(new Date()), []);
@@ -100,7 +102,7 @@ export function Calendar({
           const isSelected = selected ? isSameDay(day, selected) : false;
           const isToday = isSameDay(day, today);
           const isFuture = isAfter(day, today);
-          const isDisabled = isBefore(day, monthStart) || isAfter(day, monthEnd) || isFuture;
+          const isDisabled = isBefore(day, monthStart) || isAfter(day, monthEnd) || (disableFuture && isFuture);
           return (
             <button
               key={day.toISOString()}
@@ -109,10 +111,10 @@ export function Calendar({
               onClick={() => onSelect?.(day)}
               className={cn(
                 "flex h-9 w-9 items-center justify-center rounded-lg text-sm transition",
-                isCurrentMonth && !isFuture ? "text-zinc-200 hover:bg-white/5" : "text-zinc-600",
+                isCurrentMonth && (!isFuture || !disableFuture) ? "text-zinc-200 hover:bg-white/5" : "text-zinc-600",
                 isToday && !isSelected && "border border-white/20 bg-white/5 text-zinc-100",
                 isSelected && "bg-zinc-100 text-zinc-950 hover:bg-zinc-100",
-                isFuture && "cursor-not-allowed text-zinc-600 opacity-50 hover:bg-transparent",
+                disableFuture && isFuture && "cursor-not-allowed text-zinc-600 opacity-50 hover:bg-transparent",
               )}
             >
               {format(day, "d")}

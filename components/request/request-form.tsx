@@ -28,7 +28,12 @@ const reportSickSchema = z.object({
 const externalAppointmentSchema = z.object({
   what: z.string().min(1, "Appointment description is required"),
   where: z.string().min(1, "Location is required"),
-  when: z.string().min(1, "Date and time is required"),
+  when: z.string().min(1, "Date and time is required").refine((value) => {
+    const [date = "", time = ""] = value.split("T");
+    return Boolean(date && time);
+  }, {
+    message: "Date and time is required",
+  }),
   lessonsMissed: z.string().min(1, "Lessons missed is required"),
   why: z.string().min(1, "Reason is required"),
 });
@@ -155,28 +160,7 @@ export function RequestForm({
           {kind === "report_sick" ? (
             <ReportSickFields form={form} />
           ) : (
-            <div className="grid gap-6">
-              <div className="grid gap-2">
-                <Label htmlFor="what">What</Label>
-                <Input id="what" placeholder="Appointment purpose" {...form.register("what")} />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="where">Where</Label>
-                <Input id="where" placeholder="Location" {...form.register("where")} />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="when">When</Label>
-                <Input id="when" type="datetime-local" {...form.register("when")} />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="lessonsMissed">Lessons missed</Label>
-                <Input id="lessonsMissed" placeholder="PT, Weapons Training, etc." {...form.register("lessonsMissed")} />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="why">Why</Label>
-                <Textarea id="why" placeholder="Background / reason" {...form.register("why")} />
-              </div>
-            </div>
+            <ExternalAppointmentFields form={form} />
           )}
 
           {banner ? <p className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-zinc-200">{banner}</p> : null}
@@ -192,6 +176,95 @@ export function RequestForm({
         </form>
       </CardContent>
     </Card>
+  );
+}
+
+function splitAppointmentWhen(value: unknown) {
+  if (typeof value !== "string" || !value) {
+    return {
+      date: "",
+      time: "",
+    };
+  }
+
+  const [date = "", time = ""] = value.split("T");
+  return {
+    date,
+    time: time.slice(0, 5),
+  };
+}
+
+function combineAppointmentWhen(date: string, time: string) {
+  if (!date && !time) return "";
+  return `${date}T${time}`;
+}
+
+function ExternalAppointmentFields({ form }: { form: any }) {
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
+
+  return (
+    <div className="grid gap-6">
+      <div className="grid gap-2">
+        <Label htmlFor="what">What</Label>
+        <Input id="what" placeholder="Appointment purpose" {...form.register("what")} />
+      </div>
+      <div className="grid gap-2">
+        <Label htmlFor="where">Where</Label>
+        <Input id="where" placeholder="Location" {...form.register("where")} />
+      </div>
+      <Controller
+        control={form.control}
+        name="when"
+        render={({ field }) => {
+          const parts = splitAppointmentWhen(field.value);
+          const selectedDate = parts.date ? parseISO(parts.date) : undefined;
+          return (
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid gap-2">
+                <Label>Appointment Date</Label>
+                <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+                  <PopoverTrigger asChild>
+                    <Button type="button" variant="outline" className="w-full justify-start px-4 text-left font-normal">
+                      <CalendarIcon className="mr-2 h-4 w-4 text-zinc-400" />
+                      {selectedDate && isValid(selectedDate) ? format(selectedDate, "dd MMM yyyy") : "Select a date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full max-w-[20rem] p-4" align="start">
+                    <Calendar
+                      selected={selectedDate && isValid(selectedDate) ? selectedDate : undefined}
+                      disableFuture={false}
+                      onSelect={(date) => {
+                        field.onChange(date ? combineAppointmentWhen(format(date, "yyyy-MM-dd"), parts.time) : "");
+                        if (date) setDatePickerOpen(false);
+                      }}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="appointmentTime">Appointment Time</Label>
+                <Input
+                  id="appointmentTime"
+                  type="time"
+                  className="text-left"
+                  value={parts.time}
+                  onChange={(event) => field.onChange(combineAppointmentWhen(parts.date, event.target.value))}
+                  onBlur={field.onBlur}
+                />
+              </div>
+            </div>
+          );
+        }}
+      />
+      <div className="grid gap-2">
+        <Label htmlFor="lessonsMissed">Lessons missed</Label>
+        <Input id="lessonsMissed" placeholder="PT, Weapons Training, etc." {...form.register("lessonsMissed")} />
+      </div>
+      <div className="grid gap-2">
+        <Label htmlFor="why">Why</Label>
+        <Textarea id="why" placeholder="Background / reason" {...form.register("why")} />
+      </div>
+    </div>
   );
 }
 

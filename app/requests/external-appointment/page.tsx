@@ -1,27 +1,12 @@
 import { redirect, notFound } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { RequestForm } from "@/components/request/request-form";
-import { RequestSummary } from "@/components/request/request-summary";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import { ExternalAppointmentRequestCard } from "@/components/request/external-appointment-card";
 import { PageCloseButton } from "@/components/request/page-close-button";
 import type { ProfileRecord } from "@/lib/types";
 
 function buildProfilesMap(profiles: ProfileRecord[] | null | undefined) {
   return Object.fromEntries((profiles ?? []).map((profile) => [profile.id, profile]));
-}
-
-function LockedNotice({ title }: { title: string }) {
-  return (
-    <Card className="h-full">
-      <CardHeader>
-        <Badge variant="outline" className="w-fit">
-          External appointment
-        </Badge>
-        <CardTitle className="text-2xl">{title}</CardTitle>
-      </CardHeader>
-    </Card>
-  );
 }
 
 export default async function ExternalAppointmentPage({
@@ -39,13 +24,10 @@ export default async function ExternalAppointmentPage({
 
   if (!id) {
     return (
-      <main className="min-h-screen px-4 py-6 sm:px-6 lg:px-8">
-        <div className="mx-auto grid max-w-7xl gap-6 xl:grid-cols-2">
+      <main className="min-h-dvh bg-black px-4 py-6 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-5xl">
           <div className="animate-enter">
             <RequestForm kind="external_appointment" userEmail={user.email!} userId={user.id} />
-          </div>
-          <div className="grid gap-4 self-start xl:sticky xl:top-24">
-            <LockedNotice title="Request review" />
           </div>
         </div>
       </main>
@@ -65,23 +47,16 @@ export default async function ExternalAppointmentPage({
   const profilesById = buildProfilesMap(profiles);
 
   return (
-    <main className="min-h-screen px-4 py-6 sm:px-6 lg:px-8">
-      <div className="mx-auto grid max-w-7xl gap-6 xl:grid-cols-2">
+    <main className="min-h-dvh bg-black px-4 py-6 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-5xl">
         <div className="animate-enter">
           {editable ? (
             <RequestForm kind="external_appointment" userEmail={user.email!} userId={user.id} initialRequest={initialRequest} />
           ) : (
-            <RequestSummary request={initialRequest} profilesById={profilesById} />
+            <ExternalAppointmentRequestCard request={initialRequest} profilesById={profilesById} />
           )}
         </div>
-        <div className="grid gap-4 self-start xl:sticky xl:top-24">
-          {initialRequest.approved_at || initialRequest.rejected_at ? (
-            <LockedNotice title={initialRequest.approved_at ? "Request approved" : "Request rejected"} />
-          ) : (
-            <LockedNotice title="Awaiting review" />
-          )}
-        </div>
-        {!editable ? <PageCloseButton className="flex justify-end xl:col-span-2" /> : null}
+        {!editable ? <PageCloseButton className="mt-6 flex justify-end" /> : null}
       </div>
     </main>
   );
