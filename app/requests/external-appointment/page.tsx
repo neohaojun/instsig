@@ -4,6 +4,7 @@ import { RequestForm } from "@/components/request/request-form";
 import { RequestSummary } from "@/components/request/request-summary";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageCloseButton } from "@/components/request/page-close-button";
 import type { ProfileRecord } from "@/lib/types";
 
 function buildProfilesMap(profiles: ProfileRecord[] | null | undefined) {
@@ -80,6 +81,7 @@ export default async function ExternalAppointmentPage({
             <LockedNotice title="Awaiting review" />
           )}
         </div>
+        {!editable ? <PageCloseButton className="flex justify-end xl:col-span-2" /> : null}
       </div>
     </main>
   );

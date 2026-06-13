@@ -20,7 +20,6 @@ import { RadioGroup } from "@/components/ui/radio-group";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { ApprovalBanner } from "@/components/request/approval-banner";
-import { ReportSickStageProgress } from "@/components/request/report-sick-stage-progress";
 import { cn } from "@/lib/utils";
 import { formatProfileName } from "@/lib/profile-display";
 
@@ -250,19 +249,13 @@ function RadioField({
 export function ReportSickInitialRequestCard({
   request,
   profilesById = {},
-  showReturnAction = false,
-  hasFollowup = false,
 }: {
   request: RequestRecord;
   profilesById?: Record<string, ProfileRecord | null | undefined>;
-  showReturnAction?: boolean;
-  hasFollowup?: boolean;
 }) {
-  const router = useRouter();
   const payload = request.payload as Record<string, unknown>;
   const selectedDate = typeof payload.dateReportingSick === "string" ? parseISO(payload.dateReportingSick) : undefined;
   const approvedBy = request.approved_by ? profilesById[request.approved_by] : null;
-  const finalizedBy = request.finalized_by ? profilesById[request.finalized_by] : null;
 
   return (
     <Card className="mx-auto w-full max-w-5xl">
@@ -271,7 +264,6 @@ export function ReportSickInitialRequestCard({
       </CardHeader>
       <CardContent>
         <div className="grid gap-6">
-          <ReportSickStageProgress request={request} hasFollowup={hasFollowup} />
           <div className="grid gap-2">
             <Label htmlFor="dateReportingSick">Date Reporting Sick</Label>
             <Button type="button" variant="outline" className="w-full justify-start px-4 text-left font-normal" disabled>
@@ -310,16 +302,6 @@ export function ReportSickInitialRequestCard({
           </div>
           {request.approved_at ? (
             <ApprovalBanner label="Approved" name={displayPerson(approvedBy, request.approved_by)} when={formatDateTime(request.approved_at)} />
-          ) : null}
-          {request.finalized_at ? (
-            <ApprovalBanner label="Finalized" name={displayPerson(finalizedBy, request.finalized_by)} when={formatDateTime(request.finalized_at)} />
-          ) : null}
-          {showReturnAction ? (
-            <div className="flex justify-end">
-              <Button type="button" variant="outline" onClick={() => router.back()}>
-                Close
-              </Button>
-            </div>
           ) : null}
         </div>
       </CardContent>
@@ -664,8 +646,6 @@ export function ReportSickFollowupForm({
             setBanner(firstErrorMessage(errors) ?? "Please fix the highlighted fields.");
           })}
         >
-          <ReportSickStageProgress request={request} hasFollowup={Boolean(initialUpdate)} />
-
           <div className="grid gap-6">
             <div className="grid gap-2">
               <Label htmlFor="diagnosis" className={fieldLabelClassName}>

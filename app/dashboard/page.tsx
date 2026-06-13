@@ -9,6 +9,7 @@ import { format, parseISO } from "date-fns";
 import type { ProfileRecord, RequestRecord } from "@/lib/types";
 import { requestKindLabels } from "@/lib/request-meta";
 import { formatProfileName } from "@/lib/profile-display";
+import { ReportSickStageProgress } from "@/components/request/report-sick-stage-progress";
 
 function isIncompleteRequest(request: RequestRecord) {
   if (request.kind === "report_sick") {
@@ -64,21 +65,24 @@ function RequestSubcard({
   title,
   meta,
   description,
+  request,
 }: {
   href: string;
   title: string;
   meta: string;
   description?: string;
+  request: RequestRecord;
 }) {
   return (
     <Link href={href as never} className="block">
       <div className="group rounded-2xl border border-white/10 bg-white/[0.03] p-4 transition hover:border-white/20 hover:bg-white/[0.05]">
-        <div className="text-left">
+        <div className="flex items-center justify-between gap-4 text-left">
           <div className="min-w-0 space-y-2">
             <p className="truncate text-sm font-medium text-zinc-100">{title}</p>
             {description ? <p className="max-w-[36rem] text-sm text-zinc-400">{description}</p> : null}
             <p className="text-xs uppercase tracking-[0.12em] text-zinc-500">{meta}</p>
           </div>
+          {request.kind === "report_sick" ? <ReportSickStageProgress request={request} /> : null}
         </div>
       </div>
     </Link>
@@ -167,6 +171,7 @@ export default async function DashboardPage() {
                   href={`${requestPathByKind[request.kind]}?id=${request.id}`}
                   title={requestKindLabels[request.kind]}
                   meta={formatRequestWhen(request)}
+                  request={request}
                 />
               ))}
               <div className="pt-2">
@@ -202,6 +207,7 @@ export default async function DashboardPage() {
                       title={title}
                       meta={when}
                       description={requestKindLabels[request.kind]}
+                      request={request}
                     />
                   );
                 })
