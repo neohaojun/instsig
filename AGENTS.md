@@ -133,7 +133,7 @@ UI expectations:
 - build request links with the hyphenated route slugs (`/requests/report-sick` and `/requests/external-appointment`), not the raw underscored `RequestKind` values
 - the dashboard request history card may surface in-progress requests so users can resume them
 - the admin queue page should split pending requests into separate `Report Sick` and `External Appointment` cards, mirroring the history page structure
-- each admin queue card should list requester name, request type badge, original submitted date/time, and status
+- each admin queue subcard should match the dashboard pending-request subcard format: requester name as the title, request type as the muted description line, original request date/time as the uppercase meta line, and status on the right
 - admin queue rows should link directly to the matching admin request detail page
 - do not show "start new request" controls inside the existing report sick dashboard list
 - do not duplicate the live report sick request list in history
