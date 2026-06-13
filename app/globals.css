@@ -25,6 +25,28 @@
   --radius: 0.875rem;
 }
 
+.light {
+  --background: 0 0% 98%;
+  --foreground: 240 10% 3.9%;
+  --card: 0 0% 100%;
+  --card-foreground: 240 10% 3.9%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 240 10% 3.9%;
+  --primary: 240 5.9% 10%;
+  --primary-foreground: 0 0% 98%;
+  --secondary: 240 4.8% 95.9%;
+  --secondary-foreground: 240 5.9% 10%;
+  --muted: 240 4.8% 95.9%;
+  --muted-foreground: 240 3.8% 46.1%;
+  --accent: 240 4.8% 95.9%;
+  --accent-foreground: 240 5.9% 10%;
+  --destructive: 0 72.2% 50.6%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 240 5.9% 86%;
+  --input: 240 5.9% 86%;
+  --ring: 240 5.9% 10%;
+}
+
 html {
   min-height: 100%;
   height: -webkit-fill-available;
@@ -34,6 +56,15 @@ html {
     radial-gradient(circle at top left, rgba(255, 255, 255, 0.04), transparent 28%),
     radial-gradient(circle at top right, rgba(255, 255, 255, 0.02), transparent 22%),
     linear-gradient(180deg, #09090b 0%, #111113 55%, #09090b 100%);
+}
+
+.light {
+  color-scheme: light;
+  background-color: #f4f4f5;
+  background:
+    radial-gradient(circle at top left, rgba(39, 39, 42, 0.05), transparent 28%),
+    radial-gradient(circle at top right, rgba(39, 39, 42, 0.035), transparent 22%),
+    linear-gradient(180deg, #fafafa 0%, #f4f4f5 55%, #e4e4e7 100%);
 }
 
 * {
@@ -58,6 +89,16 @@ body {
   background-attachment: fixed;
 }
 
+.light body {
+  color: hsl(var(--foreground));
+  background-color: #f4f4f5;
+  background:
+    radial-gradient(circle at top left, rgba(39, 39, 42, 0.05), transparent 28%),
+    radial-gradient(circle at top right, rgba(39, 39, 42, 0.035), transparent 22%),
+    linear-gradient(180deg, #fafafa 0%, #f4f4f5 55%, #e4e4e7 100%);
+  background-attachment: fixed;
+}
+
 .bg-grid {
   background-image: linear-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
@@ -67,6 +108,87 @@ body {
 .glass {
   backdrop-filter: blur(18px);
   background: rgba(24, 24, 27, 0.7);
+}
+
+.light .glass {
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.light .bg-grid {
+  background-image: linear-gradient(rgba(24, 24, 27, 0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(24, 24, 27, 0.055) 1px, transparent 1px);
+}
+
+.light .shadow-soft {
+  box-shadow: 0 20px 60px -30px rgba(24, 24, 27, 0.3);
+}
+
+.light .border-white\/10,
+.light .border-white\/20 {
+  border-color: rgba(24, 24, 27, 0.12);
+}
+
+.light .border-dashed.border-white\/10 {
+  border-color: rgba(24, 24, 27, 0.18);
+}
+
+.light .bg-zinc-950,
+.light .bg-zinc-950\/20,
+.light .bg-zinc-950\/35,
+.light .bg-zinc-950\/45,
+.light .bg-zinc-950\/80,
+.light .bg-zinc-950\/95,
+.light .bg-zinc-900,
+.light .bg-zinc-800 {
+  background-color: rgba(255, 255, 255, 0.82);
+}
+
+.light .bg-zinc-700 {
+  background-color: #3f3f46;
+}
+
+.light .bg-white\/5,
+.light .bg-white\/10,
+.light .bg-white\/\[0\.02\],
+.light .bg-white\/\[0\.03\] {
+  background-color: rgba(24, 24, 27, 0.045);
+}
+
+.light .hover\:bg-white\/5:hover,
+.light .hover\:bg-white\/\[0\.04\]:hover,
+.light .hover\:bg-white\/\[0\.05\]:hover,
+.light .hover\:bg-white\/\[0\.07\]:hover,
+.light .hover\:bg-white\/\[0\.08\]:hover {
+  background-color: rgba(24, 24, 27, 0.075);
+}
+
+.light .hover\:border-white\/20:hover {
+  border-color: rgba(24, 24, 27, 0.2);
+}
+
+.light .text-zinc-100 {
+  color: #18181b;
+}
+
+.light .text-zinc-200,
+.light .text-zinc-300 {
+  color: #27272a;
+}
+
+.light .text-zinc-400 {
+  color: #52525b;
+}
+
+.light .text-zinc-500,
+.light .text-zinc-600 {
+  color: #71717a;
+}
+
+.light .text-white,
+.light .hover\:text-white:hover,
+.light .hover\:text-zinc-100:hover,
+.light .group:hover .group-hover\:text-zinc-300 {
+  color: #09090b;
 }
 
 @layer base {

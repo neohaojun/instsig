@@ -21,6 +21,7 @@ Important style constraints:
 
 - preserve the neutral gray / zinc palette
 - preserve the existing glass / card / border treatment
+- keep dark mode as the default theme and preserve the navbar light-mode toggle to the left of the profile menu
 - avoid adding marketing fluff
 - keep mobile layouts task-oriented
 - avoid introducing loud colors or mismatched components

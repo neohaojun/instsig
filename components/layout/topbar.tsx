@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { ProfileMenu } from "@/components/layout/profile-menu";
+import { ThemeToggle } from "@/components/layout/theme-toggle";
 
 export function TopBar({
   role,
@@ -25,6 +26,7 @@ export function TopBar({
         </div>
 
         <div className="ml-auto flex items-center gap-2">
+          <ThemeToggle />
           <ProfileMenu
             profile={userName || userRank ? { full_name: userName ?? null, rank: userRank ?? null } : null}
             email={userEmail}
