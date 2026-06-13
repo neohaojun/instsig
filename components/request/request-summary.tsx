@@ -34,13 +34,13 @@ export function ReadOnlyField({
   const displayValue = value === null || value === undefined || String(value).trim() === "" ? null : String(value);
 
   return (
-    <div className={cn("rounded-2xl border border-white/10 bg-white/[0.03] p-4", className)}>
-      <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-zinc-500">{label}</p>
+    <div className={cn("rounded-2xl border border-border bg-card p-4", className)}>
+      <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">{label}</p>
       <div
         className={cn(
-          "mt-2 rounded-xl border border-white/10 bg-zinc-950/35 px-4 py-3 text-sm leading-6 text-zinc-200",
+          "mt-2 rounded-xl border border-border bg-muted/40 px-4 py-3 text-sm leading-6 text-foreground",
           multiline && "min-h-24",
-          !displayValue && "text-zinc-500",
+          !displayValue && "text-muted-foreground",
         )}
       >
         <p className={cn(multiline && "whitespace-pre-wrap")}>{displayValue ?? placeholder}</p>
@@ -52,7 +52,7 @@ export function ReadOnlyField({
 function sectionTitle(title: string) {
   return (
     <div className="space-y-1">
-      <p className="text-base font-semibold text-zinc-100">{title}</p>
+      <p className="text-base font-semibold text-foreground">{title}</p>
     </div>
   );
 }
@@ -87,7 +87,7 @@ export function RequestSummary({
               <CardTitle className="text-3xl">
                 {request.kind === "report_sick" ? "Report sick request" : "External appointment request"}
               </CardTitle>
-              <p className="text-base leading-7 text-zinc-400">Submitted by {request.requester_email}</p>
+              <p className="text-base leading-7 text-muted-foreground">Submitted by {request.requester_email}</p>
             </div>
           </div>
           {request.kind === "report_sick" ? null : <StatusPill status={request.status} />}
@@ -158,7 +158,7 @@ export function RequestSummary({
         {showAdminNote && request.review_note ? (
           <section className="grid gap-3">
             {sectionTitle("Admin note")}
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm leading-6 text-zinc-200">{request.review_note}</div>
+            <div className="rounded-2xl border border-border bg-muted/40 p-4 text-sm leading-6 text-foreground">{request.review_note}</div>
           </section>
         ) : null}
 

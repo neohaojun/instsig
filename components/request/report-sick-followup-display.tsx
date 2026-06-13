@@ -106,7 +106,7 @@ function ReadOnlyRadioField({
 }) {
   return (
     <div className="grid gap-2">
-      <Label className="text-[15px] font-medium leading-5 text-zinc-100">{label}</Label>
+      <Label className="text-[15px] font-medium leading-5 text-foreground">{label}</Label>
       <RadioGroup name={name} disabled value={value} onValueChange={() => {}} options={options} layout={layout} />
     </div>
   );
@@ -114,16 +114,16 @@ function ReadOnlyRadioField({
 
 function FollowupStatusRow({ entry, idPrefix }: { entry: FollowupEntry; idPrefix: string }) {
   return (
-    <div className="relative rounded-2xl border border-white/10 bg-zinc-950/20 p-4">
+    <div className="relative rounded-2xl border border-border bg-muted/40 p-4">
       <div className="grid gap-4 md:grid-cols-2">
         <div className="grid gap-2">
-          <Label htmlFor={`${idPrefix}-days`} className="text-[15px] font-medium leading-5 text-zinc-100">
+          <Label htmlFor={`${idPrefix}-days`} className="text-[15px] font-medium leading-5 text-foreground">
             Days
           </Label>
           <Input id={`${idPrefix}-days`} type="number" min={1} disabled value={entry.days} readOnly />
         </div>
         <div className="grid gap-2">
-          <Label htmlFor={`${idPrefix}-type`} className="text-[15px] font-medium leading-5 text-zinc-100">
+          <Label htmlFor={`${idPrefix}-type`} className="text-[15px] font-medium leading-5 text-foreground">
             Type
           </Label>
           <Select id={`${idPrefix}-type`} disabled value={entry.type} onChange={() => {}}>
@@ -139,14 +139,14 @@ function FollowupStatusRow({ entry, idPrefix }: { entry: FollowupEntry; idPrefix
 
       <div className="mt-4 grid gap-4 md:grid-cols-2">
         <div className="grid gap-2">
-          <Label className="text-[15px] font-medium leading-5 text-zinc-100">Start</Label>
+          <Label className="text-[15px] font-medium leading-5 text-foreground">Start</Label>
           <Button type="button" variant="outline" className="w-full justify-start px-4 text-left font-normal" disabled>
-            <CalendarIcon className="mr-2 h-4 w-4 text-zinc-400" />
+            <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground" />
             {entry.startDate && isValid(parseISO(entry.startDate)) ? formatDateValue(entry.startDate) : "Select a date"}
           </Button>
         </div>
         <div className="grid gap-2">
-          <Label htmlFor={`${idPrefix}-end`} className="text-[15px] font-medium leading-5 text-zinc-100">
+          <Label htmlFor={`${idPrefix}-end`} className="text-[15px] font-medium leading-5 text-foreground">
             End (Auto)
           </Label>
           <Input id={`${idPrefix}-end`} value={formatDateValue(entry.endDate)} readOnly disabled />
@@ -171,7 +171,7 @@ export function ReportSickFollowupFields({
   return (
     <div className={cn("space-y-6", className)}>
       <div className="grid gap-2">
-        <Label htmlFor={`${idPrefix}-diagnosis`} className="text-[15px] font-medium leading-5 text-zinc-100">
+        <Label htmlFor={`${idPrefix}-diagnosis`} className="text-[15px] font-medium leading-5 text-foreground">
           Diagnosis
         </Label>
         <Input
@@ -183,12 +183,12 @@ export function ReportSickFollowupFields({
         />
       </div>
 
-      <div className="grid gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+      <div className="grid gap-4 rounded-2xl border border-border bg-muted/40 p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <Label className="text-2xl font-semibold text-zinc-100">Status(es) Received</Label>
-          <label className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3">
+          <Label className="text-2xl font-semibold text-foreground">Status(es) Received</Label>
+          <label className="flex items-center gap-3 rounded-xl border border-border bg-muted/40 px-4 py-3">
             <Checkbox checked={noStatusReceived} disabled />
-            <span className="text-sm text-zinc-200">No status received</span>
+            <span className="text-sm text-foreground">No status received</span>
           </label>
         </div>
 
@@ -279,7 +279,7 @@ export function ReportSickFollowupFields({
       </div>
 
       <div className="grid gap-2">
-        <Label htmlFor={`${idPrefix}-medication`} className="text-[15px] font-medium leading-5 text-zinc-100">
+        <Label htmlFor={`${idPrefix}-medication`} className="text-[15px] font-medium leading-5 text-foreground">
           Medication
         </Label>
         <Input
@@ -292,7 +292,7 @@ export function ReportSickFollowupFields({
       </div>
 
       <div className="grid gap-2">
-        <Label htmlFor={`${idPrefix}-remarks`} className="text-[15px] font-medium leading-5 text-zinc-100">
+        <Label htmlFor={`${idPrefix}-remarks`} className="text-[15px] font-medium leading-5 text-foreground">
           Remarks
         </Label>
         <Textarea

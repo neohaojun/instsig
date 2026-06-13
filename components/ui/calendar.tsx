@@ -71,16 +71,16 @@ export function Calendar({
       <div className="mb-3 flex items-center justify-between gap-2">
         <button
           type="button"
-          className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-zinc-200 hover:bg-white/[0.08]"
+          className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-background text-foreground hover:bg-accent hover:text-accent-foreground"
           onClick={() => setMonth((value) => subMonths(value, 1))}
           aria-label="Previous month"
         >
           <ChevronLeft className="h-4 w-4" />
         </button>
-        <p className="text-sm font-medium text-zinc-100">{format(month, "MMMM yyyy")}</p>
+        <p className="text-sm font-medium text-foreground">{format(month, "MMMM yyyy")}</p>
         <button
           type="button"
-          className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-zinc-200 hover:bg-white/[0.08]"
+          className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-background text-foreground hover:bg-accent hover:text-accent-foreground"
           onClick={() => setMonth((value) => addMonths(value, 1))}
           aria-label="Next month"
         >
@@ -88,7 +88,7 @@ export function Calendar({
         </button>
       </div>
 
-      <div className="grid grid-cols-7 gap-1 text-center text-[0.65rem] uppercase tracking-[0.2em] text-zinc-500">
+      <div className="grid grid-cols-7 gap-1 text-center text-[0.65rem] uppercase tracking-[0.2em] text-muted-foreground">
         {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((day) => (
           <div key={day} className="py-1">
             {day}
@@ -111,10 +111,10 @@ export function Calendar({
               onClick={() => onSelect?.(day)}
               className={cn(
                 "flex h-9 w-9 items-center justify-center rounded-lg text-sm transition",
-                isCurrentMonth && (!isFuture || !disableFuture) ? "text-zinc-200 hover:bg-white/5" : "text-zinc-600",
-                isToday && !isSelected && "border border-white/20 bg-white/5 text-zinc-100",
-                isSelected && "bg-zinc-100 text-zinc-950 hover:bg-zinc-100",
-                disableFuture && isFuture && "cursor-not-allowed text-zinc-600 opacity-50 hover:bg-transparent",
+                isCurrentMonth && (!isFuture || !disableFuture) ? "text-foreground hover:bg-accent" : "text-muted-foreground",
+                isToday && !isSelected && "border border-border bg-accent text-accent-foreground",
+                isSelected && "bg-primary text-primary-foreground hover:bg-primary/90",
+                disableFuture && isFuture && "cursor-not-allowed text-muted-foreground opacity-50 hover:bg-transparent",
               )}
             >
               {format(day, "d")}

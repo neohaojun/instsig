@@ -53,7 +53,7 @@ export default async function AdminRequestDetailPage({
   const showRightPane = request.kind === "report_sick";
 
   return (
-    <main className="min-h-screen bg-[#09090b]">
+    <main className="min-h-screen bg-background text-foreground">
       <TopBar role="admin" userName={profile?.full_name} userRank={profile?.rank} userEmail={user.email} />
       <section className="mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-6 lg:px-8">
         <div className="animate-enter">
@@ -77,8 +77,8 @@ export default async function AdminRequestDetailPage({
             return (
               <Card className="overflow-hidden">
                 <CardHeader className="space-y-2 p-6">
-                  <CardTitle className="text-base font-semibold text-zinc-100">Submitted by</CardTitle>
-                  <p className="text-sm leading-6 text-zinc-400">
+                  <CardTitle className="text-base font-semibold text-foreground">Submitted by</CardTitle>
+                  <p className="text-sm leading-6 text-muted-foreground">
                     {requesterDisplayName}
                     {requesterSummary ? ` · ${requesterSummary}` : ""}
                   </p>

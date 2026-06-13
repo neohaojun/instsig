@@ -54,7 +54,7 @@ export function LoginForm() {
             <Label htmlFor="password">Password</Label>
             <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
           </div>
-          {message ? <p className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-zinc-200">{message}</p> : null}
+          {message ? <p className="rounded-xl border border-border bg-muted/40 px-4 py-3 text-sm text-foreground">{message}</p> : null}
           <Button className="w-full" type="submit" disabled={pending}>
             {pending ? "Working..." : "Sign in"}
           </Button>

@@ -45,26 +45,26 @@ export function RequestList({
           return (
             <Link key={request.id} href={href as never} className="block">
               <div
-                className={`group rounded-2xl border border-white/10 bg-white/[0.03] p-4 transition hover:border-white/20 hover:bg-white/[0.05] ${
+                className={`group rounded-2xl border border-border bg-card p-4 transition hover:bg-accent/50 ${
                   index === 0 ? "animate-enter-soft animate-delay-1" : ""
                 }`}
               >
                 <div className="flex flex-wrap items-center justify-between gap-4 text-left">
                   <div className="min-w-0 space-y-2">
                     <div className="flex flex-wrap items-center gap-2">
-                      <p className="truncate text-sm font-medium text-zinc-100">
+                      <p className="truncate text-sm font-medium text-card-foreground">
                         {formatProfileName(requester, request.requester_email)}
                       </p>
-                      <Badge variant="outline" className="border-white/10 bg-white/[0.03] text-zinc-300">
+                      <Badge variant="outline">
                         {requestKindLabels[request.kind]}
                       </Badge>
                     </div>
-                    <p className="text-xs uppercase tracking-[0.12em] text-zinc-500">{submittedLabel}</p>
-                    {request.review_note ? <p className="max-w-[36rem] text-sm text-zinc-400">{request.review_note}</p> : null}
+                    <p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">{submittedLabel}</p>
+                    {request.review_note ? <p className="max-w-[36rem] text-sm text-muted-foreground">{request.review_note}</p> : null}
                   </div>
                   <div className="flex items-center gap-3">
                     <StatusPill status={request.status} />
-                    <div className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-xs font-medium text-zinc-200">
+                    <div className="rounded-full border border-border bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground">
                       {request.kind === "report_sick"
                         ? request.followup_submitted_at
                           ? "View"

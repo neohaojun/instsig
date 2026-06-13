@@ -225,7 +225,7 @@ function RadioField({
 }) {
   return (
     <div className={cn("grid gap-2", className)}>
-      <Label htmlFor={String(name)} className="text-[15px] font-medium leading-5 text-zinc-100">
+      <Label htmlFor={String(name)} className="text-[15px] font-medium leading-5 text-foreground">
         {label}
       </Label>
       <Controller
@@ -267,7 +267,7 @@ export function ReportSickInitialRequestCard({
           <div className="grid gap-2">
             <Label htmlFor="dateReportingSick">Date Reporting Sick</Label>
             <Button type="button" variant="outline" className="w-full justify-start px-4 text-left font-normal" disabled>
-              <CalendarIcon className="mr-2 h-4 w-4 text-zinc-400" />
+              <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground" />
               {selectedDate && isValid(selectedDate) ? format(selectedDate, "dd MMM yyyy") : "Select a date"}
             </Button>
           </div>
@@ -342,7 +342,7 @@ function StatusEntryRow({
   }, [days, endDate, index, setValue, startDate]);
 
   return (
-    <div className="relative rounded-2xl border border-white/10 bg-zinc-950/20 p-4">
+    <div className="relative rounded-2xl border border-border bg-muted/40 p-4">
       {canRemove ? (
         <Button
           type="button"
@@ -358,7 +358,7 @@ function StatusEntryRow({
 
       <div className="grid gap-4 md:grid-cols-2">
         <div className="grid gap-2">
-          <Label htmlFor={`statusesReceived.${index}.days`} className="text-[15px] font-medium leading-5 text-zinc-100">
+          <Label htmlFor={`statusesReceived.${index}.days`} className="text-[15px] font-medium leading-5 text-foreground">
             Days
           </Label>
           <Controller
@@ -379,7 +379,7 @@ function StatusEntryRow({
           />
         </div>
         <div className="grid gap-2">
-          <Label htmlFor={`statusesReceived.${index}.type`} className="text-[15px] font-medium leading-5 text-zinc-100">
+          <Label htmlFor={`statusesReceived.${index}.type`} className="text-[15px] font-medium leading-5 text-foreground">
             Type
           </Label>
           <Controller
@@ -401,7 +401,7 @@ function StatusEntryRow({
 
       <div className="mt-4 grid gap-4 md:grid-cols-2">
         <div className="grid gap-2">
-          <Label htmlFor={`statusesReceived.${index}.startDate`} className="text-[15px] font-medium leading-5 text-zinc-100">
+          <Label htmlFor={`statusesReceived.${index}.startDate`} className="text-[15px] font-medium leading-5 text-foreground">
             Start
           </Label>
           <Controller
@@ -413,7 +413,7 @@ function StatusEntryRow({
                 <Popover open={startOpen} onOpenChange={setStartOpen}>
                   <PopoverTrigger asChild>
                     <Button type="button" variant="outline" className="w-full justify-start px-4 text-left font-normal" disabled={disabled}>
-                      <CalendarIcon className="mr-2 h-4 w-4 text-zinc-400" />
+                      <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground" />
                       {fieldDate && isValid(fieldDate) ? format(fieldDate, "dd MMM yyyy") : "Select a date"}
                     </Button>
                   </PopoverTrigger>
@@ -432,7 +432,7 @@ function StatusEntryRow({
           />
         </div>
         <div className="grid gap-2">
-          <Label htmlFor={`statusesReceived.${index}.endDate`} className="text-[15px] font-medium leading-5 text-zinc-100">
+          <Label htmlFor={`statusesReceived.${index}.endDate`} className="text-[15px] font-medium leading-5 text-foreground">
             End (Auto)
           </Label>
           <Input id={`statusesReceived.${index}.endDate`} value={formatDateValue(endDate ?? "")} readOnly disabled />
@@ -453,7 +453,7 @@ export function ReportSickFollowupForm({
   const [pending, startTransition] = useTransition();
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
   const [banner, setBanner] = useState<string | null>(null);
-  const fieldLabelClassName = "text-[15px] font-medium leading-5 text-zinc-100";
+  const fieldLabelClassName = "text-[15px] font-medium leading-5 text-foreground";
 
   const defaultValues: FollowupValues = {
     diagnosis: "",
@@ -654,12 +654,12 @@ export function ReportSickFollowupForm({
               <Input id="diagnosis" placeholder="Diagnosis from medical provider" {...form.register("diagnosis")} />
             </div>
 
-            <div className="grid gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+            <div className="grid gap-4 rounded-2xl border border-border bg-muted/40 p-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <Label className="text-2xl font-semibold text-zinc-100">Status(es) Received</Label>
-                <label className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3">
+                <Label className="text-2xl font-semibold text-foreground">Status(es) Received</Label>
+                <label className="flex items-center gap-3 rounded-xl border border-border bg-muted/40 px-4 py-3">
                   <Checkbox {...form.register("noStatusReceived")} />
-                  <span className="text-sm text-zinc-200">No status received</span>
+                  <span className="text-sm text-foreground">No status received</span>
                 </label>
               </div>
 
@@ -786,7 +786,7 @@ export function ReportSickFollowupForm({
             </div>
           </div>
 
-          {banner ? <p className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-zinc-200">{banner}</p> : null}
+          {banner ? <p className="rounded-xl border border-border bg-muted/40 px-4 py-3 text-sm text-foreground">{banner}</p> : null}
 
           <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
             <Button type="button" variant="outline" onClick={() => router.back()}>

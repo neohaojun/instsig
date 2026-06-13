@@ -125,7 +125,7 @@ function PopoverContent({
       ref={contentRef}
       role="dialog"
       className={cn(
-        "absolute top-full z-50 mt-2 rounded-2xl border border-white/10 bg-zinc-950/95 p-3 shadow-soft backdrop-blur",
+        "absolute top-full z-50 mt-2 rounded-2xl border border-border bg-popover p-3 text-popover-foreground shadow-soft",
         align === "end" ? "right-0" : "left-0",
         className,
       )}

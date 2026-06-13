@@ -28,7 +28,7 @@ export default async function AdminBatchesPage() {
   const batchRows = (batches ?? []) as BatchRecord[];
 
   return (
-    <main className="min-h-screen bg-[#09090b]">
+    <main className="min-h-screen bg-background text-foreground">
       <TopBar role="admin" userName={profile?.full_name} userRank={profile?.rank} userEmail={user.email} />
       <section className="mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-6 lg:px-8">
         <Card className="mb-6 overflow-hidden animate-enter">
@@ -57,11 +57,11 @@ export default async function AdminBatchesPage() {
               <TableBody>
                 {batchRows.map((batch) => (
                   <TableRow key={batch.id}>
-                    <TableCell className="text-zinc-400">{batch.firestore_id ?? "Not set"}</TableCell>
-                    <TableCell className="font-medium text-zinc-100">{batch.name}</TableCell>
-                    <TableCell className="text-zinc-400">{formatDate(batch.course_start)}</TableCell>
-                    <TableCell className="text-zinc-400">{formatDate(batch.common_term_end)}</TableCell>
-                    <TableCell className="text-zinc-400">{formatDate(batch.course_end)}</TableCell>
+                    <TableCell className="text-muted-foreground">{batch.firestore_id ?? "Not set"}</TableCell>
+                    <TableCell className="font-medium text-foreground">{batch.name}</TableCell>
+                    <TableCell className="text-muted-foreground">{formatDate(batch.course_start)}</TableCell>
+                    <TableCell className="text-muted-foreground">{formatDate(batch.common_term_end)}</TableCell>
+                    <TableCell className="text-muted-foreground">{formatDate(batch.course_end)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

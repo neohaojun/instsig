@@ -56,13 +56,13 @@ function HistoryCard({
           requests.map((request, index) => (
             <Link key={request.id} href={getHref(request) as never} className="block">
               <div
-                className={`group rounded-2xl border border-white/10 bg-white/[0.03] p-4 transition hover:border-white/20 hover:bg-white/[0.05] ${index === 0 ? "animate-enter-soft animate-delay-1" : ""
+                className={`group rounded-2xl border border-border bg-card p-4 transition hover:bg-accent/50 ${index === 0 ? "animate-enter-soft animate-delay-1" : ""
                   }`}
               >
                 <div className="flex items-center justify-between gap-4 text-left">
                   <div className="min-w-0 space-y-1">
-                    <p className="text-sm font-medium text-zinc-100">{requestKindLabels[request.kind]}</p>
-                    <p className="text-xs uppercase tracking-[0.12em] text-zinc-500">{getMeta(request)}</p>
+                    <p className="text-sm font-medium text-card-foreground">{requestKindLabels[request.kind]}</p>
+                    <p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">{getMeta(request)}</p>
                   </div>
                   <StatusPill status={request.status} />
                 </div>
@@ -70,7 +70,7 @@ function HistoryCard({
             </Link>
           ))
         ) : (
-          <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] p-4 text-sm text-zinc-400">
+          <div className="rounded-2xl border border-dashed border-border bg-muted/40 p-4 text-sm text-muted-foreground">
             {emptyText}
           </div>
         )}
@@ -103,7 +103,7 @@ export default async function HistoryPage() {
   );
 
   return (
-    <main className="min-h-screen bg-[#09090b]">
+    <main className="min-h-screen bg-background text-foreground">
       <TopBar userName={profile?.full_name} userRank={profile?.rank} userEmail={user.email} />
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         <div className="grid gap-6">

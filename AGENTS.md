@@ -54,7 +54,7 @@ UI expectations:
 
 - show who approved and when
 - show who finalized and when
-- keep report-sick forms and associated read-only/follow-up viewers on a black page background from top to bottom
+- keep report-sick forms and associated read-only/follow-up viewers on the active theme background from top to bottom
 - report-sick read-only viewers and follow-up surfaces should include a clear `Close` action for users
 - dashboard preview cards should show the request status badge alongside request type, person where relevant, and original date/time
 - status badge colors should use yellow for `Pending`, green for `Approved`, violet for `Submitted`, and blue for `Finalised`

@@ -16,11 +16,11 @@ export function TopBar({
   userEmail?: string | null;
 }) {
   return (
-    <header className="relative sticky top-0 z-40 border-b border-white/10 bg-zinc-950/80 backdrop-blur-xl">
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+    <header className="relative sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
       <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-4 sm:px-6 lg:px-8">
         <div className="min-w-0">
-          <Link href="/dashboard" className="truncate text-base font-semibold text-zinc-100 text-3xl transition hover:text-white">
+          <Link href="/dashboard" className="truncate text-3xl font-semibold text-foreground transition hover:text-foreground/80">
             instsig
           </Link>
         </div>

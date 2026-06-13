@@ -94,7 +94,7 @@ export function ExternalAppointmentRequestCard({
           <div className="grid gap-2">
             <Label>When</Label>
             <Button type="button" variant="outline" className="w-full justify-start px-4 text-left font-normal" disabled>
-              <CalendarIcon className="mr-2 h-4 w-4 text-zinc-400" />
+              <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground" />
               {formatAppointmentWhen(payload.when) || "Select a date and time"}
             </Button>
           </div>

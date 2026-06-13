@@ -26,7 +26,7 @@ export default async function ReportSickPage({
 
   if (!id) {
     return (
-      <main className="min-h-dvh bg-black px-4 py-6 sm:px-6 lg:px-8">
+      <main className="min-h-dvh bg-background px-4 py-6 text-foreground sm:px-6 lg:px-8">
         <div className="mx-auto max-w-5xl">
           <div className="animate-enter">
             <RequestForm kind="report_sick" userEmail={user.email!} userId={user.id} />
@@ -64,7 +64,7 @@ export default async function ReportSickPage({
   const profilesById = buildProfilesMap(profiles);
 
   return (
-    <main className="min-h-dvh bg-black px-4 py-6 sm:px-6 lg:px-8">
+    <main className="min-h-dvh bg-background px-4 py-6 text-foreground sm:px-6 lg:px-8">
       <div className={`mx-auto grid max-w-7xl gap-6 ${hasRightPane ? "xl:grid-cols-2" : ""}`}>
         <div className="animate-enter">
           {editableInitial ? (

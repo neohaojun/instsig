@@ -163,7 +163,7 @@ export function RequestForm({
             <ExternalAppointmentFields form={form} />
           )}
 
-          {banner ? <p className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-zinc-200">{banner}</p> : null}
+          {banner ? <p className="rounded-xl border border-border bg-muted/40 px-4 py-3 text-sm text-foreground">{banner}</p> : null}
 
           <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
             <Button type="button" variant="outline" onClick={() => router.back()}>
@@ -225,7 +225,7 @@ function ExternalAppointmentFields({ form }: { form: any }) {
                 <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
                   <PopoverTrigger asChild>
                     <Button type="button" variant="outline" className="w-full justify-start px-4 text-left font-normal">
-                      <CalendarIcon className="mr-2 h-4 w-4 text-zinc-400" />
+                      <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground" />
                       {selectedDate && isValid(selectedDate) ? format(selectedDate, "dd MMM yyyy") : "Select a date"}
                     </Button>
                   </PopoverTrigger>
@@ -288,7 +288,7 @@ function ReportSickFields({ form }: { form: any }) {
                     variant="outline"
                     className="w-full justify-start px-4 text-left font-normal"
                   >
-                    <CalendarIcon className="mr-2 h-4 w-4 text-zinc-400" />
+                    <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground" />
                     {selectedDate && isValid(selectedDate) ? format(selectedDate, "dd MMM yyyy") : "Select a date"}
                   </Button>
                 </PopoverTrigger>

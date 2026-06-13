@@ -75,12 +75,12 @@ function RequestSubcard({
 }) {
   return (
     <Link href={href as never} className="block">
-      <div className="group rounded-2xl border border-white/10 bg-white/[0.03] p-4 transition hover:border-white/20 hover:bg-white/[0.05]">
+      <div className="group rounded-2xl border border-border bg-card p-4 transition hover:bg-accent/50">
         <div className="flex items-center justify-between gap-4 text-left">
           <div className="min-w-0 space-y-2">
-            <p className="truncate text-sm font-medium text-zinc-100">{title}</p>
-            {description ? <p className="max-w-[36rem] text-sm text-zinc-400">{description}</p> : null}
-            <p className="text-xs uppercase tracking-[0.12em] text-zinc-500">{meta}</p>
+            <p className="truncate text-sm font-medium text-card-foreground">{title}</p>
+            {description ? <p className="max-w-[36rem] text-sm text-muted-foreground">{description}</p> : null}
+            <p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">{meta}</p>
           </div>
           <StatusPill status={request.status} />
         </div>
@@ -115,7 +115,7 @@ export default async function DashboardPage() {
   const recentPendingRequests = pendingRequests.slice(0, 2);
 
   return (
-    <main className="min-h-screen bg-[#09090b]">
+    <main className="min-h-screen bg-background text-foreground">
       <TopBar role={isAdmin ? "admin" : "user"} userName={profile?.full_name} userRank={profile?.rank} userEmail={user.email} />
       <section className="mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-6 lg:px-8">
         <Card className="overflow-hidden animate-enter">
@@ -133,7 +133,7 @@ export default async function DashboardPage() {
             <div className="grid gap-4 pt-2 sm:grid-cols-2">
               <Button asChild size="lg" className="h-auto justify-start gap-4 py-6 text-left">
                 <Link href="/requests/report-sick">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-zinc-950/15 text-zinc-950">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                     <FileText className="h-5 w-5" />
                   </div>
                   <div>
@@ -143,7 +143,7 @@ export default async function DashboardPage() {
               </Button>
               <Button asChild size="lg" variant="outline" className="h-auto justify-start gap-4 py-6 text-left">
                 <Link href="/requests/external-appointment">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-zinc-100">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-border bg-secondary text-secondary-foreground">
                     <CalendarClock className="h-5 w-5" />
                   </div>
                   <div>
@@ -175,7 +175,7 @@ export default async function DashboardPage() {
                 />
               ))}
               <div className="pt-2">
-                <Button asChild variant="link" className="h-auto px-0 text-zinc-200">
+                <Button asChild variant="link" className="h-auto px-0">
                   <Link href="/history">View all</Link>
                 </Button>
               </div>
@@ -189,7 +189,7 @@ export default async function DashboardPage() {
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="space-y-2">
                   <CardTitle className="text-3xl">Pending Requests</CardTitle>
-                  <p className="text-sm text-zinc-400">{pendingRequests.length} pending</p>
+                  <p className="text-sm text-muted-foreground">{pendingRequests.length} pending</p>
                 </div>
               </div>
             </CardHeader>
@@ -212,12 +212,12 @@ export default async function DashboardPage() {
                   );
                 })
               ) : (
-                <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] p-4 text-sm text-zinc-400">
+                <div className="rounded-2xl border border-dashed border-border bg-muted/40 p-4 text-sm text-muted-foreground">
                   No pending requests right now.
                 </div>
               )}
               <div className="pt-2">
-                <Button asChild variant="link" className="h-auto px-0 text-zinc-200">
+                <Button asChild variant="link" className="h-auto px-0">
                   <Link href="/admin/requests">View all</Link>
                 </Button>
               </div>
