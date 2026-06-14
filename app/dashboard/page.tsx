@@ -133,7 +133,7 @@ export default async function DashboardPage() {
             <div className="grid gap-4 pt-2 sm:grid-cols-2">
               <Button asChild size="lg" className="h-auto justify-start gap-4 py-6 text-left">
                 <Link href="/requests/report-sick">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary-foreground/15 text-primary-foreground">
                     <FileText className="h-5 w-5" />
                   </div>
                   <div>
