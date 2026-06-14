@@ -20,6 +20,7 @@ Keep the app visually consistent with the current restored version.
 Important style constraints:
 
 - preserve the neutral gray / zinc palette
+- keep shadcn theme tokens on the default neutral palette; avoid slate/blue HSL hues for core dark-mode surfaces
 - preserve the existing glass / card / border treatment
 - keep dark mode as the default theme and preserve the navbar light-mode toggle to the left of the profile menu
 - avoid adding marketing fluff
