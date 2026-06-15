@@ -3,13 +3,15 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { getOptionalSupabasePublicConfig } from "@/lib/supabase/env";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export function LoginForm() {
-  const supabase = useMemo(() => createSupabaseBrowserClient(), []);
+  const hasSupabaseConfig = Boolean(getOptionalSupabasePublicConfig());
+  const supabase = useMemo(() => (hasSupabaseConfig ? createSupabaseBrowserClient() : null), [hasSupabaseConfig]);
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirectTo") ?? "/";
@@ -20,6 +22,11 @@ export function LoginForm() {
 
   function submit() {
     setMessage(null);
+    if (!supabase) {
+      setMessage("Sign in is temporarily unavailable. Please try again later.");
+      return;
+    }
+
     startTransition(async () => {
       const authResult = await supabase.auth.signInWithPassword({ email, password });
 
@@ -55,7 +62,12 @@ export function LoginForm() {
             <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
           </div>
           {message ? <p className="rounded-xl border border-border bg-muted/40 px-4 py-3 text-sm text-foreground">{message}</p> : null}
-          <Button className="w-full" type="submit" disabled={pending}>
+          {!hasSupabaseConfig ? (
+            <p className="rounded-xl border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+              Sign in is temporarily unavailable. Please try again later.
+            </p>
+          ) : null}
+          <Button className="w-full" type="submit" disabled={pending || !hasSupabaseConfig}>
             {pending ? "Working..." : "Sign in"}
           </Button>
         </CardContent>
