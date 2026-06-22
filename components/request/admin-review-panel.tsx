@@ -14,6 +14,7 @@ export function AdminReviewPanel({
   hasFollowup,
   onClose,
   onUpdated,
+  showClose = true,
 }: {
   request: RequestRecord;
   adminId: string;
@@ -21,6 +22,7 @@ export function AdminReviewPanel({
   hasFollowup?: boolean;
   onClose?: () => void;
   onUpdated?: (request: RequestRecord) => void;
+  showClose?: boolean;
 }) {
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
   const router = useRouter();
@@ -98,6 +100,7 @@ export function AdminReviewPanel({
   const canReview = !isApproved && !isRejected && !isFinalized;
   const canFinalize = request.kind === "report_sick" && !isRejected && !isFinalized && hasSubmittedFollowup;
   const isWaitingForFollowup = request.kind === "report_sick" && isApproved && !hasSubmittedFollowup && !isFinalized;
+  const showActionRow = canReview || canFinalize || showClose;
 
   return (
     <Card className="overflow-hidden">
@@ -118,26 +121,30 @@ export function AdminReviewPanel({
             Rejected.
           </p>
         ) : null}
-        <div className="flex flex-col gap-3 sm:flex-row">
-          {canReview ? (
-            <>
-              <Button type="button" disabled={pending} onClick={() => save("approve")} className="sm:flex-1">
-                {pending ? "Saving..." : "Approve"}
+        {showActionRow ? (
+          <div className="flex flex-col gap-3 sm:flex-row">
+            {canReview ? (
+              <>
+                <Button type="button" disabled={pending} onClick={() => save("approve")} className="sm:flex-1">
+                  {pending ? "Saving..." : "Approve"}
+                </Button>
+                <Button type="button" variant="outline" disabled={pending} onClick={() => save("reject")} className="sm:flex-1">
+                  Reject
+                </Button>
+              </>
+            ) : null}
+            {canFinalize ? (
+              <Button type="button" disabled={pending} onClick={() => save("finalize")} className="sm:flex-1">
+                {pending ? "Saving..." : "Finalize"}
               </Button>
-              <Button type="button" variant="outline" disabled={pending} onClick={() => save("reject")} className="sm:flex-1">
-                Reject
+            ) : null}
+            {showClose ? (
+              <Button type="button" variant="outline" onClick={onClose ?? (() => router.back())} className="sm:flex-1">
+                Close
               </Button>
-            </>
-          ) : null}
-          {canFinalize ? (
-            <Button type="button" disabled={pending} onClick={() => save("finalize")} className="sm:flex-1">
-              {pending ? "Saving..." : "Finalize"}
-            </Button>
-          ) : null}
-          <Button type="button" variant="outline" onClick={onClose ?? (() => router.back())} className="sm:flex-1">
-            Close
-          </Button>
-        </div>
+            ) : null}
+          </div>
+        ) : null}
       </CardContent>
     </Card>
   );

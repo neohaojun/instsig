@@ -5,6 +5,7 @@ import { RequestSummary } from "@/components/request/request-summary";
 import { AdminReviewPanel } from "@/components/request/admin-review-panel";
 import { AdminReportSickFollowupCard } from "@/components/request/admin-report-sick-followup-card";
 import { ExternalAppointmentRequestCard } from "@/components/request/external-appointment-card";
+import { PageCloseButton } from "@/components/request/page-close-button";
 import { ReportSickInitialRequestCard } from "@/components/request/report-sick-followup-form";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatProfileName } from "@/lib/profile-display";
@@ -56,6 +57,8 @@ export default async function AdminRequestDetailPage({
     <main className="min-h-screen bg-background text-foreground">
       <TopBar role="admin" userName={profile?.full_name} userRank={profile?.rank} userEmail={user.email} />
       <section className="mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-6 lg:px-8">
+        <PageCloseButton className="flex justify-start" />
+
         <div className="animate-enter">
           {(() => {
             const requester = profilesById[request.requester_id];
@@ -110,7 +113,13 @@ export default async function AdminRequestDetailPage({
               {request.kind === "report_sick" && followup ? (
                 <AdminReportSickFollowupCard request={request} followup={followup} profilesById={profilesById} />
               ) : null}
-              <AdminReviewPanel request={request} adminId={profile.id} adminEmail={user.email ?? ""} hasFollowup={Boolean(followup)} />
+              <AdminReviewPanel
+                request={request}
+                adminId={profile.id}
+                adminEmail={user.email ?? ""}
+                hasFollowup={Boolean(followup)}
+                showClose={false}
+              />
             </div>
           </div>
         </div>
