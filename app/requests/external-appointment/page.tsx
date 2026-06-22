@@ -48,7 +48,8 @@ export default async function ExternalAppointmentPage({
 
   return (
     <main className="min-h-dvh bg-background px-4 py-6 text-foreground sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-5xl">
+      <div className="mx-auto grid max-w-5xl gap-6">
+        {!editable ? <PageCloseButton className="flex justify-start" /> : null}
         <div className="animate-enter">
           {editable ? (
             <RequestForm kind="external_appointment" userEmail={user.email!} userId={user.id} initialRequest={initialRequest} />
@@ -56,7 +57,6 @@ export default async function ExternalAppointmentPage({
             <ExternalAppointmentRequestCard request={initialRequest} profilesById={profilesById} />
           )}
         </div>
-        {!editable ? <PageCloseButton className="mt-6 flex justify-end" /> : null}
       </div>
     </main>
   );

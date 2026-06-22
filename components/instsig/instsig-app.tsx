@@ -7,6 +7,7 @@ import { TopBar } from "@/components/layout/topbar";
 import { AdminReportSickFollowupCard } from "@/components/request/admin-report-sick-followup-card";
 import { AdminReviewPanel } from "@/components/request/admin-review-panel";
 import { ExternalAppointmentRequestCard } from "@/components/request/external-appointment-card";
+import { PageCloseButton } from "@/components/request/page-close-button";
 import { ReportSickFollowupForm, ReportSickInitialRequestCard } from "@/components/request/report-sick-followup-form";
 import { RequestForm } from "@/components/request/request-form";
 import { RequestSummary } from "@/components/request/request-summary";
@@ -561,12 +562,7 @@ function AdminRequestDetailView({
 
   return (
     <section className="mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-6 lg:px-8">
-      <div className="flex flex-wrap gap-3">
-        <Button type="button" variant="outline" onClick={onBack}>
-          <ChevronLeft className="h-4 w-4" />
-          Back
-        </Button>
-      </div>
+      <PageCloseButton className="flex justify-start" onClick={onBack} />
 
       <RequesterCard request={request} profilesById={profilesById} batchesById={batchesById} />
 
@@ -599,6 +595,7 @@ function AdminRequestDetailView({
               hasFollowup={Boolean(followup)}
               onClose={onBack}
               onUpdated={onRequestUpdated}
+              showClose={false}
             />
           </div>
         </div>
@@ -634,10 +631,7 @@ function UserRequestDetailView({
     <section className="min-h-dvh bg-background px-4 py-6 text-foreground sm:px-6 lg:px-8">
       <div className={`mx-auto grid max-w-7xl gap-6 ${hasRightPane ? "xl:grid-cols-2" : ""}`}>
         <div className={hasRightPane ? "xl:col-span-2 flex justify-start" : "flex justify-start"}>
-          <Button type="button" variant="outline" onClick={onBack}>
-            <ChevronLeft className="h-4 w-4" />
-            Back
-          </Button>
+          <PageCloseButton onClick={onBack} />
         </div>
 
         <div className="animate-enter">

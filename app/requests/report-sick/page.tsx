@@ -50,7 +50,7 @@ export default async function ReportSickPage({
   const canEditFollowup = request.status === "approved";
   const hasRightPane = canEditFollowup || Boolean(followup);
   const hasActiveForm = editableInitial || (canEditFollowup && !followup);
-  const showPageClose = !hasActiveForm;
+  const showPageBack = !hasActiveForm;
 
   const profileIds = [
     request.approved_by,
@@ -65,32 +65,40 @@ export default async function ReportSickPage({
 
   return (
     <main className="min-h-dvh bg-background px-4 py-6 text-foreground sm:px-6 lg:px-8">
-      <div className={`mx-auto grid max-w-7xl gap-6 ${hasRightPane ? "xl:grid-cols-2" : ""}`}>
-        <div className="animate-enter">
-          {editableInitial ? (
-            <RequestForm kind="report_sick" userEmail={user.email!} userId={user.id} initialRequest={request} />
-          ) : request.kind === "report_sick" ? (
-            <ReportSickInitialRequestCard request={request} profilesById={profilesById} />
-          ) : (
-            <RequestSummary request={request} profilesById={profilesById} />
-          )}
-        </div>
+      <div className="mx-auto grid max-w-7xl gap-6">
+        {showPageBack ? <PageCloseButton className="flex justify-start" /> : null}
 
-        {hasRightPane ? (
-          <div className="grid gap-4 self-start xl:sticky xl:top-24">
-            {canEditFollowup && !followup ? (
-              <ReportSickFollowupForm request={request} initialUpdate={followup} />
-            ) : followup ? (
-              <ReportSickFollowupCard
+        <div className={`grid gap-6 ${hasRightPane ? "items-start xl:grid-cols-2" : ""}`}>
+          <div className="animate-enter">
+            {editableInitial ? (
+              <RequestForm kind="report_sick" userEmail={user.email!} userId={user.id} initialRequest={request} />
+            ) : request.kind === "report_sick" ? (
+              <ReportSickInitialRequestCard
                 request={request}
-                followup={followup}
                 profilesById={profilesById}
-                idPrefix="user-report-sick-followup"
+                className={hasRightPane ? "xl:max-w-none" : undefined}
               />
-            ) : null}
+            ) : (
+              <RequestSummary request={request} profilesById={profilesById} />
+            )}
           </div>
-        ) : null}
-        {showPageClose ? <PageCloseButton className={hasRightPane ? "xl:col-span-2 flex justify-end" : "flex justify-end"} /> : null}
+
+          {hasRightPane ? (
+            <div className="grid gap-4 self-start xl:sticky xl:top-24">
+              {canEditFollowup && !followup ? (
+                <ReportSickFollowupForm request={request} initialUpdate={followup} />
+              ) : followup ? (
+                <ReportSickFollowupCard
+                  request={request}
+                  followup={followup}
+                  profilesById={profilesById}
+                  className="xl:max-w-none"
+                  idPrefix="user-report-sick-followup"
+                />
+              ) : null}
+            </div>
+          ) : null}
+        </div>
       </div>
     </main>
   );
