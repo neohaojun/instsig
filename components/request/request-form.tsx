@@ -68,15 +68,21 @@ export function RequestForm({
   userEmail,
   userId,
   initialRequest,
+  requestId: requestIdProp,
+  onClose,
+  onSaved,
 }: {
   kind: RequestKind;
   userEmail: string;
   userId: string;
   initialRequest?: RequestRecord | null;
+  requestId?: string | null;
+  onClose?: () => void;
+  onSaved?: (request: RequestRecord) => void;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const requestId = searchParams.get("id");
+  const requestId = requestIdProp !== undefined ? requestIdProp : searchParams.get("id");
   const [pending, startTransition] = useTransition();
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
   const [banner, setBanner] = useState<string | null>(null);
@@ -138,8 +144,17 @@ export function RequestForm({
         return;
       }
 
+      if (onSaved) {
+        onSaved(result.data as RequestRecord);
+        return;
+      }
+
       router.refresh();
-      router.back();
+      if (onClose) {
+        onClose();
+      } else {
+        router.back();
+      }
     });
   }
 
@@ -166,7 +181,7 @@ export function RequestForm({
           {banner ? <p className="rounded-xl border border-border bg-muted/40 px-4 py-3 text-sm text-foreground">{banner}</p> : null}
 
           <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-            <Button type="button" variant="outline" onClick={() => router.back()}>
+            <Button type="button" variant="outline" onClick={onClose ?? (() => router.back())}>
               Close
             </Button>
             <Button type="submit" disabled={pending}>
