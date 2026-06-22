@@ -245,4 +245,4 @@ If the app reports a missing table or schema cache issue for a known object such
 - Supabase browser/client setup should support `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` and the legacy `NEXT_PUBLIC_SUPABASE_ANON_KEY` so older Vercel environments do not crash on startup.
 - Keep `typedRoutes: true` at the top level of `next.config.mjs`; do not move it under `experimental`.
 - Keep the base link `/` as the canonical app entry point, rendering the instsig app there directly like the `flykyte` app does instead of using `/` only as a redirector.
-- Preserve the `/` client shell pattern for dashboard, history, admin landing, and admin queue navigation so common app buttons switch views locally instead of forcing full route transitions.
+- Preserve the `/` client shell pattern for dashboard, history, admin landing, admin queue, and common request detail navigation so app buttons switch views locally instead of forcing full route transitions.

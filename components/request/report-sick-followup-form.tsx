@@ -249,16 +249,18 @@ function RadioField({
 export function ReportSickInitialRequestCard({
   request,
   profilesById = {},
+  className,
 }: {
   request: RequestRecord;
   profilesById?: Record<string, ProfileRecord | null | undefined>;
+  className?: string;
 }) {
   const payload = request.payload as Record<string, unknown>;
   const selectedDate = typeof payload.dateReportingSick === "string" ? parseISO(payload.dateReportingSick) : undefined;
   const approvedBy = request.approved_by ? profilesById[request.approved_by] : null;
 
   return (
-    <Card className="mx-auto w-full max-w-5xl">
+    <Card className={cn("mx-auto w-full max-w-5xl", className)}>
       <CardHeader>
         <CardTitle>Request Form (Read-Only)</CardTitle>
       </CardHeader>
@@ -445,9 +447,13 @@ function StatusEntryRow({
 export function ReportSickFollowupForm({
   request,
   initialUpdate,
+  onClose,
+  onSaved,
 }: {
   request: RequestRecord;
   initialUpdate?: RequestUpdateRecord | null;
+  onClose?: () => void;
+  onSaved?: (request: RequestRecord, update: RequestUpdateRecord) => void;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -554,7 +560,7 @@ export function ReportSickFollowupForm({
       let followupErrorSummary: SupabaseErrorSummary | null = null;
       const submittedAt = new Date().toISOString();
 
-      const { error: upsertError } = await supabase.from("request_updates").upsert(
+      const { data: savedFollowup, error: upsertError } = await supabase.from("request_updates").upsert(
         {
           request_id: request.id,
           kind: "doctor_followup",
@@ -563,7 +569,7 @@ export function ReportSickFollowupForm({
           created_by_email: user.email,
         },
         { onConflict: "request_id,kind" },
-      );
+      ).select().single();
 
       const upsertErrorSummary = normalizeSupabaseError(upsertError);
 
@@ -579,7 +585,7 @@ export function ReportSickFollowupForm({
           followupErrorSummary = upsertErrorSummary;
         }
       } else {
-        const { data: updatedRequests, error: requestUpdateError } = await supabase
+        const { data: updatedRequest, error: requestUpdateError } = await supabase
           .from("requests")
           .update({
             status: "submitted",
@@ -588,7 +594,8 @@ export function ReportSickFollowupForm({
           })
           .eq("id", request.id)
           .eq("status", "approved")
-          .select("id");
+          .select()
+          .single();
 
         const requestUpdateErrorSummary = normalizeSupabaseError(requestUpdateError);
 
@@ -599,7 +606,7 @@ export function ReportSickFollowupForm({
           });
 
           followupErrorSummary = normalizeSupabaseError(rpcError);
-        } else if (!updatedRequests?.length) {
+        } else if (!updatedRequest) {
           const { error: rpcError } = await supabase.rpc("submit_report_sick_followup", {
             p_payload: payload,
             p_request_id: request.id,
@@ -629,8 +636,25 @@ export function ReportSickFollowupForm({
         return;
       }
 
+      if (onSaved && savedFollowup) {
+        onSaved(
+          {
+            ...request,
+            status: "submitted",
+            followup_submitted_at: submittedAt,
+            updated_at: submittedAt,
+          },
+          savedFollowup as RequestUpdateRecord,
+        );
+        return;
+      }
+
       router.refresh();
-      router.back();
+      if (onClose) {
+        onClose();
+      } else {
+        router.back();
+      }
     });
   }
 
@@ -789,7 +813,7 @@ export function ReportSickFollowupForm({
           {banner ? <p className="rounded-xl border border-border bg-muted/40 px-4 py-3 text-sm text-foreground">{banner}</p> : null}
 
           <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-            <Button type="button" variant="outline" onClick={() => router.back()}>
+            <Button type="button" variant="outline" onClick={onClose ?? (() => router.back())}>
               Close
             </Button>
             <Button type="submit" disabled={pending}>

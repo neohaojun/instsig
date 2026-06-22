@@ -12,11 +12,15 @@ export function AdminReviewPanel({
   adminId,
   adminEmail,
   hasFollowup,
+  onClose,
+  onUpdated,
 }: {
   request: RequestRecord;
   adminId: string;
   adminEmail: string;
   hasFollowup?: boolean;
+  onClose?: () => void;
+  onUpdated?: (request: RequestRecord) => void;
 }) {
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
   const router = useRouter();
@@ -55,7 +59,7 @@ export function AdminReviewPanel({
         updates.finalized_at = timestamp;
       }
 
-      const { error } = await supabase.from("requests").update(updates).eq("id", request.id);
+      const { data: updatedRequest, error } = await supabase.from("requests").update(updates).eq("id", request.id).select().single();
       if (error) {
         setMessage("We couldn't update this request right now. Please try again.");
         return;
@@ -77,8 +81,17 @@ export function AdminReviewPanel({
         changes: null,
       });
 
+      if (onUpdated) {
+        onUpdated(updatedRequest as RequestRecord);
+        return;
+      }
+
       router.refresh();
-      router.back();
+      if (onClose) {
+        onClose();
+      } else {
+        router.back();
+      }
     });
   }
 
@@ -121,7 +134,7 @@ export function AdminReviewPanel({
               {pending ? "Saving..." : "Finalize"}
             </Button>
           ) : null}
-          <Button type="button" variant="outline" onClick={() => router.back()} className="sm:flex-1">
+          <Button type="button" variant="outline" onClick={onClose ?? (() => router.back())} className="sm:flex-1">
             Close
           </Button>
         </div>

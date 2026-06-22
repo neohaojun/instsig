@@ -4,17 +4,22 @@ import { useMemo, useState } from "react";
 import { format, parseISO } from "date-fns";
 import { ArrowUpRight, CalendarClock, ChevronLeft, FileText, Users } from "lucide-react";
 import { TopBar } from "@/components/layout/topbar";
+import { AdminReportSickFollowupCard } from "@/components/request/admin-report-sick-followup-card";
+import { AdminReviewPanel } from "@/components/request/admin-review-panel";
+import { ExternalAppointmentRequestCard } from "@/components/request/external-appointment-card";
+import { ReportSickFollowupForm, ReportSickInitialRequestCard } from "@/components/request/report-sick-followup-form";
 import { RequestForm } from "@/components/request/request-form";
+import { RequestSummary } from "@/components/request/request-summary";
 import { StatusPill } from "@/components/request/status-pill";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatProfileName } from "@/lib/profile-display";
 import { requestKindLabels } from "@/lib/request-meta";
-import type { ProfileRecord, RequestKind, RequestRecord } from "@/lib/types";
+import type { BatchRecord, ProfileRecord, RequestKind, RequestRecord, RequestUpdateRecord } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-type ShellView = "dashboard" | "history" | "admin" | "adminRequests" | "newReportSick" | "newExternalAppointment";
+type ShellView = "dashboard" | "history" | "admin" | "adminRequests" | "requestDetail" | "newReportSick" | "newExternalAppointment";
 type RequestStatusView = "pending" | "all";
 
 const statusViews: { value: RequestStatusView; label: string }[] = [
@@ -69,21 +74,25 @@ function requestDetailHref(request: RequestRecord) {
   return `${requestPathByKind[request.kind]}?id=${request.id}`;
 }
 
+function isInitialRequestEditable(request: RequestRecord) {
+  return ["draft", "pending", "needs_changes"].includes(request.status);
+}
+
 function RequestSubcard({
-  href,
   title,
   meta,
   description,
   request,
+  onSelect,
 }: {
-  href: string;
   title: string;
   meta: string;
   description?: string;
   request: RequestRecord;
+  onSelect: (request: RequestRecord) => void;
 }) {
   return (
-    <a href={href} className="block">
+    <button type="button" onClick={() => onSelect(request)} className="block w-full text-left">
       <div className="group rounded-2xl border border-border bg-card p-4 transition hover:bg-accent/50">
         <div className="flex items-center justify-between gap-4 text-left">
           <div className="min-w-0 space-y-2">
@@ -94,7 +103,7 @@ function RequestSubcard({
           <StatusPill status={request.status} />
         </div>
       </div>
-    </a>
+    </button>
   );
 }
 
@@ -104,12 +113,14 @@ function DashboardView({
   userEmail,
   profilesById,
   onNavigate,
+  onSelectRequest,
 }: {
   requests: RequestRecord[];
   profile: ProfileRecord | null;
   userEmail: string | null;
   profilesById: Record<string, ProfileRecord | null | undefined>;
   onNavigate: (view: ShellView) => void;
+  onSelectRequest: (request: RequestRecord) => void;
 }) {
   const isAdmin = profile?.role === "admin";
   const pendingRequests = requests.filter(isIncompleteRequest);
@@ -158,10 +169,10 @@ function DashboardView({
             {recentRequestHistory.map((request) => (
               <RequestSubcard
                 key={request.id}
-                href={requestDetailHref(request)}
                 title={requestKindLabels[request.kind]}
                 meta={formatRequestWhen(request)}
                 request={request}
+                onSelect={onSelectRequest}
               />
             ))}
             <div className="pt-2">
@@ -188,11 +199,11 @@ function DashboardView({
               recentPendingRequests.map((request) => (
                 <RequestSubcard
                   key={request.id}
-                  href={`/admin/requests/${request.id}`}
                   title={formatProfileName(profilesById[request.requester_id], request.requester_email)}
                   meta={formatRequestWhen(request)}
                   description={requestKindLabels[request.kind]}
                   request={request}
+                  onSelect={onSelectRequest}
                 />
               ))
             ) : (
@@ -216,10 +227,12 @@ function HistoryView({
   requests,
   profile,
   onNavigate,
+  onSelectRequest,
 }: {
   requests: RequestRecord[];
   profile: ProfileRecord | null;
   onNavigate: (view: ShellView) => void;
+  onSelectRequest: (request: RequestRecord) => void;
 }) {
   const userRequests = requests.filter((request) => request.requester_id === profile?.id && request.status !== "draft");
   const reportSickRequests = userRequests.filter((request) => request.kind === "report_sick");
@@ -239,13 +252,28 @@ function HistoryView({
         </CardHeader>
       </Card>
 
-      <HistoryCard title="Report Sick" requests={reportSickRequests} emptyText="None found." />
-      <HistoryCard title="External Appointment" requests={externalAppointmentRequests} emptyText="None found." />
+      <HistoryCard title="Report Sick" requests={reportSickRequests} emptyText="None found." onSelectRequest={onSelectRequest} />
+      <HistoryCard
+        title="External Appointment"
+        requests={externalAppointmentRequests}
+        emptyText="None found."
+        onSelectRequest={onSelectRequest}
+      />
     </section>
   );
 }
 
-function HistoryCard({ title, requests, emptyText }: { title: string; requests: RequestRecord[]; emptyText: string }) {
+function HistoryCard({
+  title,
+  requests,
+  emptyText,
+  onSelectRequest,
+}: {
+  title: string;
+  requests: RequestRecord[];
+  emptyText: string;
+  onSelectRequest: (request: RequestRecord) => void;
+}) {
   return (
     <Card className="overflow-hidden animate-enter">
       <CardHeader className="space-y-4 p-8">
@@ -254,7 +282,7 @@ function HistoryCard({ title, requests, emptyText }: { title: string; requests: 
       <CardContent className="grid gap-3 p-8 pt-0">
         {requests.length ? (
           requests.map((request, index) => (
-            <a key={request.id} href={requestDetailHref(request)} className="block">
+            <button key={request.id} type="button" onClick={() => onSelectRequest(request)} className="block w-full text-left">
               <div
                 className={cn(
                   "group rounded-2xl border border-border bg-card p-4 transition hover:bg-accent/50",
@@ -269,7 +297,7 @@ function HistoryCard({ title, requests, emptyText }: { title: string; requests: 
                   <StatusPill status={request.status} />
                 </div>
               </div>
-            </a>
+            </button>
           ))
         ) : (
           <div className="rounded-2xl border border-dashed border-border bg-muted/40 p-4 text-sm text-muted-foreground">
@@ -362,11 +390,13 @@ function RequestsByKindCard({
   requests,
   profilesById,
   statusView,
+  onSelectRequest,
 }: {
   title: string;
   requests: RequestRecord[];
   profilesById: Record<string, ProfileRecord | null | undefined>;
   statusView: RequestStatusView;
+  onSelectRequest: (request: RequestRecord) => void;
 }) {
   const emptyLabel =
     statusView === "pending"
@@ -388,7 +418,7 @@ function RequestsByKindCard({
       <CardContent className="grid gap-3 p-8 pt-0">
         {requests.length ? (
           requests.map((request, index) => (
-            <a key={request.id} href={`/admin/requests/${request.id}`} className="block">
+            <button key={request.id} type="button" onClick={() => onSelectRequest(request)} className="block w-full text-left">
               <div
                 className={cn(
                   "group rounded-2xl border border-border bg-card p-4 transition hover:bg-accent/50",
@@ -406,7 +436,7 @@ function RequestsByKindCard({
                   <StatusPill status={request.status} />
                 </div>
               </div>
-            </a>
+            </button>
           ))
         ) : (
           <div className="rounded-2xl border border-dashed border-border bg-muted/40 p-4 text-sm text-muted-foreground">
@@ -424,12 +454,14 @@ function AdminRequestsView({
   statusView,
   setStatusView,
   onNavigate,
+  onSelectRequest,
 }: {
   requests: RequestRecord[];
   profilesById: Record<string, ProfileRecord | null | undefined>;
   statusView: RequestStatusView;
   setStatusView: (view: RequestStatusView) => void;
   onNavigate: (view: ShellView) => void;
+  onSelectRequest: (request: RequestRecord) => void;
 }) {
   const visibleRequests = filterRequestsByView(requests, statusView);
   const reportSickRequests = visibleRequests.filter((request) => request.kind === "report_sick");
@@ -450,13 +482,199 @@ function AdminRequestsView({
       </Card>
 
       <RequestStatusTabs activeView={statusView} onChange={setStatusView} />
-      <RequestsByKindCard title="Report Sick" requests={reportSickRequests} profilesById={profilesById} statusView={statusView} />
+      <RequestsByKindCard
+        title="Report Sick"
+        requests={reportSickRequests}
+        profilesById={profilesById}
+        statusView={statusView}
+        onSelectRequest={onSelectRequest}
+      />
       <RequestsByKindCard
         title="External Appointment"
         requests={externalAppointmentRequests}
         profilesById={profilesById}
         statusView={statusView}
+        onSelectRequest={onSelectRequest}
       />
+    </section>
+  );
+}
+
+function RequesterCard({
+  request,
+  profilesById,
+  batchesById,
+}: {
+  request: RequestRecord;
+  profilesById: Record<string, ProfileRecord | null | undefined>;
+  batchesById: Record<string, BatchRecord | null | undefined>;
+}) {
+  const requester = profilesById[request.requester_id];
+  const requesterBatch = requester?.batch_id ? batchesById[requester.batch_id] : null;
+  const requesterDisplayName = formatProfileName(requester, request.requester_email);
+  const batchNumbers = [requesterBatch?.name, requester?.sscc_batch].filter(Boolean).join(" / ");
+  const platoonNames = [requester?.common_term_platoon, requester?.specialisation_phase_platoon].filter(Boolean).join(" / ");
+  const requesterSummary = [
+    requester?.rank,
+    requester?.full_name,
+    batchNumbers ? `Batch numbers: ${batchNumbers}` : null,
+    platoonNames ? `Platoon names: ${platoonNames}` : null,
+    requester?.nr ? `NR: ${requester.nr}` : null,
+    request.requester_email,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
+  return (
+    <Card className="overflow-hidden">
+      <CardHeader className="space-y-2 p-6">
+        <CardTitle className="text-base font-semibold text-foreground">Submitted by</CardTitle>
+        <p className="text-sm leading-6 text-muted-foreground">
+          {requesterDisplayName}
+          {requesterSummary ? ` · ${requesterSummary}` : ""}
+        </p>
+      </CardHeader>
+    </Card>
+  );
+}
+
+function AdminRequestDetailView({
+  request,
+  followup,
+  profile,
+  userEmail,
+  profilesById,
+  batchesById,
+  onBack,
+  onRequestUpdated,
+}: {
+  request: RequestRecord;
+  followup: RequestUpdateRecord | null;
+  profile: ProfileRecord;
+  userEmail: string | null;
+  profilesById: Record<string, ProfileRecord | null | undefined>;
+  batchesById: Record<string, BatchRecord | null | undefined>;
+  onBack: () => void;
+  onRequestUpdated: (request: RequestRecord) => void;
+}) {
+  const showRightPane = request.kind === "report_sick";
+
+  return (
+    <section className="mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-6 lg:px-8">
+      <div className="flex flex-wrap gap-3">
+        <Button type="button" variant="outline" onClick={onBack}>
+          <ChevronLeft className="h-4 w-4" />
+          Back
+        </Button>
+      </div>
+
+      <RequesterCard request={request} profilesById={profilesById} batchesById={batchesById} />
+
+      <div className={`grid gap-6 ${showRightPane ? "xl:grid-cols-2" : "xl:grid-cols-[1fr_0.92fr]"}`}>
+        <div className="animate-enter">
+          {request.kind === "report_sick" ? (
+            <ReportSickInitialRequestCard request={request} profilesById={profilesById} />
+          ) : request.kind === "external_appointment" ? (
+            <ExternalAppointmentRequestCard request={request} profilesById={profilesById} />
+          ) : (
+            <RequestSummary
+              request={request}
+              followup={followup}
+              profilesById={profilesById}
+              showLifecycle={false}
+              showAdminNote={false}
+            />
+          )}
+        </div>
+
+        <div className="animate-enter-soft animate-delay-1 self-start xl:sticky xl:top-24">
+          <div className="grid gap-4">
+            {request.kind === "report_sick" && followup ? (
+              <AdminReportSickFollowupCard request={request} followup={followup} profilesById={profilesById} />
+            ) : null}
+            <AdminReviewPanel
+              request={request}
+              adminId={profile.id}
+              adminEmail={userEmail ?? ""}
+              hasFollowup={Boolean(followup)}
+              onClose={onBack}
+              onUpdated={onRequestUpdated}
+            />
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function UserRequestDetailView({
+  request,
+  followup,
+  profile,
+  userEmail,
+  profilesById,
+  onBack,
+  onRequestUpdated,
+  onFollowupSaved,
+}: {
+  request: RequestRecord;
+  followup: RequestUpdateRecord | null;
+  profile: ProfileRecord | null;
+  userEmail: string | null;
+  profilesById: Record<string, ProfileRecord | null | undefined>;
+  onBack: () => void;
+  onRequestUpdated: (request: RequestRecord) => void;
+  onFollowupSaved: (request: RequestRecord, followup: RequestUpdateRecord) => void;
+}) {
+  const editableInitial = isInitialRequestEditable(request);
+  const canEditFollowup = request.kind === "report_sick" && request.status === "approved";
+  const hasRightPane = request.kind === "report_sick" && (canEditFollowup || Boolean(followup));
+
+  return (
+    <section className="min-h-dvh bg-background px-4 py-6 text-foreground sm:px-6 lg:px-8">
+      <div className={`mx-auto grid max-w-7xl gap-6 ${hasRightPane ? "xl:grid-cols-2" : ""}`}>
+        <div className={hasRightPane ? "xl:col-span-2 flex justify-start" : "flex justify-start"}>
+          <Button type="button" variant="outline" onClick={onBack}>
+            <ChevronLeft className="h-4 w-4" />
+            Back
+          </Button>
+        </div>
+
+        <div className="animate-enter">
+          {editableInitial ? (
+            <RequestForm
+              kind={request.kind}
+              userEmail={userEmail ?? ""}
+              userId={profile?.id ?? request.requester_id}
+              initialRequest={request}
+              requestId={request.id}
+              onClose={onBack}
+              onSaved={onRequestUpdated}
+            />
+          ) : request.kind === "report_sick" ? (
+            <ReportSickInitialRequestCard request={request} profilesById={profilesById} />
+          ) : request.kind === "external_appointment" ? (
+            <ExternalAppointmentRequestCard request={request} profilesById={profilesById} />
+          ) : (
+            <RequestSummary request={request} followup={followup} profilesById={profilesById} />
+          )}
+        </div>
+
+        {hasRightPane ? (
+          <div className="grid gap-4 self-start xl:sticky xl:top-24">
+            {canEditFollowup && !followup ? (
+              <ReportSickFollowupForm
+                request={request}
+                initialUpdate={followup}
+                onClose={onBack}
+                onSaved={onFollowupSaved}
+              />
+            ) : followup ? (
+              <AdminReportSickFollowupCard request={request} followup={followup} profilesById={profilesById} />
+            ) : null}
+          </div>
+        ) : null}
+      </div>
     </section>
   );
 }
@@ -496,22 +714,33 @@ export function InstsigApp({
   userEmail,
   profile,
   initialRequests,
+  initialUpdates,
   profilesById,
+  batchesById,
 }: {
   userEmail: string | null;
   profile: ProfileRecord | null;
   initialRequests: RequestRecord[];
+  initialUpdates: RequestUpdateRecord[];
   profilesById: Record<string, ProfileRecord | null | undefined>;
+  batchesById: Record<string, BatchRecord | null | undefined>;
 }) {
   const [view, setView] = useState<ShellView>("dashboard");
+  const [returnView, setReturnView] = useState<ShellView>("dashboard");
+  const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
   const [statusView, setStatusView] = useState<RequestStatusView>("pending");
   const [requests, setRequests] = useState(initialRequests);
+  const [updates, setUpdates] = useState(initialUpdates);
   const isAdmin = profile?.role === "admin";
 
   const sortedRequests = useMemo(
     () => [...requests].sort((first, second) => Date.parse(second.updated_at) - Date.parse(first.updated_at)),
     [requests],
   );
+  const selectedRequest = selectedRequestId ? sortedRequests.find((request) => request.id === selectedRequestId) ?? null : null;
+  const selectedFollowup = selectedRequest
+    ? updates.find((update) => update.request_id === selectedRequest.id && update.kind === "doctor_followup") ?? null
+    : null;
 
   function navigate(nextView: ShellView) {
     if ((nextView === "admin" || nextView === "adminRequests") && !isAdmin) {
@@ -527,6 +756,23 @@ export function InstsigApp({
     setRequests((current) => [request, ...current.filter((item) => item.id !== request.id)]);
     setView("dashboard");
     window.scrollTo({ top: 0, behavior: "instant" });
+  }
+
+  function handleSelectRequest(request: RequestRecord) {
+    setSelectedRequestId(request.id);
+    setReturnView(view === "requestDetail" ? "dashboard" : view);
+    setView("requestDetail");
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }
+
+  function handleRequestUpdated(request: RequestRecord) {
+    setRequests((current) => [request, ...current.filter((item) => item.id !== request.id)]);
+    setSelectedRequestId(request.id);
+  }
+
+  function handleFollowupSaved(request: RequestRecord, followup: RequestUpdateRecord) {
+    handleRequestUpdated(request);
+    setUpdates((current) => [followup, ...current.filter((item) => !(item.request_id === followup.request_id && item.kind === followup.kind))]);
   }
 
   return (
@@ -546,9 +792,12 @@ export function InstsigApp({
           userEmail={userEmail}
           profilesById={profilesById}
           onNavigate={navigate}
+          onSelectRequest={handleSelectRequest}
         />
       ) : null}
-      {view === "history" ? <HistoryView requests={sortedRequests} profile={profile} onNavigate={navigate} /> : null}
+      {view === "history" ? (
+        <HistoryView requests={sortedRequests} profile={profile} onNavigate={navigate} onSelectRequest={handleSelectRequest} />
+      ) : null}
       {view === "admin" && isAdmin ? <AdminLandingView onNavigate={navigate} /> : null}
       {view === "adminRequests" && isAdmin ? (
         <AdminRequestsView
@@ -557,7 +806,33 @@ export function InstsigApp({
           statusView={statusView}
           setStatusView={setStatusView}
           onNavigate={navigate}
+          onSelectRequest={handleSelectRequest}
         />
+      ) : null}
+      {view === "requestDetail" && selectedRequest ? (
+        isAdmin ? (
+          <AdminRequestDetailView
+            request={selectedRequest}
+            followup={selectedFollowup}
+            profile={profile as ProfileRecord}
+            userEmail={userEmail}
+            profilesById={profilesById}
+            batchesById={batchesById}
+            onBack={() => navigate(returnView)}
+            onRequestUpdated={handleRequestUpdated}
+          />
+        ) : (
+          <UserRequestDetailView
+            request={selectedRequest}
+            followup={selectedFollowup}
+            profile={profile}
+            userEmail={userEmail}
+            profilesById={profilesById}
+            onBack={() => navigate(returnView)}
+            onRequestUpdated={handleRequestUpdated}
+            onFollowupSaved={handleFollowupSaved}
+          />
+        )
       ) : null}
       {view === "newReportSick" ? (
         <NewRequestView
