@@ -88,7 +88,7 @@ export function ProfileMenu({
                 className="mb-2 flex items-center rounded-xl px-3 py-2 text-sm text-popover-foreground transition hover:bg-accent hover:text-accent-foreground"
                 onClick={() => setOpen(false)}
               >
-                User management
+                Manage Users
               </Link>
             ) : null}
             <SignOutButton />

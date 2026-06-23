@@ -3,6 +3,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { RequestForm } from "@/components/request/request-form";
 import { ExternalAppointmentRequestCard } from "@/components/request/external-appointment-card";
 import { PageCloseButton } from "@/components/request/page-close-button";
+import { StatusPill } from "@/components/request/status-pill";
 import type { ProfileRecord } from "@/lib/types";
 
 function buildProfilesMap(profiles: ProfileRecord[] | null | undefined) {
@@ -49,7 +50,12 @@ export default async function ExternalAppointmentPage({
   return (
     <main className="min-h-dvh bg-background px-4 py-6 text-foreground sm:px-6 lg:px-8">
       <div className="mx-auto grid max-w-5xl gap-6">
-        {!editable ? <PageCloseButton className="flex justify-start" /> : null}
+        {!editable ? (
+          <div className="flex items-center justify-between gap-4">
+            <PageCloseButton className="flex justify-start" />
+            <StatusPill status={initialRequest.status} />
+          </div>
+        ) : null}
         <div className="animate-enter">
           {editable ? (
             <RequestForm kind="external_appointment" userEmail={user.email!} userId={user.id} initialRequest={initialRequest} />

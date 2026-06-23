@@ -556,7 +556,10 @@ function AdminRequestDetailView({
 
   return (
     <section className="mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-6 lg:px-8">
-      <PageCloseButton className="flex justify-start" onClick={onBack} />
+      <div className="flex items-center justify-between gap-4">
+        <PageCloseButton className="flex justify-start" onClick={onBack} />
+        <StatusPill status={request.status} />
+      </div>
 
       <RequesterCard request={request} profilesById={profilesById} batchesById={batchesById} />
 
@@ -620,13 +623,17 @@ function UserRequestDetailView({
   const editableInitial = isInitialRequestEditable(request);
   const canEditFollowup = request.kind === "report_sick" && request.status === "approved";
   const hasRightPane = request.kind === "report_sick" && (canEditFollowup || Boolean(followup));
+  const hasActiveForm = editableInitial || (canEditFollowup && !followup);
 
   return (
     <section className="min-h-dvh bg-background px-4 py-6 text-foreground sm:px-6 lg:px-8">
       <div className={`mx-auto grid max-w-7xl gap-6 ${hasRightPane ? "xl:grid-cols-2" : ""}`}>
-        <div className={hasRightPane ? "xl:col-span-2 flex justify-start" : "flex justify-start"}>
-          <PageCloseButton onClick={onBack} />
-        </div>
+        {!hasActiveForm ? (
+          <div className={hasRightPane ? "xl:col-span-2 flex items-center justify-between gap-4" : "flex items-center justify-between gap-4"}>
+            <PageCloseButton onClick={onBack} />
+            <StatusPill status={request.status} />
+          </div>
+        ) : null}
 
         <div className="animate-enter">
           {editableInitial ? (

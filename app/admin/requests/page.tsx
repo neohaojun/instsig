@@ -178,7 +178,7 @@ export default async function AdminRequestsPage({
   if (!user) redirect("/login");
 
   const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single();
-  if (profile?.role !== "admin") redirect("/dashboard");
+  if (profile?.role !== "admin") redirect("/");
 
   const { data: requests } = await supabase.from("requests").select("*").order("created_at", { ascending: false });
   const visibleRequests = filterRequestsByView(requests ?? [], statusView);
@@ -202,7 +202,7 @@ export default async function AdminRequestsPage({
             </div>
             <div className="flex flex-wrap gap-3">
               <Button asChild variant="outline">
-                <Link href="/dashboard">Back to dashboard</Link>
+                <Link href="/">Back to dashboard</Link>
               </Button>
             </div>
           </CardHeader>

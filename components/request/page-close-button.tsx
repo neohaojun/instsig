@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 export function PageCloseButton({
   className,
   label,
-  mobileLabel = "Close",
+  mobileLabel,
   desktopLabel,
   onClick,
 }: {
@@ -19,13 +19,13 @@ export function PageCloseButton({
 }) {
   const router = useRouter();
   const resolvedDesktopLabel = desktopLabel ?? label ?? "Back";
-  const resolvedMobileLabel = mobileLabel;
+  const resolvedMobileLabel = mobileLabel ?? label ?? resolvedDesktopLabel;
   const showBackIcon = resolvedDesktopLabel !== "Close";
 
   return (
     <div className={className}>
       <Button type="button" variant="outline" onClick={onClick ?? (() => router.back())}>
-        {showBackIcon ? <ChevronLeft className="hidden h-4 w-4 sm:block" /> : null}
+        {showBackIcon ? <ChevronLeft className="h-4 w-4" /> : null}
         <span className="sm:hidden">{resolvedMobileLabel}</span>
         <span className="hidden sm:inline">{resolvedDesktopLabel}</span>
       </Button>

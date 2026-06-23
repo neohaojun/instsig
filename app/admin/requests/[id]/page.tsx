@@ -7,6 +7,7 @@ import { AdminReportSickFollowupCard } from "@/components/request/admin-report-s
 import { ExternalAppointmentRequestCard } from "@/components/request/external-appointment-card";
 import { PageCloseButton } from "@/components/request/page-close-button";
 import { ReportSickInitialRequestCard } from "@/components/request/report-sick-followup-form";
+import { StatusPill } from "@/components/request/status-pill";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatProfileName } from "@/lib/profile-display";
 import type { BatchRecord, ProfileRecord } from "@/lib/types";
@@ -27,7 +28,7 @@ export default async function AdminRequestDetailPage({
   if (!user) redirect("/login");
 
   const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single();
-  if (profile?.role !== "admin") redirect("/dashboard");
+  if (profile?.role !== "admin") redirect("/");
 
   const { id } = await params;
   const [{ data: request }, { data: updates }] = await Promise.all([
@@ -57,7 +58,10 @@ export default async function AdminRequestDetailPage({
     <main className="min-h-screen bg-background text-foreground">
       <TopBar role="admin" userName={profile?.full_name} userRank={profile?.rank} userEmail={user.email} />
       <section className="mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-6 lg:px-8">
-        <PageCloseButton className="flex justify-start" />
+        <div className="flex items-center justify-between gap-4">
+          <PageCloseButton className="flex justify-start" />
+          <StatusPill status={request.status} />
+        </div>
 
         <div className="animate-enter">
           {(() => {
