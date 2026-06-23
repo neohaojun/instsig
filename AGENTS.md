@@ -246,3 +246,6 @@ If the app reports a missing table or schema cache issue for a known object such
 - Keep `typedRoutes: true` at the top level of `next.config.mjs`; do not move it under `experimental`.
 - Keep the base link `/` as the canonical app entry point, rendering the instsig app there directly like the `flykyte` app does instead of using `/` only as a redirector.
 - Preserve the `/` client shell pattern for dashboard, history, admin landing, admin queue, and common request detail navigation so app buttons switch views locally instead of forcing full route transitions.
+- The `/` client shell intentionally shifts backend work to the initial app load so common clicks feel instant; avoid adding per-click refetches unless data freshness requires it.
+- Watch shell payload size as request volume grows, especially for admin users. If initial load becomes heavy, prefer cached lazy detail fetches, pagination, or Supabase realtime updates over reverting to full route transitions.
+- Treat shell data as a snapshot. Keep mutation callbacks updating local shell state after successful writes, and use refresh/realtime/polling when cross-user freshness matters.
