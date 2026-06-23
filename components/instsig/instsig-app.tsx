@@ -513,15 +513,9 @@ function RequesterCard({
   const requester = profilesById[request.requester_id];
   const requesterBatch = requester?.batch_id ? batchesById[requester.batch_id] : null;
   const requesterDisplayName = formatProfileName(requester, request.requester_email);
-  const batchNumbers = [requesterBatch?.name, requester?.sscc_batch].filter(Boolean).join(" / ");
-  const platoonNames = [requester?.common_term_platoon, requester?.specialisation_phase_platoon].filter(Boolean).join(" / ");
-  const requesterSummary = [
-    requester?.rank,
-    requester?.full_name,
-    batchNumbers ? `Batch numbers: ${batchNumbers}` : null,
-    platoonNames ? `Platoon names: ${platoonNames}` : null,
-    requester?.nr ? `NR: ${requester.nr}` : null,
-    request.requester_email,
+  const batchSummary = [
+    requesterBatch?.name ? `Batch: ${requesterBatch.name}` : null,
+    requester?.sscc_batch ? `SSCC batch: ${requester.sscc_batch}` : null,
   ]
     .filter(Boolean)
     .join(" · ");
@@ -532,7 +526,7 @@ function RequesterCard({
         <CardTitle className="text-base font-semibold text-foreground">Submitted by</CardTitle>
         <p className="text-sm leading-6 text-muted-foreground">
           {requesterDisplayName}
-          {requesterSummary ? ` · ${requesterSummary}` : ""}
+          {batchSummary ? ` · ${batchSummary}` : ""}
         </p>
       </CardHeader>
     </Card>
