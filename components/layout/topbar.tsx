@@ -31,7 +31,7 @@ export function TopBar({
               instsig
             </button>
           ) : (
-            <Link href="/dashboard" className="truncate text-3xl font-semibold text-foreground transition hover:text-foreground/80">
+            <Link href="/" className="truncate text-3xl font-semibold text-foreground transition hover:text-foreground/80">
               instsig
             </Link>
           )}

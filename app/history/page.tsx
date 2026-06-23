@@ -114,7 +114,7 @@ export default async function HistoryPage() {
               </div>
               <div className="flex flex-wrap gap-3">
                 <Button asChild variant="outline">
-                  <Link href="/dashboard">Back to dashboard</Link>
+                  <Link href="/">Back to dashboard</Link>
                 </Button>
               </div>
             </CardHeader>

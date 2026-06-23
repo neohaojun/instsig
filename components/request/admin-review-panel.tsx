@@ -99,28 +99,16 @@ export function AdminReviewPanel({
 
   const canReview = !isApproved && !isRejected && !isFinalized;
   const canFinalize = request.kind === "report_sick" && !isRejected && !isFinalized && hasSubmittedFollowup;
-  const isWaitingForFollowup = request.kind === "report_sick" && isApproved && !hasSubmittedFollowup && !isFinalized;
   const showActionRow = canReview || canFinalize || showClose;
+
+  if (!showActionRow && !message) {
+    return null;
+  }
 
   return (
     <Card className="overflow-hidden">
       <CardContent className="space-y-4 p-6">
         {message ? <p className="rounded-xl border border-border bg-muted/40 px-4 py-3 text-sm text-foreground">{message}</p> : null}
-        {isWaitingForFollowup ? (
-          <p className="rounded-xl border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
-            Waiting for post-visit follow-up.
-          </p>
-        ) : null}
-        {isFinalized ? (
-          <p className="rounded-xl border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
-            Finalized.
-          </p>
-        ) : null}
-        {isRejected ? (
-          <p className="rounded-xl border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
-            Rejected.
-          </p>
-        ) : null}
         {showActionRow ? (
           <div className="flex flex-col gap-3 sm:flex-row">
             {canReview ? (
@@ -140,7 +128,7 @@ export function AdminReviewPanel({
             ) : null}
             {showClose ? (
               <Button type="button" variant="outline" onClick={onClose ?? (() => router.back())} className="sm:flex-1">
-                Close
+                Back
               </Button>
             ) : null}
           </div>

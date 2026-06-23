@@ -22,7 +22,7 @@ export default async function AdminBatchesPage() {
   if (!user) redirect("/login");
 
   const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single();
-  if (profile?.role !== "admin") redirect("/dashboard");
+  if (profile?.role !== "admin") redirect("/");
 
   const { data: batches } = await supabase.from("batches").select("*").order("created_at", { ascending: false });
   const batchRows = (batches ?? []) as BatchRecord[];

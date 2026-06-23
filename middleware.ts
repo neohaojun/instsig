@@ -2,12 +2,16 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { getOptionalSupabasePublicConfig } from "@/lib/supabase/env";
 
-const protectedPrefixes = ["/dashboard", "/requests", "/admin"];
+const protectedPrefixes = ["/requests", "/admin"];
+
+function isProtectedPath(pathname: string) {
+  return pathname === "/" || protectedPrefixes.some((prefix) => pathname.startsWith(prefix));
+}
 
 export async function middleware(request: NextRequest) {
   const response = NextResponse.next({ request });
   const config = getOptionalSupabasePublicConfig();
-  const isProtected = protectedPrefixes.some((prefix) => request.nextUrl.pathname.startsWith(prefix));
+  const isProtected = isProtectedPath(request.nextUrl.pathname);
 
   if (!config) {
     console.error(
@@ -58,5 +62,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/requests/:path*", "/admin/:path*"],
+  matcher: ["/", "/requests/:path*", "/admin/:path*"],
 };

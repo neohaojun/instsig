@@ -5,6 +5,7 @@ import { ReportSickFollowupForm, ReportSickInitialRequestCard } from "@/componen
 import { ReportSickFollowupCard } from "@/components/request/report-sick-followup-display";
 import { RequestSummary } from "@/components/request/request-summary";
 import { PageCloseButton } from "@/components/request/page-close-button";
+import { StatusPill } from "@/components/request/status-pill";
 import type { ProfileRecord } from "@/lib/types";
 
 function buildProfilesMap(profiles: ProfileRecord[] | null | undefined) {
@@ -66,7 +67,12 @@ export default async function ReportSickPage({
   return (
     <main className="min-h-dvh bg-background px-4 py-6 text-foreground sm:px-6 lg:px-8">
       <div className="mx-auto grid max-w-7xl gap-6">
-        {showPageBack ? <PageCloseButton className="flex justify-start" /> : null}
+        {showPageBack ? (
+          <div className="flex items-center justify-between gap-4">
+            <PageCloseButton className="flex justify-start" />
+            <StatusPill status={request.status} />
+          </div>
+        ) : null}
 
         <div className={`grid gap-6 ${hasRightPane ? "items-start xl:grid-cols-2" : ""}`}>
           <div className="animate-enter">

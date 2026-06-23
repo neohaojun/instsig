@@ -5,7 +5,7 @@ import { ClipboardList, LayoutDashboard, Users, Building2, FileText, CalendarClo
 import { SignOutButton } from "@/components/auth/sign-out-button";
 
 const userNav = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/requests/report-sick", label: "Report Sick", icon: FileText },
   { href: "/requests/external-appointment", label: "External Appointment", icon: CalendarClock },
 ];
