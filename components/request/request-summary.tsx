@@ -164,7 +164,7 @@ export function RequestSummary({
 
         {request.kind === "report_sick" && followup ? (
           <section className="grid gap-4">
-            {sectionTitle("Post-visit details")}
+            {sectionTitle("Post-Visit Details")}
             <div className="grid gap-4">
               <ReportSickFollowupFields payload={followup.payload} idPrefix="summary-report-sick-followup" />
               {request.finalized_at ? (

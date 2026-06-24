@@ -17,8 +17,6 @@ export function AdminReportSickFollowupCard({
       request={request}
       followup={followup}
       profilesById={profilesById}
-      headerClassName="p-8"
-      contentClassName="p-8 pt-0"
       idPrefix="admin-report-sick-followup"
     />
   );
