@@ -221,11 +221,11 @@ function ExternalAppointmentFields({ form }: { form: any }) {
     <div className="grid gap-6">
       <div className="grid gap-2">
         <Label htmlFor="what">What</Label>
-        <Input id="what" placeholder="Appointment purpose" {...form.register("what")} />
+        <Input id="what" {...form.register("what")} />
       </div>
       <div className="grid gap-2">
         <Label htmlFor="where">Where</Label>
-        <Input id="where" placeholder="Location" {...form.register("where")} />
+        <Input id="where" {...form.register("where")} />
       </div>
       <Controller
         control={form.control}
@@ -273,11 +273,11 @@ function ExternalAppointmentFields({ form }: { form: any }) {
       />
       <div className="grid gap-2">
         <Label htmlFor="lessonsMissed">Lessons missed</Label>
-        <Input id="lessonsMissed" placeholder="PT, Weapons Training, etc." {...form.register("lessonsMissed")} />
+        <Input id="lessonsMissed" {...form.register("lessonsMissed")} />
       </div>
       <div className="grid gap-2">
         <Label htmlFor="why">Why</Label>
-        <Textarea id="why" placeholder="Background / reason" {...form.register("why")} />
+        <Textarea id="why" {...form.register("why")} />
       </div>
     </div>
   );
@@ -327,15 +327,15 @@ function ReportSickFields({ form }: { form: any }) {
       </div>
       <div className="grid gap-2">
         <Label htmlFor="where">Where are you reporting sick?</Label>
-        <Input id="where" placeholder="Clinic / hospital / home" {...form.register("where")} />
+        <Input id="where" {...form.register("where")} />
       </div>
       <div className="grid gap-2">
         <Label htmlFor="symptoms">What symptoms are you currently experiencing?</Label>
-        <Textarea id="symptoms" placeholder="Describe your symptoms" {...form.register("symptoms")} />
+        <Textarea id="symptoms" {...form.register("symptoms")} />
       </div>
       <div className="grid gap-2">
         <Label htmlFor="contractionSource">How did you contract these symptoms?</Label>
-        <Textarea id="contractionSource" placeholder="Describe the likely source or cause" {...form.register("contractionSource")} />
+        <Textarea id="contractionSource" {...form.register("contractionSource")} />
       </div>
     </div>
   );

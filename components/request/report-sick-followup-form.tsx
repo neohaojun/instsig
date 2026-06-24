@@ -263,7 +263,7 @@ export function ReportSickInitialRequestCard({
   return (
     <Card className={cn("mx-auto w-full max-w-5xl", className)}>
       <CardHeader>
-        <CardTitle>Request Form (Read-Only)</CardTitle>
+        <CardTitle>Request Form</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="grid gap-6">
@@ -287,18 +287,17 @@ export function ReportSickInitialRequestCard({
           </div>
           <div className="grid gap-2">
             <Label htmlFor="where">Where are you reporting sick?</Label>
-            <Input id="where" value={String(payload.where ?? "")} placeholder="Clinic / hospital / home" readOnly disabled />
+            <Input id="where" value={String(payload.where ?? "")} readOnly disabled />
           </div>
           <div className="grid gap-2">
             <Label htmlFor="symptoms">What symptoms are you currently experiencing?</Label>
-            <Textarea id="symptoms" value={String(payload.symptoms ?? "")} placeholder="Describe your symptoms" readOnly disabled />
+            <Textarea id="symptoms" value={String(payload.symptoms ?? "")} readOnly disabled />
           </div>
           <div className="grid gap-2">
             <Label htmlFor="contractionSource">How did you contract these symptoms?</Label>
             <Textarea
               id="contractionSource"
               value={String(payload.contractionSource ?? "")}
-              placeholder="Describe the likely source or cause"
               readOnly
               disabled
             />
@@ -662,7 +661,7 @@ export function ReportSickFollowupForm({
   return (
     <Card className="mx-auto w-full max-w-5xl">
       <CardHeader className="space-y-2">
-        <CardTitle>Post-visit details</CardTitle>
+        <CardTitle>Post-Visit Details</CardTitle>
       </CardHeader>
       <CardContent>
         <form
@@ -676,7 +675,7 @@ export function ReportSickFollowupForm({
               <Label htmlFor="diagnosis" className={fieldLabelClassName}>
                 Diagnosis
               </Label>
-              <Input id="diagnosis" placeholder="Diagnosis from medical provider" {...form.register("diagnosis")} />
+              <Input id="diagnosis" {...form.register("diagnosis")} />
             </div>
 
             <div className="grid gap-4 rounded-2xl border border-border bg-muted/40 p-4">
@@ -801,13 +800,13 @@ export function ReportSickFollowupForm({
               <Label htmlFor="medication" className={fieldLabelClassName}>
                 Medication
               </Label>
-              <Input id="medication" placeholder="Medication prescribed, if any" {...form.register("medication")} />
+              <Input id="medication" {...form.register("medication")} />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="remarks" className={fieldLabelClassName}>
                 Remarks
               </Label>
-              <Textarea id="remarks" placeholder="Additional details for the admin" {...form.register("remarks")} />
+              <Textarea id="remarks" {...form.register("remarks")} />
             </div>
           </div>
 

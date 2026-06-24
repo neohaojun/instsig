@@ -76,7 +76,6 @@ export function ExternalAppointmentRequestCard({
             <Input
               id="external-appointment-what"
               value={String(payload.what ?? "")}
-              placeholder="Appointment purpose"
               readOnly
               disabled
             />
@@ -86,7 +85,6 @@ export function ExternalAppointmentRequestCard({
             <Input
               id="external-appointment-where"
               value={String(payload.where ?? "")}
-              placeholder="Location"
               readOnly
               disabled
             />
@@ -103,7 +101,6 @@ export function ExternalAppointmentRequestCard({
             <Input
               id="external-appointment-lessons"
               value={String(payload.lessonsMissed ?? "")}
-              placeholder="PT, Weapons Training, etc."
               readOnly
               disabled
             />
@@ -113,7 +110,6 @@ export function ExternalAppointmentRequestCard({
             <Textarea
               id="external-appointment-why"
               value={String(payload.why ?? "")}
-              placeholder="Background / reason"
               readOnly
               disabled
             />

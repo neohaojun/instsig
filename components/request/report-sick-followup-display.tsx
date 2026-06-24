@@ -174,13 +174,7 @@ export function ReportSickFollowupFields({
         <Label htmlFor={`${idPrefix}-diagnosis`} className="text-[15px] font-medium leading-5 text-foreground">
           Diagnosis
         </Label>
-        <Input
-          id={`${idPrefix}-diagnosis`}
-          placeholder="Diagnosis from medical provider"
-          value={String(payload.diagnosis ?? "")}
-          readOnly
-          disabled
-        />
+        <Input id={`${idPrefix}-diagnosis`} value={String(payload.diagnosis ?? "")} readOnly disabled />
       </div>
 
       <div className="grid gap-4 rounded-2xl border border-border bg-muted/40 p-4">
@@ -282,26 +276,14 @@ export function ReportSickFollowupFields({
         <Label htmlFor={`${idPrefix}-medication`} className="text-[15px] font-medium leading-5 text-foreground">
           Medication
         </Label>
-        <Input
-          id={`${idPrefix}-medication`}
-          placeholder="Medication prescribed, if any"
-          value={String(payload.medication ?? "")}
-          readOnly
-          disabled
-        />
+        <Input id={`${idPrefix}-medication`} value={String(payload.medication ?? "")} readOnly disabled />
       </div>
 
       <div className="grid gap-2">
         <Label htmlFor={`${idPrefix}-remarks`} className="text-[15px] font-medium leading-5 text-foreground">
           Remarks
         </Label>
-        <Textarea
-          id={`${idPrefix}-remarks`}
-          placeholder="Additional details for the admin"
-          value={String(payload.remarks ?? "")}
-          readOnly
-          disabled
-        />
+        <Textarea id={`${idPrefix}-remarks`} value={String(payload.remarks ?? "")} readOnly disabled />
       </div>
     </div>
   );
@@ -329,7 +311,7 @@ export function ReportSickFollowupCard({
   return (
     <Card className={cn("h-full overflow-hidden", className)}>
       <CardHeader className={cn("space-y-2", headerClassName)}>
-        <CardTitle className="text-2xl">Post-visit details</CardTitle>
+        <CardTitle>Post-Visit Details</CardTitle>
       </CardHeader>
       <CardContent className={cn("space-y-6", contentClassName)}>
         <ReportSickFollowupFields payload={followup.payload} idPrefix={idPrefix} />
