@@ -58,6 +58,7 @@ export default async function HomePage() {
   const { data: profiles } = profileIds.length
     ? await supabase.from("profiles").select("*").in("id", profileIds)
     : { data: [] as ProfileRecord[] };
+  const batchRecords = (batches ?? []) as BatchRecord[];
 
   return (
     <InstsigApp
@@ -66,7 +67,7 @@ export default async function HomePage() {
       initialRequests={relevantRequests}
       initialUpdates={(requestUpdates ?? []) as RequestUpdateRecord[]}
       profilesById={buildProfilesMap(profiles)}
-      batchesById={Object.fromEntries(((batches ?? []) as BatchRecord[]).map((batch) => [batch.id, batch]))}
+      batchesById={Object.fromEntries(batchRecords.map((batch) => [batch.id, batch]))}
     />
   );
 }

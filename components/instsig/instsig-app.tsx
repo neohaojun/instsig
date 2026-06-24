@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { format, parseISO } from "date-fns";
-import { ArrowUpRight, CalendarClock, ChevronLeft, FileText, Users } from "lucide-react";
+import { ArrowUpRight, CalendarClock, ChevronLeft, FileText } from "lucide-react";
 import { TopBar } from "@/components/layout/topbar";
 import { AdminReportSickFollowupCard } from "@/components/request/admin-report-sick-followup-card";
 import { AdminReviewPanel } from "@/components/request/admin-review-panel";
@@ -12,7 +12,6 @@ import { ReportSickFollowupForm, ReportSickInitialRequestCard } from "@/componen
 import { RequestForm } from "@/components/request/request-form";
 import { RequestSummary } from "@/components/request/request-summary";
 import { StatusPill } from "@/components/request/status-pill";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatProfileName } from "@/lib/profile-display";
@@ -20,7 +19,9 @@ import { requestKindLabels } from "@/lib/request-meta";
 import type { BatchRecord, ProfileRecord, RequestKind, RequestRecord, RequestUpdateRecord } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-type ShellView = "dashboard" | "history" | "admin" | "adminRequests" | "requestDetail" | "newReportSick" | "newExternalAppointment";
+type ShellView = "dashboard" | "history" | "adminRequests" | "requestDetail" | "newReportSick" | "newExternalAppointment";
+type DashboardMode = "admin" | "user";
+type RequestDetailMode = "admin" | "user";
 type RequestStatusView = "pending" | "all";
 
 const statusViews: { value: RequestStatusView; label: string }[] = [
@@ -111,114 +112,164 @@ function RequestSubcard({
 function DashboardView({
   requests,
   profile,
-  userEmail,
   profilesById,
+  dashboardMode,
+  setDashboardMode,
   onNavigate,
   onSelectRequest,
 }: {
   requests: RequestRecord[];
   profile: ProfileRecord | null;
-  userEmail: string | null;
   profilesById: Record<string, ProfileRecord | null | undefined>;
+  dashboardMode: DashboardMode;
+  setDashboardMode: (mode: DashboardMode) => void;
   onNavigate: (view: ShellView) => void;
-  onSelectRequest: (request: RequestRecord) => void;
+  onSelectRequest: (request: RequestRecord, mode: RequestDetailMode) => void;
 }) {
   const isAdmin = profile?.role === "admin";
   const pendingRequests = requests.filter(isIncompleteRequest);
   const requestHistory = requests.filter((request) => request.requester_id === profile?.id && request.status !== "draft");
   const recentRequestHistory = requestHistory.slice(0, 2);
   const recentPendingRequests = pendingRequests.slice(0, 2);
+  const activeMode = isAdmin ? dashboardMode : "user";
 
   return (
     <section className="mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-6 lg:px-8">
       <Card className="overflow-hidden animate-enter">
         <CardHeader className="space-y-4 p-8">
-          <CardTitle className="text-3xl">Dashboard</CardTitle>
-        </CardHeader>
-      </Card>
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <CardTitle className="text-3xl">Dashboard</CardTitle>
+            {isAdmin ? (
+              <div className="w-fit max-w-full rounded-2xl border border-border bg-muted p-1">
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { value: "user" as const, label: "User" },
+                    { value: "admin" as const, label: "Admin" },
+                  ].map((mode) => {
+                    const isActive = mode.value === activeMode;
 
-      <Card className="overflow-hidden animate-enter">
-        <CardHeader className="space-y-4 p-8">
-          <CardTitle className="text-3xl">New Requests</CardTitle>
-          <div className="grid gap-4 pt-2 sm:grid-cols-2">
-            <Button type="button" size="lg" className="h-auto justify-start gap-4 py-6 text-left" onClick={() => onNavigate("newReportSick")}>
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary-foreground/15 text-primary-foreground">
-                <FileText className="h-5 w-5" />
+                    return (
+                      <button
+                        key={mode.value}
+                        type="button"
+                        onClick={() => setDashboardMode(mode.value)}
+                        className={cn(
+                          "rounded-xl px-3 py-2 text-sm font-medium text-muted-foreground transition hover:bg-background hover:text-foreground",
+                          isActive && "bg-background text-foreground shadow-sm",
+                        )}
+                      >
+                        {mode.label}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-              <div>
-                <p className="text-lg font-semibold">Report Sick</p>
-              </div>
-            </Button>
-            <Button type="button" size="lg" variant="outline" className="h-auto justify-start gap-4 py-6 text-left" onClick={() => onNavigate("newExternalAppointment")}>
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-border bg-secondary text-secondary-foreground">
-                <CalendarClock className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-lg font-semibold">External Appointment</p>
-              </div>
-            </Button>
+            ) : null}
           </div>
         </CardHeader>
       </Card>
 
-      {recentRequestHistory.length ? (
-        <Card className="overflow-hidden animate-enter-soft animate-delay-1">
-          <CardHeader className="space-y-4 p-8">
-            <CardTitle className="text-3xl">Request History</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-3 p-8 pt-0">
-            {recentRequestHistory.map((request) => (
-              <RequestSubcard
-                key={request.id}
-                title={requestKindLabels[request.kind]}
-                meta={formatRequestWhen(request)}
-                request={request}
-                onSelect={onSelectRequest}
-              />
-            ))}
-            <div className="pt-2">
-              <Button type="button" variant="link" className="h-auto px-0" onClick={() => onNavigate("history")}>
-                View all
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+      {activeMode === "user" ? (
+        <>
+          <Card className="overflow-hidden animate-enter">
+            <CardHeader className="space-y-4 p-8">
+              <CardTitle className="text-3xl">New Requests</CardTitle>
+              <div className="grid gap-4 pt-2 sm:grid-cols-2">
+                <Button type="button" size="lg" className="h-auto justify-start gap-4 py-6 text-left" onClick={() => onNavigate("newReportSick")}>
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary-foreground/15 text-primary-foreground">
+                    <FileText className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-lg font-semibold">Report Sick</p>
+                  </div>
+                </Button>
+                <Button type="button" size="lg" variant="outline" className="h-auto justify-start gap-4 py-6 text-left" onClick={() => onNavigate("newExternalAppointment")}>
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-border bg-secondary text-secondary-foreground">
+                    <CalendarClock className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-lg font-semibold">External Appointment</p>
+                  </div>
+                </Button>
+              </div>
+            </CardHeader>
+          </Card>
+
+          {recentRequestHistory.length ? (
+            <Card className="overflow-hidden animate-enter-soft animate-delay-1">
+              <CardHeader className="space-y-4 p-8">
+                <CardTitle className="text-3xl">Request History</CardTitle>
+              </CardHeader>
+              <CardContent className="grid gap-3 p-8 pt-0">
+                {recentRequestHistory.map((request) => (
+                  <RequestSubcard
+                    key={request.id}
+                    title={requestKindLabels[request.kind]}
+                    meta={formatRequestWhen(request)}
+                    request={request}
+                    onSelect={(item) => onSelectRequest(item, "user")}
+                  />
+                ))}
+                <div className="pt-2">
+                  <Button type="button" variant="link" className="h-auto px-0" onClick={() => onNavigate("history")}>
+                    View all
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ) : null}
+        </>
       ) : null}
 
-      {isAdmin ? (
-        <Card className="overflow-hidden animate-enter-soft animate-delay-2">
-          <CardHeader className="space-y-4 p-8">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div className="space-y-2">
-                <CardTitle className="text-3xl">Pending Requests</CardTitle>
-                <p className="text-sm text-muted-foreground">{pendingRequests.length} pending</p>
+      {activeMode === "admin" ? (
+        <>
+          <Card className="overflow-hidden animate-enter-soft animate-delay-1">
+            <CardHeader className="space-y-4 p-8">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="space-y-2">
+                  <CardTitle className="text-3xl">Pending Requests</CardTitle>
+                  <p className="text-sm text-muted-foreground">{pendingRequests.length} pending</p>
+                </div>
               </div>
-            </div>
-          </CardHeader>
-          <CardContent className="grid gap-3 p-8 pt-0">
-            {recentPendingRequests.length ? (
-              recentPendingRequests.map((request) => (
-                <RequestSubcard
-                  key={request.id}
-                  title={formatProfileName(profilesById[request.requester_id], request.requester_email)}
-                  meta={formatRequestWhen(request)}
-                  description={requestKindLabels[request.kind]}
-                  request={request}
-                  onSelect={onSelectRequest}
-                />
-              ))
-            ) : (
-              <div className="rounded-2xl border border-dashed border-border bg-muted/40 p-4 text-sm text-muted-foreground">
-                No pending requests right now.
+            </CardHeader>
+            <CardContent className="grid gap-3 p-8 pt-0">
+              {recentPendingRequests.length ? (
+                recentPendingRequests.map((request) => (
+                  <RequestSubcard
+                    key={request.id}
+                    title={formatProfileName(profilesById[request.requester_id], request.requester_email)}
+                    meta={formatRequestWhen(request)}
+                    description={requestKindLabels[request.kind]}
+                    request={request}
+                    onSelect={(item) => onSelectRequest(item, "admin")}
+                  />
+                ))
+              ) : (
+                <div className="rounded-2xl border border-dashed border-border bg-muted/40 p-4 text-sm text-muted-foreground">
+                  No pending requests right now.
+                </div>
+              )}
+              <div className="pt-2">
+                <Button type="button" variant="link" className="h-auto px-0" onClick={() => onNavigate("adminRequests")}>
+                  View all
+                </Button>
               </div>
-            )}
-            <div className="pt-2">
-              <Button type="button" variant="link" className="h-auto px-0" onClick={() => onNavigate("adminRequests")}>
-                View all
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+
+          <div className="grid gap-4 animate-enter-soft animate-delay-2">
+            <a href="/admin/users" className="block">
+              <Card className="overflow-hidden transition hover:bg-accent/50">
+                <CardHeader className="space-y-2 p-8">
+                  <div className="flex items-center justify-between gap-4">
+                    <CardTitle className="text-3xl">Manage Users</CardTitle>
+                    <ArrowUpRight className="h-5 w-5 shrink-0 text-muted-foreground" />
+                  </div>
+                </CardHeader>
+              </Card>
+            </a>
+          </div>
+        </>
       ) : null}
     </section>
   );
@@ -233,7 +284,7 @@ function HistoryView({
   requests: RequestRecord[];
   profile: ProfileRecord | null;
   onNavigate: (view: ShellView) => void;
-  onSelectRequest: (request: RequestRecord) => void;
+  onSelectRequest: (request: RequestRecord, mode: RequestDetailMode) => void;
 }) {
   const userRequests = requests.filter((request) => request.requester_id === profile?.id && request.status !== "draft");
   const reportSickRequests = userRequests.filter((request) => request.kind === "report_sick");
@@ -273,7 +324,7 @@ function HistoryCard({
   title: string;
   requests: RequestRecord[];
   emptyText: string;
-  onSelectRequest: (request: RequestRecord) => void;
+  onSelectRequest: (request: RequestRecord, mode: RequestDetailMode) => void;
 }) {
   return (
     <Card className="overflow-hidden animate-enter">
@@ -283,7 +334,7 @@ function HistoryCard({
       <CardContent className="grid gap-3 p-8 pt-0">
         {requests.length ? (
           requests.map((request, index) => (
-            <button key={request.id} type="button" onClick={() => onSelectRequest(request)} className="block w-full text-left">
+            <button key={request.id} type="button" onClick={() => onSelectRequest(request, "user")} className="block w-full text-left">
               <div
                 className={cn(
                   "group rounded-2xl border border-border bg-card p-4 transition hover:bg-accent/50",
@@ -307,51 +358,6 @@ function HistoryCard({
         )}
       </CardContent>
     </Card>
-  );
-}
-
-function AdminLandingView({ onNavigate }: { onNavigate: (view: ShellView) => void }) {
-  return (
-    <section className="mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-6 lg:px-8">
-      <Card className="overflow-hidden animate-enter">
-        <CardHeader className="space-y-4 p-6 sm:p-8">
-          <Badge variant="outline" className="w-fit">
-            Admin
-          </Badge>
-          <CardTitle className="text-3xl leading-tight sm:text-4xl">Choose a workspace</CardTitle>
-        </CardHeader>
-      </Card>
-
-      <div className="grid gap-4 md:grid-cols-2">
-        <button type="button" onClick={() => onNavigate("adminRequests")} className="group block text-left">
-          <Card className="h-full overflow-hidden transition hover:bg-accent/50 animate-enter-soft animate-delay-1">
-            <CardHeader className="space-y-4 p-6 sm:p-8">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-border bg-secondary text-secondary-foreground">
-                  <FileText className="h-5 w-5" />
-                </div>
-                <ArrowUpRight className="h-5 w-5 text-muted-foreground transition group-hover:text-foreground" />
-              </div>
-              <CardTitle className="text-2xl">Request queue</CardTitle>
-            </CardHeader>
-          </Card>
-        </button>
-
-        <a href="/admin/users" className="group block">
-          <Card className="h-full overflow-hidden transition hover:bg-accent/50 animate-enter-soft animate-delay-2">
-            <CardHeader className="space-y-4 p-6 sm:p-8">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-border bg-secondary text-secondary-foreground">
-                  <Users className="h-5 w-5" />
-                </div>
-                <ArrowUpRight className="h-5 w-5 text-muted-foreground transition group-hover:text-foreground" />
-              </div>
-              <CardTitle className="text-2xl">User directory</CardTitle>
-            </CardHeader>
-          </Card>
-        </a>
-      </div>
-    </section>
   );
 }
 
@@ -397,7 +403,7 @@ function RequestsByKindCard({
   requests: RequestRecord[];
   profilesById: Record<string, ProfileRecord | null | undefined>;
   statusView: RequestStatusView;
-  onSelectRequest: (request: RequestRecord) => void;
+  onSelectRequest: (request: RequestRecord, mode: RequestDetailMode) => void;
 }) {
   const emptyLabel =
     statusView === "pending"
@@ -419,7 +425,7 @@ function RequestsByKindCard({
       <CardContent className="grid gap-3 p-8 pt-0">
         {requests.length ? (
           requests.map((request, index) => (
-            <button key={request.id} type="button" onClick={() => onSelectRequest(request)} className="block w-full text-left">
+            <button key={request.id} type="button" onClick={() => onSelectRequest(request, "admin")} className="block w-full text-left">
               <div
                 className={cn(
                   "group rounded-2xl border border-border bg-card p-4 transition hover:bg-accent/50",
@@ -462,7 +468,7 @@ function AdminRequestsView({
   statusView: RequestStatusView;
   setStatusView: (view: RequestStatusView) => void;
   onNavigate: (view: ShellView) => void;
-  onSelectRequest: (request: RequestRecord) => void;
+  onSelectRequest: (request: RequestRecord, mode: RequestDetailMode) => void;
 }) {
   const visibleRequests = filterRequestsByView(requests, statusView);
   const reportSickRequests = visibleRequests.filter((request) => request.kind === "report_sick");
@@ -723,6 +729,8 @@ export function InstsigApp({
   const [view, setView] = useState<ShellView>("dashboard");
   const [returnView, setReturnView] = useState<ShellView>("dashboard");
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
+  const [selectedRequestMode, setSelectedRequestMode] = useState<RequestDetailMode>(profile?.role === "admin" ? "admin" : "user");
+  const [dashboardMode, setDashboardMode] = useState<DashboardMode>(profile?.role === "admin" ? "admin" : "user");
   const [statusView, setStatusView] = useState<RequestStatusView>("pending");
   const [requests, setRequests] = useState(initialRequests);
   const [updates, setUpdates] = useState(initialUpdates);
@@ -738,7 +746,7 @@ export function InstsigApp({
     : null;
 
   function navigate(nextView: ShellView) {
-    if ((nextView === "admin" || nextView === "adminRequests") && !isAdmin) {
+    if (nextView === "adminRequests" && !isAdmin) {
       setView("dashboard");
       return;
     }
@@ -753,8 +761,9 @@ export function InstsigApp({
     window.scrollTo({ top: 0, behavior: "instant" });
   }
 
-  function handleSelectRequest(request: RequestRecord) {
+  function handleSelectRequest(request: RequestRecord, mode: RequestDetailMode = isAdmin ? "admin" : "user") {
     setSelectedRequestId(request.id);
+    setSelectedRequestMode(mode);
     setReturnView(view === "requestDetail" ? "dashboard" : view);
     setView("requestDetail");
     window.scrollTo({ top: 0, behavior: "instant" });
@@ -784,8 +793,9 @@ export function InstsigApp({
         <DashboardView
           requests={sortedRequests}
           profile={profile}
-          userEmail={userEmail}
           profilesById={profilesById}
+          dashboardMode={dashboardMode}
+          setDashboardMode={setDashboardMode}
           onNavigate={navigate}
           onSelectRequest={handleSelectRequest}
         />
@@ -793,7 +803,6 @@ export function InstsigApp({
       {view === "history" ? (
         <HistoryView requests={sortedRequests} profile={profile} onNavigate={navigate} onSelectRequest={handleSelectRequest} />
       ) : null}
-      {view === "admin" && isAdmin ? <AdminLandingView onNavigate={navigate} /> : null}
       {view === "adminRequests" && isAdmin ? (
         <AdminRequestsView
           requests={sortedRequests}
@@ -805,7 +814,7 @@ export function InstsigApp({
         />
       ) : null}
       {view === "requestDetail" && selectedRequest ? (
-        isAdmin ? (
+        isAdmin && selectedRequestMode === "admin" ? (
           <AdminRequestDetailView
             request={selectedRequest}
             followup={selectedFollowup}
