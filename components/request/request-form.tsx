@@ -45,7 +45,7 @@ const kindFormMeta: Record<RequestKind, { title: string }> = {
     title: "Report Sick",
   },
   external_appointment: {
-    title: "External appointment",
+    title: "External Appointment",
   },
 };
 
@@ -220,11 +220,11 @@ function ExternalAppointmentFields({ form }: { form: any }) {
   return (
     <div className="grid gap-6">
       <div className="grid gap-2">
-        <Label htmlFor="what">What</Label>
+        <Label htmlFor="what">Appointment Name</Label>
         <Input id="what" {...form.register("what")} />
       </div>
       <div className="grid gap-2">
-        <Label htmlFor="where">Where</Label>
+        <Label htmlFor="where">Appointment Location</Label>
         <Input id="where" {...form.register("where")} />
       </div>
       <Controller
@@ -272,11 +272,11 @@ function ExternalAppointmentFields({ form }: { form: any }) {
         }}
       />
       <div className="grid gap-2">
-        <Label htmlFor="lessonsMissed">Lessons missed</Label>
+        <Label htmlFor="lessonsMissed">Lessons Missed</Label>
         <Input id="lessonsMissed" {...form.register("lessonsMissed")} />
       </div>
       <div className="grid gap-2">
-        <Label htmlFor="why">Why</Label>
+        <Label htmlFor="why">Background</Label>
         <Textarea id="why" {...form.register("why")} />
       </div>
     </div>

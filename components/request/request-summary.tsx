@@ -112,11 +112,11 @@ export function RequestSummary({
               </>
             ) : (
               <>
-                <ReadOnlyField label="What" value={String((request.payload as any).what ?? "")} />
-                <ReadOnlyField label="Where" value={String((request.payload as any).where ?? "")} />
+                <ReadOnlyField label="Appointment Name" value={String((request.payload as any).what ?? "")} />
+                <ReadOnlyField label="Appointment Location" value={String((request.payload as any).where ?? "")} />
                 <ReadOnlyField label="When" value={String((request.payload as any).when ?? "")} />
-                <ReadOnlyField label="Lessons missed" value={String((request.payload as any).lessonsMissed ?? "")} />
-                <ReadOnlyField label="Why" value={String((request.payload as any).why ?? "")} multiline className="md:col-span-2" />
+                <ReadOnlyField label="Lessons Missed" value={String((request.payload as any).lessonsMissed ?? "")} />
+                <ReadOnlyField label="Background" value={String((request.payload as any).why ?? "")} multiline className="md:col-span-2" />
               </>
             )}
           </div>
