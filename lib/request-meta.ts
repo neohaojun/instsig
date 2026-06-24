@@ -27,7 +27,7 @@ export const statusTone: Record<RequestStatus, string> = {
 
 export const requestTypeDescription: Record<RequestKind, string> = {
   report_sick:
-    "Submit the 5W1H sick report first, then add doctor-visit details after admin approval and wait for finalization.",
+    "Submit the 5W1H sick report first, then add doctor-visit details after admin approval and wait for finalisation.",
   external_appointment:
     "Request permission for outside appointments and keep the approval or rejection trail in one place.",
 };
