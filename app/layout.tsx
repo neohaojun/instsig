@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "instsig",
-  description: "SI unit management system",
+  description: "speed through skill!",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
