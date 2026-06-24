@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
 import { ChevronDown, UserCircle2 } from "lucide-react";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { formatProfileName } from "@/lib/profile-display";
@@ -82,15 +81,6 @@ export function ProfileMenu({
             </div>
           </div>
           <div className="px-2 pb-2">
-            {role === "admin" ? (
-              <Link
-                href="/admin/users"
-                className="mb-2 flex items-center rounded-xl px-3 py-2 text-sm text-popover-foreground transition hover:bg-accent hover:text-accent-foreground"
-                onClick={() => setOpen(false)}
-              >
-                Manage Users
-              </Link>
-            ) : null}
             <SignOutButton />
           </div>
         </div>
