@@ -67,12 +67,12 @@ export function ExternalAppointmentRequestCard({
   return (
     <Card className={cn("mx-auto w-full max-w-5xl", className)}>
       <CardHeader>
-        <CardTitle>External appointment</CardTitle>
+        <CardTitle>External Appointment</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="grid gap-6">
           <div className="grid gap-2">
-            <Label htmlFor="external-appointment-what">What</Label>
+            <Label htmlFor="external-appointment-what">Appointment Name</Label>
             <Input
               id="external-appointment-what"
               value={String(payload.what ?? "")}
@@ -81,7 +81,7 @@ export function ExternalAppointmentRequestCard({
             />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="external-appointment-where">Where</Label>
+            <Label htmlFor="external-appointment-where">Appointment Location</Label>
             <Input
               id="external-appointment-where"
               value={String(payload.where ?? "")}
@@ -97,7 +97,7 @@ export function ExternalAppointmentRequestCard({
             </Button>
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="external-appointment-lessons">Lessons missed</Label>
+            <Label htmlFor="external-appointment-lessons">Lessons Missed</Label>
             <Input
               id="external-appointment-lessons"
               value={String(payload.lessonsMissed ?? "")}
@@ -106,7 +106,7 @@ export function ExternalAppointmentRequestCard({
             />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="external-appointment-why">Why</Label>
+            <Label htmlFor="external-appointment-why">Background</Label>
             <Textarea
               id="external-appointment-why"
               value={String(payload.why ?? "")}

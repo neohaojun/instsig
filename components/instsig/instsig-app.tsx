@@ -14,6 +14,7 @@ import { RequestSummary } from "@/components/request/request-summary";
 import { StatusPill } from "@/components/request/status-pill";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatStatusDuration, getActiveReportSickStatuses } from "@/lib/active-report-sick-statuses";
 import { formatProfileName } from "@/lib/profile-display";
 import { requestKindLabels } from "@/lib/request-meta";
 import type { BatchRecord, ProfileRecord, RequestKind, RequestRecord, RequestUpdateRecord } from "@/lib/types";
@@ -111,6 +112,7 @@ function RequestSubcard({
 
 function DashboardView({
   requests,
+  updates,
   profile,
   profilesById,
   dashboardMode,
@@ -119,6 +121,7 @@ function DashboardView({
   onSelectRequest,
 }: {
   requests: RequestRecord[];
+  updates: RequestUpdateRecord[];
   profile: ProfileRecord | null;
   profilesById: Record<string, ProfileRecord | null | undefined>;
   dashboardMode: DashboardMode;
@@ -131,6 +134,7 @@ function DashboardView({
   const requestHistory = requests.filter((request) => request.requester_id === profile?.id && request.status !== "draft");
   const recentRequestHistory = requestHistory.slice(0, 2);
   const recentPendingRequests = pendingRequests.slice(0, 2);
+  const activeStatuses = getActiveReportSickStatuses(requests, updates);
   const activeMode = isAdmin ? dashboardMode : "user";
 
   return (
@@ -254,6 +258,44 @@ function DashboardView({
                   View all
                 </Button>
               </div>
+            </CardContent>
+          </Card>
+
+          <Card className="overflow-hidden animate-enter-soft animate-delay-2">
+            <CardHeader className="space-y-4 p-8">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="space-y-2">
+                  <CardTitle className="text-3xl">Active Statuses</CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    {activeStatuses.length} active {activeStatuses.length === 1 ? "status" : "statuses"}
+                  </p>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="grid gap-3 p-8 pt-0">
+              {activeStatuses.length ? (
+                activeStatuses.slice(0, 4).map((status) => {
+                  const requester = profilesById[status.request.requester_id];
+
+                  return (
+                    <div key={`${status.request.id}-${status.entry.type}-${status.entry.startDate}-${status.entry.endDate}`} className="rounded-2xl border border-border bg-card p-4">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="min-w-0 space-y-2">
+                          <p className="truncate text-sm font-medium text-card-foreground">
+                            {formatProfileName(requester, status.request.requester_email)}
+                          </p>
+                          <p className="text-sm text-muted-foreground">{status.entry.type}</p>
+                          <p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">{formatStatusDuration(status)}</p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="rounded-2xl border border-dashed border-border bg-muted/40 p-4 text-sm text-muted-foreground">
+                  No active report sick statuses right now.
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -792,6 +834,7 @@ export function InstsigApp({
       {view === "dashboard" ? (
         <DashboardView
           requests={sortedRequests}
+          updates={updates}
           profile={profile}
           profilesById={profilesById}
           dashboardMode={dashboardMode}

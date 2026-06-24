@@ -6,10 +6,11 @@ import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileText, CalendarClock } from "lucide-react";
 import { format, parseISO } from "date-fns";
-import type { ProfileRecord, RequestRecord } from "@/lib/types";
+import type { ProfileRecord, RequestRecord, RequestUpdateRecord } from "@/lib/types";
 import { requestKindLabels } from "@/lib/request-meta";
 import { formatProfileName } from "@/lib/profile-display";
 import { StatusPill } from "@/components/request/status-pill";
+import { formatStatusDuration, getActiveReportSickStatuses } from "@/lib/active-report-sick-statuses";
 
 function isIncompleteRequest(request: RequestRecord) {
   if (request.kind === "report_sick") {
@@ -103,13 +104,20 @@ export default async function DashboardPage() {
   ]);
 
   const requests = (allRequests ?? []) as RequestRecord[];
+  const reportSickRequestIds = requests.filter((request) => request.kind === "report_sick").map((request) => request.id);
+  const { data: requestUpdates } = reportSickRequestIds.length
+    ? await supabase.from("request_updates").select("*").in("request_id", reportSickRequestIds).order("created_at", { ascending: true })
+    : { data: [] as RequestUpdateRecord[] };
   const pendingRequests = requests.filter(isIncompleteRequest);
   const requestHistory = requests.filter((request) => request.requester_id === user.id && request.status !== "draft");
   const recentRequestHistory = requestHistory.slice(0, 2);
   const isAdmin = profile?.role === "admin";
-  const pendingRequestIds = Array.from(new Set(pendingRequests.map((request) => request.requester_id)));
-  const { data: requesters } = pendingRequestIds.length
-    ? await supabase.from("profiles").select("*").in("id", pendingRequestIds)
+  const activeStatuses = getActiveReportSickStatuses(requests, (requestUpdates ?? []) as RequestUpdateRecord[]);
+  const requesterIds = Array.from(
+    new Set([...pendingRequests.map((request) => request.requester_id), ...activeStatuses.map((status) => status.request.requester_id)]),
+  );
+  const { data: requesters } = requesterIds.length
+    ? await supabase.from("profiles").select("*").in("id", requesterIds)
     : { data: [] as ProfileRecord[] };
   const requestersById = buildProfilesMap(requesters);
   const recentPendingRequests = pendingRequests.slice(0, 2);
@@ -221,6 +229,44 @@ export default async function DashboardPage() {
                   <Link href="/admin/requests">View all</Link>
                 </Button>
               </div>
+            </CardContent>
+          </Card>
+        ) : null}
+
+        {isAdmin ? (
+          <Card className="overflow-hidden animate-enter-soft animate-delay-2">
+            <CardHeader className="space-y-4 p-8">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="space-y-2">
+                  <CardTitle className="text-3xl">Active Statuses</CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    {activeStatuses.length} active {activeStatuses.length === 1 ? "status" : "statuses"}
+                  </p>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="grid gap-3 p-8 pt-0">
+              {activeStatuses.length ? (
+                activeStatuses.slice(0, 4).map((status) => {
+                  const requester = requestersById[status.request.requester_id];
+
+                  return (
+                    <div key={`${status.request.id}-${status.entry.type}-${status.entry.startDate}-${status.entry.endDate}`} className="rounded-2xl border border-border bg-card p-4">
+                      <div className="min-w-0 space-y-2">
+                        <p className="truncate text-sm font-medium text-card-foreground">
+                          {formatProfileName(requester, status.request.requester_email)}
+                        </p>
+                        <p className="text-sm text-muted-foreground">{status.entry.type}</p>
+                        <p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">{formatStatusDuration(status)}</p>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="rounded-2xl border border-dashed border-border bg-muted/40 p-4 text-sm text-muted-foreground">
+                  No active report sick statuses right now.
+                </div>
+              )}
             </CardContent>
           </Card>
         ) : null}

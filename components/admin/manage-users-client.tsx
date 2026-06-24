@@ -2,8 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import { Edit2, Save, X } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { Edit2, Mail, Save, UserRound, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -15,7 +14,6 @@ import type { BatchRecord, ProfileRecord, UserRole } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 type RoleFilter = "all" | UserRole;
-type BatchFilter = "all" | "none" | string;
 
 type EditableProfile = Pick<
   ProfileRecord,
@@ -28,34 +26,41 @@ type EditableProfile = Pick<
   | "common_term_platoon"
   | "sscc_batch"
   | "specialisation_phase_platoon"
-  | "nr"
 >;
 
 type ProfileFormState = {
   full_name: string;
   rank: string;
   role: UserRole;
-  batch_id: string;
+  scs_batch: string;
   common_term_platoon: string;
   sscc_batch: string;
   specialisation_phase_platoon: string;
-  nr: string;
 };
 
 function profileValue(value: string | null | undefined) {
-  return value && value.trim() ? value : "Not set";
+  return value && value.trim() ? value : "Not Set";
 }
 
-function toFormState(profile: EditableProfile): ProfileFormState {
+function formatBatchInput(value: string) {
+  const digits = value.replace(/\D/g, "").slice(0, 4);
+  if (digits.length <= 2) return digits;
+  return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+}
+
+function normalizeBatchName(value: string) {
+  return formatBatchInput(value).trim();
+}
+
+function toFormState(profile: EditableProfile, batchName?: string): ProfileFormState {
   return {
     full_name: profile.full_name ?? "",
     rank: profile.rank ?? "",
     role: profile.role,
-    batch_id: profile.batch_id ?? "",
+    scs_batch: batchName && batchName !== "Not Assigned" && batchName !== "Unknown Batch" ? formatBatchInput(batchName) : "",
     common_term_platoon: profile.common_term_platoon ?? "",
-    sscc_batch: profile.sscc_batch ?? "",
+    sscc_batch: formatBatchInput(profile.sscc_batch ?? ""),
     specialisation_phase_platoon: profile.specialisation_phase_platoon ?? "",
-    nr: profile.nr ?? "",
   };
 }
 
@@ -74,11 +79,26 @@ function InfoField({
   className?: string;
 }) {
   return (
-    <div className={className}>
-      <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">{label}</p>
-      <div className="mt-2 rounded-2xl border border-border bg-muted/40 px-4 py-3 text-sm leading-6 text-foreground">
-        {value}
-      </div>
+    <div className={cn("rounded-xl border border-border/80 bg-muted/25 px-3 py-2.5", className)}>
+      <p className="text-xs font-medium text-muted-foreground">{label}</p>
+      <p className="mt-1 break-words text-sm font-medium leading-5 text-foreground">{value}</p>
+    </div>
+  );
+}
+
+function EditableInfoField({
+  label,
+  className,
+  children,
+}: {
+  label: string;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className={cn("rounded-xl border border-border/80 bg-muted/25 px-3 py-2.5", className)}>
+      <Label className="text-xs font-medium text-muted-foreground">{label}</Label>
+      <div className="mt-1">{children}</div>
     </div>
   );
 }
@@ -103,7 +123,6 @@ function FormField({
 function UserProfileCard({
   profileRow,
   batchName,
-  batches,
   isEditing,
   isSaving,
   formState,
@@ -115,7 +134,6 @@ function UserProfileCard({
 }: {
   profileRow: EditableProfile;
   batchName: string;
-  batches: BatchRecord[];
   isEditing: boolean;
   isSaving: boolean;
   formState: ProfileFormState;
@@ -128,77 +146,91 @@ function UserProfileCard({
   const displayName = formatProfileName(profileRow, profileRow.email);
 
   return (
-    <Card className="overflow-hidden transition hover:bg-accent/50">
-      <CardHeader className="space-y-4 p-5 sm:p-6">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0 space-y-1">
-            <CardTitle className="truncate text-xl">{displayName}</CardTitle>
-            <p className="break-all text-sm text-muted-foreground">{profileRow.email}</p>
+    <Card className="overflow-hidden transition hover:border-primary/20 hover:bg-accent/40">
+      <CardHeader className="space-y-4 p-5">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex min-w-0 flex-1 items-center gap-3">
+            <div
+              className={cn(
+                "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border bg-muted/40 text-muted-foreground",
+                profileRow.role === "admin" && "border-foreground bg-foreground text-background",
+              )}
+            >
+              <UserRound className="h-5 w-5" />
+            </div>
+            <div className="min-w-0 flex-1 space-y-0.5">
+              {isEditing ? (
+                <div className="grid gap-2 sm:grid-cols-[7rem_minmax(0,1fr)]">
+                  <FormField label="Rank">
+                    <Input value={formState.rank} onChange={(event) => onChange("rank", event.target.value)} />
+                  </FormField>
+                  <FormField label="Full Name">
+                    <Input value={formState.full_name} onChange={(event) => onChange("full_name", event.target.value)} />
+                  </FormField>
+                </div>
+              ) : (
+                <CardTitle className="break-words text-base leading-snug sm:text-lg">{displayName}</CardTitle>
+              )}
+              <div className="flex min-w-0 items-center gap-1.5 text-sm text-muted-foreground">
+                <Mail className="h-3.5 w-3.5 shrink-0" />
+                <span className="break-all">{profileRow.email}</span>
+              </div>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Badge variant={profileRow.role === "admin" ? "default" : "secondary"} className="shrink-0 capitalize">
-              {profileRow.role}
-            </Badge>
+          <div className="flex shrink-0 items-center">
             {isEditing ? (
               <Button size="sm" variant="ghost" onClick={onCancel} disabled={isSaving} aria-label="Cancel editing">
                 <X className="h-4 w-4" />
               </Button>
             ) : (
-              <Button size="sm" variant="outline" onClick={onEdit}>
+              <Button size="sm" variant="outline" className="h-9 w-9 px-0" onClick={onEdit} aria-label={`Edit ${displayName}`}>
                 <Edit2 className="h-4 w-4" />
-                Edit
               </Button>
             )}
           </div>
         </div>
       </CardHeader>
-      <CardContent className="grid gap-4 p-5 pt-0 sm:p-6 sm:pt-0">
+      <CardContent className="grid gap-4 p-5 pt-0">
         {isEditing ? (
           <>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <FormField label="Full name">
-                <Input value={formState.full_name} onChange={(event) => onChange("full_name", event.target.value)} />
-              </FormField>
-              <FormField label="Rank">
-                <Input value={formState.rank} onChange={(event) => onChange("rank", event.target.value)} />
-              </FormField>
-              <FormField label="Role">
+            <div className="grid gap-2 sm:grid-cols-2">
+              <EditableInfoField label="Role" className="sm:col-span-2">
                 <Select value={formState.role} onChange={(event) => onChange("role", event.target.value)}>
                   <option value="user">User</option>
                   <option value="admin">Admin</option>
                 </Select>
-              </FormField>
-              <FormField label="Batch">
-                <Select value={formState.batch_id} onChange={(event) => onChange("batch_id", event.target.value)}>
-                  <option value="">Not assigned</option>
-                  {batches.map((batch) => (
-                    <option key={batch.id} value={batch.id}>
-                      {batch.name}
-                    </option>
-                  ))}
-                </Select>
-              </FormField>
-              <FormField label="NR">
-                <Input value={formState.nr} onChange={(event) => onChange("nr", event.target.value)} />
-              </FormField>
-              <FormField label="SSCC batch">
-                <Input value={formState.sscc_batch} onChange={(event) => onChange("sscc_batch", event.target.value)} />
-              </FormField>
-              <FormField label="Common term platoon" className="sm:col-span-2">
+              </EditableInfoField>
+              <EditableInfoField label="SCS Batch">
+                <Input
+                  inputMode="numeric"
+                  placeholder="--/--"
+                  value={formState.scs_batch}
+                  onChange={(event) => onChange("scs_batch", formatBatchInput(event.target.value))}
+                />
+              </EditableInfoField>
+              <EditableInfoField label="Course Code">
+                <Input
+                  inputMode="numeric"
+                  placeholder="--/--"
+                  value={formState.sscc_batch}
+                  onChange={(event) => onChange("sscc_batch", formatBatchInput(event.target.value))}
+                />
+              </EditableInfoField>
+              <EditableInfoField label="Common Term Platoon" className="sm:col-span-2">
                 <Input
                   value={formState.common_term_platoon}
                   onChange={(event) => onChange("common_term_platoon", event.target.value)}
                 />
-              </FormField>
-              <FormField label="Specialisation phase platoon" className="sm:col-span-2">
+              </EditableInfoField>
+              <EditableInfoField label="Specialisation Phase Platoon" className="sm:col-span-2">
                 <Input
                   value={formState.specialisation_phase_platoon}
                   onChange={(event) => onChange("specialisation_phase_platoon", event.target.value)}
                 />
-              </FormField>
+              </EditableInfoField>
             </div>
             {errorMessage ? <p className="text-sm text-destructive">{errorMessage}</p> : null}
-            <div className="flex flex-wrap justify-end gap-3">
+            <div className="flex flex-wrap justify-end gap-2 border-t border-border pt-4">
               <Button variant="outline" onClick={onCancel} disabled={isSaving}>
                 Cancel
               </Button>
@@ -209,14 +241,12 @@ function UserProfileCard({
             </div>
           </>
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2">
-            <InfoField label="Rank" value={profileValue(profileRow.rank)} />
-            <InfoField label="NR" value={profileValue(profileRow.nr)} />
-            <InfoField label="Batch" value={profileValue(batchName)} />
-            <InfoField label="SSCC batch" value={profileValue(profileRow.sscc_batch)} />
-            <InfoField label="Common term platoon" value={profileValue(profileRow.common_term_platoon)} className="sm:col-span-2" />
+          <div className="grid gap-2 sm:grid-cols-2">
+            <InfoField label="SCS Batch" value={profileValue(batchName)} />
+            <InfoField label="Course Code" value={profileValue(profileRow.sscc_batch)} />
+            <InfoField label="Common Term Platoon" value={profileValue(profileRow.common_term_platoon)} className="sm:col-span-2" />
             <InfoField
-              label="Specialisation phase platoon"
+              label="Specialisation Phase Platoon"
               value={profileValue(profileRow.specialisation_phase_platoon)}
               className="sm:col-span-2"
             />
@@ -235,28 +265,32 @@ export function ManageUsersClient({
   batches: BatchRecord[];
 }) {
   const [profiles, setProfiles] = useState(initialProfiles);
+  const [batchOptions, setBatchOptions] = useState(batches);
   const [roleFilter, setRoleFilter] = useState<RoleFilter>("all");
-  const [batchFilter, setBatchFilter] = useState<BatchFilter>("all");
+  const [batchFilter, setBatchFilter] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [formState, setFormState] = useState<ProfileFormState | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
 
-  const batchesById = useMemo(() => Object.fromEntries(batches.map((batch) => [batch.id, batch])), [batches]);
+  const batchesById = useMemo(() => Object.fromEntries(batchOptions.map((batch) => [batch.id, batch])), [batchOptions]);
   const filteredProfiles = useMemo(() => {
+    const normalizedBatchFilter = batchFilter.trim().toLowerCase();
+
     return profiles
       .filter((profile) => roleFilter === "all" || profile.role === roleFilter)
       .filter((profile) => {
-        if (batchFilter === "all") return true;
-        if (batchFilter === "none") return !profile.batch_id;
-        return profile.batch_id === batchFilter;
+        if (!normalizedBatchFilter) return true;
+        const batchName = profile.batch_id ? batchesById[profile.batch_id]?.name ?? "Unknown Batch" : "Not Assigned";
+        return batchName.toLowerCase().includes(normalizedBatchFilter);
       })
       .sort((a, b) => formatProfileName(a, a.email).localeCompare(formatProfileName(b, b.email), undefined, { sensitivity: "base" }));
-  }, [batchFilter, profiles, roleFilter]);
+  }, [batchFilter, batchesById, profiles, roleFilter]);
 
   function startEditing(profile: EditableProfile) {
+    const batchName = profile.batch_id ? batchesById[profile.batch_id]?.name : undefined;
     setEditingId(profile.id);
-    setFormState(toFormState(profile));
+    setFormState(toFormState(profile, batchName));
     setSaveError(null);
   }
 
@@ -270,23 +304,50 @@ export function ManageUsersClient({
     setFormState((current) => (current ? { ...current, [field]: value } : current));
   }
 
+  async function resolveBatchId(supabase: ReturnType<typeof createSupabaseBrowserClient>, value: string) {
+    const batchName = normalizeBatchName(value);
+    if (!batchName) return null;
+
+    const existingBatch = batchOptions.find((batch) => batch.name.toLowerCase() === batchName.toLowerCase());
+    if (existingBatch) return existingBatch.id;
+
+    const { data, error } = await supabase.from("batches").insert({ name: batchName }).select().single();
+    if (error || !data) {
+      console.error("Failed to create SCS batch", error);
+      throw new Error("batch-create-failed");
+    }
+
+    const createdBatch = data as BatchRecord;
+    setBatchOptions((current) => [...current, createdBatch].sort((a, b) => a.name.localeCompare(b.name)));
+    return createdBatch.id;
+  }
+
   async function saveProfile(profileId: string) {
     if (!formState) return;
 
     const supabase = createSupabaseBrowserClient();
+    setSavingId(profileId);
+    setSaveError(null);
+
+    let batchId: string | null;
+    try {
+      batchId = await resolveBatchId(supabase, formState.scs_batch);
+    } catch {
+      setSavingId(null);
+      setSaveError("We could not save this SCS batch right now. Please try again.");
+      return;
+    }
+
     const updates = {
       full_name: emptyToNull(formState.full_name),
       rank: emptyToNull(formState.rank),
       role: formState.role,
-      batch_id: formState.batch_id || null,
+      batch_id: batchId,
       common_term_platoon: emptyToNull(formState.common_term_platoon),
-      sscc_batch: emptyToNull(formState.sscc_batch),
+      sscc_batch: emptyToNull(normalizeBatchName(formState.sscc_batch)),
       specialisation_phase_platoon: emptyToNull(formState.specialisation_phase_platoon),
-      nr: emptyToNull(formState.nr),
     };
 
-    setSavingId(profileId);
-    setSaveError(null);
     const { data, error } = await supabase.from("profiles").update(updates).eq("id", profileId).select().single();
     setSavingId(null);
 
@@ -308,22 +369,20 @@ export function ManageUsersClient({
             <div className="min-w-48 flex-1 space-y-2">
               <Label htmlFor="role-filter">Role</Label>
               <Select id="role-filter" value={roleFilter} onChange={(event) => setRoleFilter(event.target.value as RoleFilter)}>
-                <option value="all">All users</option>
+                <option value="all">All Users</option>
                 <option value="admin">Admins</option>
-                <option value="user">Non-admins</option>
+                <option value="user">Non-Admins</option>
               </Select>
             </div>
             <div className="min-w-48 flex-1 space-y-2">
-              <Label htmlFor="batch-filter">Batch</Label>
-              <Select id="batch-filter" value={batchFilter} onChange={(event) => setBatchFilter(event.target.value)}>
-                <option value="all">All batches</option>
-                <option value="none">Not assigned</option>
-                {batches.map((batch) => (
-                  <option key={batch.id} value={batch.id}>
-                    {batch.name}
-                  </option>
-                ))}
-              </Select>
+              <Label htmlFor="batch-filter">SCS Batch</Label>
+              <Input
+                id="batch-filter"
+                inputMode="numeric"
+                placeholder="Type SCS Batch"
+                value={batchFilter}
+                onChange={(event) => setBatchFilter(formatBatchInput(event.target.value))}
+              />
             </div>
             <p className="pb-3 text-sm text-muted-foreground">
               {filteredProfiles.length} of {profiles.length} users
@@ -335,7 +394,7 @@ export function ManageUsersClient({
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {filteredProfiles.length ? (
           filteredProfiles.map((profileRow, index) => {
-            const batchName = profileRow.batch_id ? batchesById[profileRow.batch_id]?.name ?? "Unknown batch" : "Not assigned";
+            const batchName = profileRow.batch_id ? batchesById[profileRow.batch_id]?.name ?? "Unknown Batch" : "Not Assigned";
             const isEditing = editingId === profileRow.id;
 
             return (
@@ -343,10 +402,9 @@ export function ManageUsersClient({
                 <UserProfileCard
                   profileRow={profileRow}
                   batchName={batchName}
-                  batches={batches}
                   isEditing={isEditing}
                   isSaving={savingId === profileRow.id}
-                  formState={isEditing && formState ? formState : toFormState(profileRow)}
+                  formState={isEditing && formState ? formState : toFormState(profileRow, batchName)}
                   errorMessage={isEditing ? saveError ?? undefined : undefined}
                   onEdit={() => startEditing(profileRow)}
                   onCancel={cancelEditing}
