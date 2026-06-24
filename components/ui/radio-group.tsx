@@ -46,9 +46,10 @@ export function RadioGroup({
             className={cn(
               "flex min-h-12 cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 text-sm transition",
               checked
-                ? "border-primary bg-primary/10 text-foreground"
+                ? "border-zinc-500 bg-zinc-950/5 text-foreground dark:border-primary dark:bg-primary/10"
                 : "border-border bg-card text-foreground hover:bg-accent",
-              disabled && "cursor-not-allowed opacity-60",
+              disabled && "cursor-not-allowed",
+              disabled && !checked && "text-muted-foreground",
               itemClassName,
             )}
           >
@@ -64,11 +65,11 @@ export function RadioGroup({
             <span
               className={cn(
                 "flex h-4 w-4 shrink-0 items-center justify-center rounded-full border",
-                checked ? "border-zinc-100" : "border-zinc-500",
+                checked ? "border-zinc-700 dark:border-zinc-100" : "border-zinc-500",
               )}
               aria-hidden="true"
             >
-              <span className={cn("h-2 w-2 rounded-full", checked ? "bg-zinc-100" : "bg-transparent")} />
+              <span className={cn("h-2 w-2 rounded-full", checked ? "bg-zinc-900 dark:bg-zinc-100" : "bg-transparent")} />
             </span>
             <span className="min-w-0">
               <span className="block font-medium leading-5 text-inherit">{option.label}</span>

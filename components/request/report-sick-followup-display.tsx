@@ -105,9 +105,9 @@ function ReadOnlyRadioField({
   layout?: "row" | "wrap" | "grid";
 }) {
   return (
-    <div className="grid gap-2">
-      <Label className="text-[15px] font-medium leading-5 text-foreground">{label}</Label>
-      <RadioGroup name={name} disabled value={value} onValueChange={() => {}} options={options} layout={layout} />
+    <div className="grid gap-2 sm:grid-cols-[8rem_minmax(0,1fr)] sm:items-start sm:gap-4">
+      <Label className="text-[15px] font-medium leading-5 text-foreground sm:pt-3.5">{label}</Label>
+      <RadioGroup name={name} disabled value={value} onValueChange={() => {}} options={options} layout={layout} itemClassName="min-h-11" />
     </div>
   );
 }
@@ -204,7 +204,7 @@ export function ReportSickFollowupFields({
         </Button>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-3">
         <ReadOnlyRadioField
           name={`${idPrefix}-swab`}
           label="Swab"
@@ -213,7 +213,7 @@ export function ReportSickFollowupFields({
             { value: "Yes", label: "Yes" },
             { value: "No", label: "No" },
           ]}
-          layout="row"
+          layout="wrap"
         />
         <ReadOnlyRadioField
           name={`${idPrefix}-sa-art`}
@@ -254,7 +254,7 @@ export function ReportSickFollowupFields({
             { value: "Near Miss", label: "Near Miss" },
             { value: "Others", label: "Others" },
           ]}
-          layout="grid"
+          layout="wrap"
         />
         <ReadOnlyRadioField
           name={`${idPrefix}-safety`}
@@ -264,7 +264,7 @@ export function ReportSickFollowupFields({
             { value: "Safety", label: "Safety" },
             { value: "Non-safety", label: "Non-safety" },
           ]}
-          layout="row"
+          layout="wrap"
         />
         <ReadOnlyRadioField
           name={`${idPrefix}-category`}
@@ -274,7 +274,7 @@ export function ReportSickFollowupFields({
             { value: "ARI", label: "ARI" },
             { value: "Non-ARI", label: "Non-ARI" },
           ]}
-          layout="row"
+          layout="wrap"
         />
       </div>
 
@@ -334,7 +334,7 @@ export function ReportSickFollowupCard({
       <CardContent className={cn("space-y-6", contentClassName)}>
         <ReportSickFollowupFields payload={followup.payload} idPrefix={idPrefix} />
         {request?.finalized_at ? (
-          <ApprovalBanner label="Finalized" name={formatProfileName(finalizedBy, request.finalized_by)} when={formatDateTime(request.finalized_at)} />
+          <ApprovalBanner label="Finalised" name={formatProfileName(finalizedBy, request.finalized_by)} when={formatDateTime(request.finalized_at)} />
         ) : null}
       </CardContent>
     </Card>

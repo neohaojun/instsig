@@ -144,7 +144,7 @@ export function RequestSummary({
                 request.kind === "report_sick" && followup ? null : (
                   <div className="md:col-span-2">
                     <ApprovalBanner
-                      label="Finalized"
+                      label="Finalised"
                       name={displayPerson(finalizedBy, request.finalized_by)}
                       when={formatDateTime(request.finalized_at)}
                     />
@@ -169,7 +169,7 @@ export function RequestSummary({
               <ReportSickFollowupFields payload={followup.payload} idPrefix="summary-report-sick-followup" />
               {request.finalized_at ? (
                 <ApprovalBanner
-                  label="Finalized"
+                  label="Finalised"
                   name={displayPerson(finalizedBy, request.finalized_by)}
                   when={formatDateTime(request.finalized_at)}
                 />

@@ -224,8 +224,8 @@ function RadioField({
   className?: string;
 }) {
   return (
-    <div className={cn("grid gap-2", className)}>
-      <Label htmlFor={String(name)} className="text-[15px] font-medium leading-5 text-foreground">
+    <div className={cn("grid gap-2 sm:grid-cols-[8rem_minmax(0,1fr)] sm:items-start sm:gap-4", className)}>
+      <Label htmlFor={String(name)} className="text-[15px] font-medium leading-5 text-foreground sm:pt-3.5">
         {label}
       </Label>
       <Controller
@@ -239,6 +239,7 @@ function RadioField({
             options={options}
             layout={layout}
             disabled={disabled}
+            itemClassName="min-h-11"
           />
         )}
       />
@@ -713,7 +714,7 @@ export function ReportSickFollowupForm({
               </Button>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-3">
               <RadioField
                 control={form.control}
                 name="swab"
@@ -722,7 +723,7 @@ export function ReportSickFollowupForm({
                   { value: "Yes", label: "Yes" },
                   { value: "No", label: "No" },
                 ]}
-                layout="row"
+                layout="wrap"
               />
 
               <RadioField
@@ -770,7 +771,7 @@ export function ReportSickFollowupForm({
                   { value: "Near Miss", label: "Near Miss" },
                   { value: "Others", label: "Others" },
                 ]}
-                layout="grid"
+                layout="wrap"
               />
 
               <RadioField
@@ -781,7 +782,7 @@ export function ReportSickFollowupForm({
                   { value: "Safety", label: "Safety" },
                   { value: "Non-safety", label: "Non-safety" },
                 ]}
-                layout="row"
+                layout="wrap"
               />
 
               <RadioField
@@ -792,7 +793,7 @@ export function ReportSickFollowupForm({
                   { value: "ARI", label: "ARI" },
                   { value: "Non-ARI", label: "Non-ARI" },
                 ]}
-                layout="row"
+                layout="wrap"
               />
             </div>
 
