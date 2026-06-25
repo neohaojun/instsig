@@ -11,7 +11,7 @@ export const statusLabels: Record<RequestStatus, string> = {
   needs_changes: "Needs changes",
   approved: "Approved",
   submitted: "Submitted",
-  finalized: "Finalised",
+  finalized: "Endorsed",
   rejected: "Rejected",
 };
 
@@ -27,7 +27,7 @@ export const statusTone: Record<RequestStatus, string> = {
 
 export const requestTypeDescription: Record<RequestKind, string> = {
   report_sick:
-    "Submit the 5W1H sick report first, then add doctor-visit details after admin approval and wait for finalisation.",
+    "Submit the 5W1H sick report first, then add doctor-visit details after admin approval and wait for endorsement.",
   external_appointment:
     "Request permission for outside appointments and keep the approval or rejection trail in one place.",
 };

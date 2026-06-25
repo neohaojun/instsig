@@ -22,6 +22,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ApprovalBanner } from "@/components/request/approval-banner";
 import { cn } from "@/lib/utils";
 import { formatProfileName } from "@/lib/profile-display";
+import { formatDisplayDate, formatDisplayDateTime } from "@/lib/display-date";
 
 const statusTypeOptions = [
   "MC",
@@ -188,15 +189,7 @@ function normalizeStatusEntries(value: unknown): StatusEntryValues[] {
 }
 
 function formatDateValue(value: string) {
-  if (!value) return "";
-  const parsed = parseISO(value);
-  if (!isValid(parsed)) return value;
-  return format(parsed, "dd MMM yyyy");
-}
-
-function formatDateTime(value: string | null | undefined) {
-  if (!value) return "Not yet";
-  return format(new Date(value), "dd MMM yyyy, HH:mm");
+  return formatDisplayDate(value, "");
 }
 
 function computeEndDate(startDate: string, days: number) {
@@ -271,7 +264,7 @@ export function ReportSickInitialRequestCard({
             <Label htmlFor="dateReportingSick">Date Reporting Sick</Label>
             <Button type="button" variant="outline" className="w-full justify-start px-4 text-left font-normal" disabled>
               <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground" />
-              {selectedDate && isValid(selectedDate) ? format(selectedDate, "dd MMM yyyy") : "Select a date"}
+              {selectedDate && isValid(selectedDate) ? formatDisplayDate(selectedDate) : "Select a date"}
             </Button>
           </div>
           <div className="grid gap-2">
@@ -303,7 +296,7 @@ export function ReportSickInitialRequestCard({
             />
           </div>
           {request.approved_at ? (
-            <ApprovalBanner label="Approved" name={displayPerson(approvedBy, request.approved_by)} when={formatDateTime(request.approved_at)} />
+            <ApprovalBanner label="Approved" name={displayPerson(approvedBy, request.approved_by)} when={formatDisplayDateTime(request.approved_at)} />
           ) : null}
         </div>
       </CardContent>
@@ -416,7 +409,7 @@ function StatusEntryRow({
                   <PopoverTrigger asChild>
                     <Button type="button" variant="outline" className="w-full justify-start px-4 text-left font-normal" disabled={disabled}>
                       <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground" />
-                      {fieldDate && isValid(fieldDate) ? format(fieldDate, "dd MMM yyyy") : "Select a date"}
+                      {fieldDate && isValid(fieldDate) ? formatDisplayDate(fieldDate) : "Select a date"}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-full max-w-[20rem] p-4" align="start">
@@ -817,7 +810,7 @@ export function ReportSickFollowupForm({
               Close
             </Button>
             <Button type="submit" disabled={pending}>
-              {pending ? "Saving..." : initialUpdate ? "Update Follow-Up" : "Submit Follow-Up"}
+              {pending ? "Saving..." : initialUpdate ? "Update Follow-Up" : "Submit for Endorsement"}
             </Button>
           </div>
         </form>

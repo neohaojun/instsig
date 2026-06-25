@@ -11,6 +11,7 @@ import { requestKindLabels } from "@/lib/request-meta";
 import { formatProfileName } from "@/lib/profile-display";
 import { StatusPill } from "@/components/request/status-pill";
 import { formatStatusDuration, getActiveReportSickStatuses } from "@/lib/active-report-sick-statuses";
+import { formatDisplayDateTime } from "@/lib/display-date";
 
 function isIncompleteRequest(request: RequestRecord) {
   if (request.kind === "report_sick") {
@@ -46,7 +47,7 @@ function formatRequestWhen(request: RequestRecord) {
   if (!when) return "Date not set";
 
   try {
-    return format(parseISO(when), "dd/MM/yyyy, HH:mm");
+    return formatDisplayDateTime(parseISO(when), "Date not set");
   } catch {
     return when;
   }
@@ -81,7 +82,7 @@ function RequestSubcard({
           <div className="min-w-0 space-y-2">
             <p className="truncate text-sm font-medium text-card-foreground">{title}</p>
             {description ? <p className="max-w-[36rem] text-sm text-muted-foreground">{description}</p> : null}
-            <p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">{meta}</p>
+            <p className="text-xs text-muted-foreground">{meta}</p>
           </div>
           <StatusPill status={request.status} />
         </div>
@@ -257,7 +258,7 @@ export default async function DashboardPage() {
                           {formatProfileName(requester, status.request.requester_email)}
                         </p>
                         <p className="text-sm text-muted-foreground">{status.entry.type}</p>
-                        <p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">{formatStatusDuration(status)}</p>
+                        <p className="text-xs text-muted-foreground">{formatStatusDuration(status)}</p>
                       </div>
                     </div>
                   );

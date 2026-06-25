@@ -9,6 +9,7 @@ import Link from "next/link";
 import type { RequestRecord } from "@/lib/types";
 import { requestKindLabels } from "@/lib/request-meta";
 import { ChevronLeft } from "lucide-react";
+import { formatDisplayDateTime } from "@/lib/display-date";
 
 function formatReportSickReportedAt(request: RequestRecord) {
   const payload = request.payload as Record<string, unknown>;
@@ -30,7 +31,13 @@ function formatExternalAppointmentWhen(request: RequestRecord) {
   const payload = request.payload as Record<string, unknown>;
   const when = typeof payload.when === "string" ? payload.when : null;
 
-  return when || "Date not set";
+  if (!when) return "Date not set";
+
+  try {
+    return formatDisplayDateTime(parseISO(when), "Date not set");
+  } catch {
+    return when;
+  }
 }
 
 function HistoryCard({
@@ -62,7 +69,7 @@ function HistoryCard({
                 <div className="flex items-center justify-between gap-4 text-left">
                   <div className="min-w-0 space-y-1">
                     <p className="text-sm font-medium text-card-foreground">{requestKindLabels[request.kind]}</p>
-                    <p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">{getMeta(request)}</p>
+                    <p className="text-xs text-muted-foreground">{getMeta(request)}</p>
                   </div>
                   <StatusPill status={request.status} />
                 </div>

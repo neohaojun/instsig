@@ -127,7 +127,7 @@ export function AdminReviewPanel({
             ) : null}
             {canFinalize ? (
               <Button type="button" disabled={pending} onClick={() => save("finalize")} className="sm:flex-1">
-                {pending ? "Saving..." : "Finalise"}
+                {pending ? "Saving..." : "Endorse"}
               </Button>
             ) : null}
             {showClose ? (
