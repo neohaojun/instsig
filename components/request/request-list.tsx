@@ -1,11 +1,11 @@
 import Link from "next/link";
-import { format } from "date-fns";
 import type { ProfileRecord, RequestRecord } from "@/lib/types";
 import { requestKindLabels } from "@/lib/request-meta";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusPill } from "@/components/request/status-pill";
 import { Badge } from "@/components/ui/badge";
 import { formatProfileName } from "@/lib/profile-display";
+import { formatDisplayDateTime } from "@/lib/display-date";
 
 const requestPathByKind = {
   report_sick: "/requests/report-sick",
@@ -39,7 +39,7 @@ export function RequestList({
       <CardContent className="grid gap-3 p-8 pt-0">
         {requests.map((request, index) => {
           const requester = profilesById[request.requester_id];
-          const submittedLabel = format(new Date(request.created_at), "dd MMM yyyy, HH:mm");
+          const submittedLabel = formatDisplayDateTime(request.created_at);
           const href = getHref?.(request) ?? `${requestPathByKind[request.kind]}?id=${request.id}`;
 
           return (
@@ -59,7 +59,7 @@ export function RequestList({
                         {requestKindLabels[request.kind]}
                       </Badge>
                     </div>
-                    <p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">{submittedLabel}</p>
+                    <p className="text-xs text-muted-foreground">{submittedLabel}</p>
                     {request.review_note ? <p className="max-w-[36rem] text-sm text-muted-foreground">{request.review_note}</p> : null}
                   </div>
                   <div className="flex items-center gap-3">

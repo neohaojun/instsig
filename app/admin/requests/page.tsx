@@ -10,6 +10,7 @@ import type { ProfileRecord, RequestRecord } from "@/lib/types";
 import { requestKindLabels } from "@/lib/request-meta";
 import { formatProfileName } from "@/lib/profile-display";
 import { cn } from "@/lib/utils";
+import { formatDisplayDateTime } from "@/lib/display-date";
 
 type RequestStatusView = "pending" | "all";
 
@@ -48,7 +49,7 @@ function formatPendingRequestWhen(request: RequestRecord) {
   if (!when) return "Date not set";
 
   try {
-    return format(parseISO(when), "dd/MM/yyyy, HH:mm");
+    return formatDisplayDateTime(parseISO(when), "Date not set");
   } catch {
     return when;
   }
@@ -144,7 +145,7 @@ function RequestsByKindCard({
                         {formatProfileName(requester, request.requester_email)}
                       </p>
                       <p className="max-w-[36rem] text-sm text-muted-foreground">{requestKindLabels[request.kind]}</p>
-                      <p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">
+                      <p className="text-xs text-muted-foreground">
                         {formatPendingRequestWhen(request)}
                       </p>
                     </div>

@@ -1,4 +1,3 @@
-import { format } from "date-fns";
 import type { ProfileRecord, RequestRecord, RequestUpdateRecord } from "@/lib/types";
 import { requestKindLabels } from "@/lib/request-meta";
 import { Badge } from "@/components/ui/badge";
@@ -8,14 +7,18 @@ import { ApprovalBanner } from "@/components/request/approval-banner";
 import { ReportSickFollowupFields } from "@/components/request/report-sick-followup-display";
 import { cn } from "@/lib/utils";
 import { formatProfileName } from "@/lib/profile-display";
-
-function formatDateTime(value: string | null | undefined) {
-  if (!value) return "Not yet";
-  return format(new Date(value), "dd MMM yyyy, HH:mm");
-}
+import { formatDisplayDate, formatDisplayDateTime } from "@/lib/display-date";
 
 function displayPerson(profile: ProfileRecord | null | undefined, fallback?: string | null) {
   return formatProfileName(profile, fallback);
+}
+
+function formatPayloadDate(value: unknown) {
+  return typeof value === "string" ? formatDisplayDate(value, "") : "";
+}
+
+function formatPayloadDateTime(value: unknown) {
+  return typeof value === "string" ? formatDisplayDateTime(value, "") : "";
 }
 
 export function ReadOnlyField({
@@ -35,7 +38,7 @@ export function ReadOnlyField({
 
   return (
     <div className={cn("rounded-2xl border border-border bg-card p-4", className)}>
-      <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">{label}</p>
+      <p className="text-[11px] font-medium uppercase text-muted-foreground">{label}</p>
       <div
         className={cn(
           "mt-2 rounded-xl border border-border bg-muted/40 px-4 py-3 text-sm leading-6 text-foreground",
@@ -99,7 +102,7 @@ export function RequestSummary({
           <div className="grid gap-3 md:grid-cols-2">
             {request.kind === "report_sick" ? (
               <>
-                <ReadOnlyField label="Date reporting sick" value={String((request.payload as any).dateReportingSick ?? "")} />
+                <ReadOnlyField label="Date reporting sick" value={formatPayloadDate((request.payload as any).dateReportingSick)} />
                 <ReadOnlyField label="Time reporting sick" value={String((request.payload as any).timeReportingSick ?? "")} />
                 <ReadOnlyField label="Where" value={String((request.payload as any).where ?? "")} />
                 <ReadOnlyField label="Symptoms" value={String((request.payload as any).symptoms ?? "")} multiline className="md:col-span-2" />
@@ -114,7 +117,7 @@ export function RequestSummary({
               <>
                 <ReadOnlyField label="Appointment Name" value={String((request.payload as any).what ?? "")} />
                 <ReadOnlyField label="Appointment Location" value={String((request.payload as any).where ?? "")} />
-                <ReadOnlyField label="When" value={String((request.payload as any).when ?? "")} />
+                <ReadOnlyField label="When" value={formatPayloadDateTime((request.payload as any).when)} />
                 <ReadOnlyField label="Lessons Missed" value={String((request.payload as any).lessonsMissed ?? "")} />
                 <ReadOnlyField label="Background" value={String((request.payload as any).why ?? "")} multiline className="md:col-span-2" />
               </>
@@ -126,17 +129,17 @@ export function RequestSummary({
           <section className="grid gap-4">
             {sectionTitle("Lifecycle")}
             <div className="grid gap-3 md:grid-cols-2">
-              <ReadOnlyField label="Submitted" value={formatDateTime(request.submitted_at ?? request.created_at)} />
+              <ReadOnlyField label="Submitted" value={formatDisplayDateTime(request.submitted_at ?? request.created_at)} />
               {request.rejected_at ? (
-                <ReadOnlyField label="Rejected" value={`${displayPerson(rejectedBy, request.rejected_by)} · ${formatDateTime(request.rejected_at)}`} />
+                <ReadOnlyField label="Rejected" value={`${displayPerson(rejectedBy, request.rejected_by)} · ${formatDisplayDateTime(request.rejected_at)}`} />
               ) : null}
-              {followupSubmittedAt ? <ReadOnlyField label="Follow-up submitted" value={formatDateTime(followupSubmittedAt)} /> : null}
+              {followupSubmittedAt ? <ReadOnlyField label="Follow-up submitted" value={formatDisplayDateTime(followupSubmittedAt)} /> : null}
               {request.approved_at ? (
                 <div className="md:col-span-2">
                   <ApprovalBanner
                     label="Approved"
                     name={displayPerson(approvedBy, request.approved_by)}
-                    when={formatDateTime(request.approved_at)}
+                    when={formatDisplayDateTime(request.approved_at)}
                   />
                 </div>
               ) : null}
@@ -144,9 +147,9 @@ export function RequestSummary({
                 request.kind === "report_sick" && followup ? null : (
                   <div className="md:col-span-2">
                     <ApprovalBanner
-                      label="Finalised"
+                      label="Endorsed"
                       name={displayPerson(finalizedBy, request.finalized_by)}
-                      when={formatDateTime(request.finalized_at)}
+                      when={formatDisplayDateTime(request.finalized_at)}
                     />
                   </div>
                 )
@@ -169,9 +172,9 @@ export function RequestSummary({
               <ReportSickFollowupFields payload={followup.payload} idPrefix="summary-report-sick-followup" />
               {request.finalized_at ? (
                 <ApprovalBanner
-                  label="Finalised"
+                  label="Endorsed"
                   name={displayPerson(finalizedBy, request.finalized_by)}
-                  when={formatDateTime(request.finalized_at)}
+                  when={formatDisplayDateTime(request.finalized_at)}
                 />
               ) : null}
             </div>

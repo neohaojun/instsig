@@ -1,6 +1,6 @@
 "use client";
 
-import { format, isValid, parseISO } from "date-fns";
+import { isValid, parseISO } from "date-fns";
 import { Calendar as CalendarIcon, Plus } from "lucide-react";
 import type { ProfileRecord, ReportSickStatusEntry, ReportSickStatusType, RequestRecord, RequestUpdateRecord } from "@/lib/types";
 import { formatProfileName } from "@/lib/profile-display";
@@ -14,6 +14,7 @@ import { RadioGroup } from "@/components/ui/radio-group";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { ApprovalBanner } from "@/components/request/approval-banner";
+import { formatDisplayDate, formatDisplayDateTime } from "@/lib/display-date";
 
 const statusTypeOptions = [
   "MC",
@@ -51,15 +52,7 @@ type FollowupPayloadLike = Record<string, unknown> & {
 };
 
 function formatDateValue(value: string | null | undefined) {
-  if (!value) return "";
-  const parsed = parseISO(value);
-  if (!isValid(parsed)) return value;
-  return format(parsed, "dd MMM yyyy");
-}
-
-function formatDateTime(value: string | null | undefined) {
-  if (!value) return "Not yet";
-  return format(new Date(value), "dd MMM yyyy, HH:mm");
+  return formatDisplayDate(value, "");
 }
 
 function isStatusType(value: unknown): value is ReportSickStatusType {
@@ -316,7 +309,7 @@ export function ReportSickFollowupCard({
       <CardContent className={cn("space-y-6", contentClassName)}>
         <ReportSickFollowupFields payload={followup.payload} idPrefix={idPrefix} />
         {request?.finalized_at ? (
-          <ApprovalBanner label="Finalised" name={formatProfileName(finalizedBy, request.finalized_by)} when={formatDateTime(request.finalized_at)} />
+          <ApprovalBanner label="Endorsed" name={formatProfileName(finalizedBy, request.finalized_by)} when={formatDisplayDateTime(request.finalized_at)} />
         ) : null}
       </CardContent>
     </Card>

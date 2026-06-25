@@ -6,12 +6,12 @@ import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { format } from "date-fns";
 import type { BatchRecord } from "@/lib/types";
+import { formatDisplayDateTime } from "@/lib/display-date";
 
 function formatDate(value: string | null | undefined) {
   if (!value) return "Not set";
-  return format(new Date(value), "dd MMM yyyy, HH:mm");
+  return formatDisplayDateTime(value, "Not set");
 }
 
 export default async function AdminBatchesPage() {

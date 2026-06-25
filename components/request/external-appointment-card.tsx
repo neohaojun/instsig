@@ -1,4 +1,4 @@
-import { format, isValid, parseISO } from "date-fns";
+import { isValid, parseISO } from "date-fns";
 import { Calendar as CalendarIcon } from "lucide-react";
 import type { ProfileRecord, RequestRecord } from "@/lib/types";
 import { formatProfileName } from "@/lib/profile-display";
@@ -9,17 +9,13 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ApprovalBanner } from "@/components/request/approval-banner";
 import { cn } from "@/lib/utils";
-
-function formatDateTime(value: string | null | undefined) {
-  if (!value) return "Not yet";
-  return format(new Date(value), "dd MMM yyyy, HH:mm");
-}
+import { formatDisplayDateTime } from "@/lib/display-date";
 
 function formatAppointmentWhen(value: unknown) {
   if (typeof value !== "string" || !value) return "";
   const parsed = parseISO(value);
   if (!isValid(parsed)) return value;
-  return format(parsed, "dd MMM yyyy, HH:mm");
+  return formatDisplayDateTime(parsed, "");
 }
 
 function displayPerson(profile: ProfileRecord | null | undefined, fallback?: string | null) {
@@ -118,14 +114,14 @@ export function ExternalAppointmentRequestCard({
             <ReviewBanner
               label="Approved"
               name={displayPerson(approvedBy, request.approved_by)}
-              when={formatDateTime(request.approved_at)}
+              when={formatDisplayDateTime(request.approved_at)}
             />
           ) : null}
           {request.rejected_at ? (
             <ReviewBanner
               label="Rejected"
               name={displayPerson(rejectedBy, request.rejected_by)}
-              when={formatDateTime(request.rejected_at)}
+              when={formatDisplayDateTime(request.rejected_at)}
             />
           ) : null}
         </div>

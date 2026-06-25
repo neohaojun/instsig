@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
+import { formatDisplayDate } from "@/lib/display-date";
 
 const reportSickSchema = z.object({
   dateReportingSick: z.string().min(1, "Date reporting sick is required"),
@@ -241,7 +242,7 @@ function ExternalAppointmentFields({ form }: { form: any }) {
                   <PopoverTrigger asChild>
                     <Button type="button" variant="outline" className="w-full justify-start px-4 text-left font-normal">
                       <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground" />
-                      {selectedDate && isValid(selectedDate) ? format(selectedDate, "dd MMM yyyy") : "Select a date"}
+                      {selectedDate && isValid(selectedDate) ? formatDisplayDate(selectedDate) : "Select a date"}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-full max-w-[20rem] p-4" align="start">
@@ -304,7 +305,7 @@ function ReportSickFields({ form }: { form: any }) {
                     className="w-full justify-start px-4 text-left font-normal"
                   >
                     <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground" />
-                    {selectedDate && isValid(selectedDate) ? format(selectedDate, "dd MMM yyyy") : "Select a date"}
+                    {selectedDate && isValid(selectedDate) ? formatDisplayDate(selectedDate) : "Select a date"}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-full max-w-[20rem] p-4" align="start">
