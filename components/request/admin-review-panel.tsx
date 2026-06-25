@@ -63,6 +63,7 @@ export function AdminReviewPanel({
 
       const { data: updatedRequest, error } = await supabase.from("requests").update(updates).eq("id", request.id).select().single();
       if (error) {
+        console.error("Failed to update admin request action", error);
         setMessage("We couldn't update this request right now. Please try again.");
         return;
       }
@@ -74,7 +75,7 @@ export function AdminReviewPanel({
             ? "reject"
             : "finalize";
 
-      await supabase.from("request_events").insert({
+      const { error: eventError } = await supabase.from("request_events").insert({
         request_id: request.id,
         actor_id: adminId,
         actor_email: adminEmail,
@@ -82,13 +83,16 @@ export function AdminReviewPanel({
         note: null,
         changes: null,
       });
+      if (eventError) {
+        console.error("Failed to record admin request event", eventError);
+      }
 
       if (onUpdated) {
         onUpdated(updatedRequest as RequestRecord);
-        return;
+      } else {
+        router.refresh();
       }
 
-      router.refresh();
       if (onClose) {
         onClose();
       } else {
