@@ -3,6 +3,8 @@
 import { useMemo, useState } from "react";
 import { format, parseISO } from "date-fns";
 import { ArrowUpRight, CalendarClock, ChevronLeft, FileText } from "lucide-react";
+import { StrengthCard } from "@/components/dashboard/strength-card";
+import { StrengthDetail } from "@/components/dashboard/strength-detail";
 import { TopBar } from "@/components/layout/topbar";
 import { AdminReportSickFollowupCard } from "@/components/request/admin-report-sick-followup-card";
 import { AdminReviewPanel } from "@/components/request/admin-review-panel";
@@ -14,21 +16,28 @@ import { RequestSummary } from "@/components/request/request-summary";
 import { StatusPill } from "@/components/request/status-pill";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { formatStatusDuration, getActiveReportSickStatuses } from "@/lib/active-report-sick-statuses";
 import { formatDisplayDateTime } from "@/lib/display-date";
 import { formatProfileName } from "@/lib/profile-display";
 import { requestKindLabels } from "@/lib/request-meta";
+import { buildStrengthDetails, buildStrengthSummary } from "@/lib/strength-summary";
 import type { BatchRecord, ProfileRecord, RequestKind, RequestRecord, RequestUpdateRecord } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-type ShellView = "dashboard" | "history" | "adminRequests" | "requestDetail" | "newReportSick" | "newExternalAppointment";
+type ShellView = "dashboard" | "history" | "adminRequests" | "strength" | "requestDetail" | "newReportSick" | "newExternalAppointment";
 type DashboardMode = "admin" | "user";
 type RequestDetailMode = "admin" | "user";
 type RequestStatusView = "pending" | "all";
+type RequestKindView = "all" | RequestKind;
 
 const statusViews: { value: RequestStatusView; label: string }[] = [
   { value: "pending", label: "Pending" },
   { value: "all", label: "All" },
+];
+
+const kindViews: { value: RequestKindView; label: string }[] = [
+  { value: "all", label: "All Requests" },
+  { value: "report_sick", label: "Report Sick" },
+  { value: "external_appointment", label: "External Appointment" },
 ];
 
 const requestPathByKind = {
@@ -82,24 +91,49 @@ function isInitialRequestEditable(request: RequestRecord) {
   return ["draft", "pending", "needs_changes"].includes(request.status);
 }
 
+function getAdminActionLabel(request: RequestRecord) {
+  if (request.status === "finalized" || request.status === "rejected") return null;
+  if (request.status === "pending" || request.status === "needs_changes") return "Review needed";
+  if (request.kind === "report_sick" && (request.status === "submitted" || request.followup_submitted_at)) return "Ready to endorse";
+  return null;
+}
+
+function sortActionableRequests(requests: RequestRecord[]) {
+  return [...requests].sort((first, second) => {
+    const firstActionable = getAdminActionLabel(first) ? 1 : 0;
+    const secondActionable = getAdminActionLabel(second) ? 1 : 0;
+    return secondActionable - firstActionable;
+  });
+}
+
 function RequestSubcard({
   title,
   meta,
   description,
+  showAdminAction = false,
   request,
   onSelect,
 }: {
   title: string;
   meta: string;
   description?: string;
+  showAdminAction?: boolean;
   request: RequestRecord;
   onSelect: (request: RequestRecord) => void;
 }) {
+  const actionLabel = showAdminAction ? getAdminActionLabel(request) : null;
+
   return (
     <button type="button" onClick={() => onSelect(request)} className="block w-full text-left">
-      <div className="group rounded-2xl border border-border bg-card p-4 transition hover:bg-accent/50">
+      <div
+        className={cn(
+          "group rounded-2xl border border-border bg-card p-4 transition hover:bg-accent/50",
+          actionLabel && "border-foreground/20 bg-muted/50 shadow-sm ring-1 ring-foreground/10",
+        )}
+      >
         <div className="flex items-center justify-between gap-4 text-left">
           <div className="min-w-0 space-y-2">
+            {actionLabel ? <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-foreground">{actionLabel}</p> : null}
             <p className="truncate text-sm font-medium text-card-foreground">{title}</p>
             {description ? <p className="max-w-[36rem] text-sm text-muted-foreground">{description}</p> : null}
             <p className="text-xs text-muted-foreground">{meta}</p>
@@ -111,6 +145,58 @@ function RequestSubcard({
   );
 }
 
+function AdminPendingRequestsCard({
+  title,
+  requests,
+  profilesById,
+  onSelectRequest,
+  onViewAll,
+}: {
+  title: string;
+  requests: RequestRecord[];
+  profilesById: Record<string, ProfileRecord | null | undefined>;
+  onSelectRequest: (request: RequestRecord, mode: RequestDetailMode) => void;
+  onViewAll: () => void;
+}) {
+  return (
+    <Card className="overflow-hidden animate-enter-soft animate-delay-1">
+      <CardHeader className="space-y-4 p-8">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="space-y-2">
+            <CardTitle className="text-3xl">{title}</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              {requests.length} pending {requests.length === 1 ? "request" : "requests"}
+            </p>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="grid gap-3 p-8 pt-0">
+        {requests.length ? (
+          sortActionableRequests(requests).slice(0, 2).map((request) => (
+            <RequestSubcard
+              key={request.id}
+              title={formatProfileName(profilesById[request.requester_id], request.requester_email)}
+              meta={formatRequestWhen(request)}
+              showAdminAction
+              request={request}
+              onSelect={(item) => onSelectRequest(item, "admin")}
+            />
+          ))
+        ) : (
+          <div className="rounded-2xl border border-dashed border-border bg-muted/40 p-4 text-sm text-muted-foreground">
+            No pending {title.toLowerCase()} requests right now.
+          </div>
+        )}
+        <div className="pt-2">
+          <Button type="button" variant="link" className="h-auto px-0" onClick={onViewAll}>
+            View all
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 function DashboardView({
   requests,
   updates,
@@ -119,6 +205,7 @@ function DashboardView({
   dashboardMode,
   setDashboardMode,
   onNavigate,
+  onOpenAdminRequests,
   onSelectRequest,
 }: {
   requests: RequestRecord[];
@@ -128,14 +215,16 @@ function DashboardView({
   dashboardMode: DashboardMode;
   setDashboardMode: (mode: DashboardMode) => void;
   onNavigate: (view: ShellView) => void;
+  onOpenAdminRequests: (kindView: RequestKindView) => void;
   onSelectRequest: (request: RequestRecord, mode: RequestDetailMode) => void;
 }) {
   const isAdmin = profile?.role === "admin";
   const pendingRequests = requests.filter(isIncompleteRequest);
+  const reportSickPendingRequests = pendingRequests.filter((request) => request.kind === "report_sick");
+  const externalAppointmentPendingRequests = pendingRequests.filter((request) => request.kind === "external_appointment");
   const requestHistory = requests.filter((request) => request.requester_id === profile?.id && request.status !== "draft");
   const recentRequestHistory = requestHistory.slice(0, 2);
-  const recentPendingRequests = pendingRequests.slice(0, 2);
-  const activeStatuses = getActiveReportSickStatuses(requests, updates);
+  const strengthSummary = buildStrengthSummary(Object.values(profilesById).filter(Boolean) as ProfileRecord[], requests, updates);
   const activeMode = isAdmin ? dashboardMode : "user";
 
   return (
@@ -143,7 +232,7 @@ function DashboardView({
       <Card className="overflow-hidden animate-enter">
         <CardHeader className="space-y-4 p-8">
           <div className="flex flex-wrap items-center justify-between gap-4">
-            <CardTitle className="text-3xl">Dashboard</CardTitle>
+            <CardTitle className="text-3xl">{activeMode === "admin" ? "Admin Dashboard" : "Dashboard"}</CardTitle>
             {isAdmin ? (
               <div className="w-fit max-w-full rounded-2xl border border-border bg-muted p-1">
                 <div className="flex flex-wrap gap-2">
@@ -228,77 +317,24 @@ function DashboardView({
 
       {activeMode === "admin" ? (
         <>
-          <Card className="overflow-hidden animate-enter-soft animate-delay-1">
-            <CardHeader className="space-y-4 p-8">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="space-y-2">
-                  <CardTitle className="text-3xl">Pending Requests</CardTitle>
-                  <p className="text-sm text-muted-foreground">{pendingRequests.length} pending</p>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="grid gap-3 p-8 pt-0">
-              {recentPendingRequests.length ? (
-                recentPendingRequests.map((request) => (
-                  <RequestSubcard
-                    key={request.id}
-                    title={formatProfileName(profilesById[request.requester_id], request.requester_email)}
-                    meta={formatRequestWhen(request)}
-                    description={requestKindLabels[request.kind]}
-                    request={request}
-                    onSelect={(item) => onSelectRequest(item, "admin")}
-                  />
-                ))
-              ) : (
-                <div className="rounded-2xl border border-dashed border-border bg-muted/40 p-4 text-sm text-muted-foreground">
-                  No pending requests right now.
-                </div>
-              )}
-              <div className="pt-2">
-                <Button type="button" variant="link" className="h-auto px-0" onClick={() => onNavigate("adminRequests")}>
-                  View all
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="grid gap-6 lg:grid-cols-2">
+            <AdminPendingRequestsCard
+              title="Report Sick"
+              requests={reportSickPendingRequests}
+              profilesById={profilesById}
+              onSelectRequest={onSelectRequest}
+              onViewAll={() => onOpenAdminRequests("report_sick")}
+            />
+            <AdminPendingRequestsCard
+              title="External Appointment"
+              requests={externalAppointmentPendingRequests}
+              profilesById={profilesById}
+              onSelectRequest={onSelectRequest}
+              onViewAll={() => onOpenAdminRequests("external_appointment")}
+            />
+          </div>
 
-          <Card className="overflow-hidden animate-enter-soft animate-delay-2">
-            <CardHeader className="space-y-4 p-8">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="space-y-2">
-                  <CardTitle className="text-3xl">Active Statuses</CardTitle>
-                  <p className="text-sm text-muted-foreground">
-                    {activeStatuses.length} active {activeStatuses.length === 1 ? "status" : "statuses"}
-                  </p>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="grid gap-3 p-8 pt-0">
-              {activeStatuses.length ? (
-                activeStatuses.slice(0, 4).map((status) => {
-                  const requester = profilesById[status.request.requester_id];
-
-                  return (
-                    <div key={`${status.request.id}-${status.entry.type}-${status.entry.startDate}-${status.entry.endDate}`} className="rounded-2xl border border-border bg-card p-4">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="min-w-0 space-y-2">
-                          <p className="truncate text-sm font-medium text-card-foreground">
-                            {formatProfileName(requester, status.request.requester_email)}
-                          </p>
-                          <p className="text-sm text-muted-foreground">{status.entry.type}</p>
-                          <p className="text-xs text-muted-foreground">{formatStatusDuration(status)}</p>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })
-              ) : (
-                <div className="rounded-2xl border border-dashed border-border bg-muted/40 p-4 text-sm text-muted-foreground">
-                  No active report sick statuses right now.
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <StrengthCard summary={strengthSummary} onSeeMore={() => onNavigate("strength")} />
 
           <div className="grid gap-4 animate-enter-soft animate-delay-2">
             <a href="/admin/users" className="block">
@@ -358,6 +394,37 @@ function HistoryView({
   );
 }
 
+function StrengthView({
+  requests,
+  updates,
+  profilesById,
+  onNavigate,
+}: {
+  requests: RequestRecord[];
+  updates: RequestUpdateRecord[];
+  profilesById: Record<string, ProfileRecord | null | undefined>;
+  onNavigate: (view: ShellView) => void;
+}) {
+  const details = buildStrengthDetails(Object.values(profilesById).filter(Boolean) as ProfileRecord[], requests, updates);
+
+  return (
+    <section className="mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-6 lg:px-8">
+      <Card className="overflow-hidden animate-enter">
+        <CardHeader className="space-y-4 p-8">
+          <CardTitle className="text-3xl">Strength</CardTitle>
+          <div className="flex flex-wrap gap-3">
+            <Button type="button" variant="outline" onClick={() => onNavigate("dashboard")}>
+              <ChevronLeft className="h-4 w-4" />
+              Back to dashboard
+            </Button>
+          </div>
+        </CardHeader>
+      </Card>
+      <StrengthDetail details={details} profilesById={profilesById} showSummaryTitle={false} />
+    </section>
+  );
+}
+
 function HistoryCard({
   title,
   requests,
@@ -409,11 +476,42 @@ function filterRequestsByView(requests: RequestRecord[], statusView: RequestStat
   return requests.filter(isIncompleteRequest);
 }
 
+function filterRequestsByKind(requests: RequestRecord[], kindView: RequestKindView) {
+  if (kindView === "all") return requests;
+  return requests.filter((request) => request.kind === kindView);
+}
+
 function RequestStatusTabs({ activeView, onChange }: { activeView: RequestStatusView; onChange: (view: RequestStatusView) => void }) {
   return (
     <div className="w-fit max-w-full rounded-2xl border border-border bg-muted p-1">
       <div className="flex flex-wrap gap-2">
         {statusViews.map((view) => {
+          const isActive = view.value === activeView;
+
+          return (
+            <button
+              key={view.value}
+              type="button"
+              onClick={() => onChange(view.value)}
+              className={cn(
+                "rounded-xl px-3 py-2 text-sm font-medium text-muted-foreground transition hover:bg-background hover:text-foreground",
+                isActive && "bg-background text-foreground shadow-sm",
+              )}
+            >
+              {view.label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function RequestKindTabs({ activeView, onChange }: { activeView: RequestKindView; onChange: (view: RequestKindView) => void }) {
+  return (
+    <div className="w-fit max-w-full rounded-2xl border border-border bg-muted p-1">
+      <div className="flex flex-wrap gap-2">
+        {kindViews.map((view) => {
           const isActive = view.value === activeView;
 
           return (
@@ -503,6 +601,8 @@ function AdminRequestsView({
   profilesById,
   statusView,
   setStatusView,
+  kindView,
+  setKindView,
   onNavigate,
   onSelectRequest,
 }: {
@@ -510,10 +610,12 @@ function AdminRequestsView({
   profilesById: Record<string, ProfileRecord | null | undefined>;
   statusView: RequestStatusView;
   setStatusView: (view: RequestStatusView) => void;
+  kindView: RequestKindView;
+  setKindView: (view: RequestKindView) => void;
   onNavigate: (view: ShellView) => void;
   onSelectRequest: (request: RequestRecord, mode: RequestDetailMode) => void;
 }) {
-  const visibleRequests = filterRequestsByView(requests, statusView);
+  const visibleRequests = filterRequestsByKind(filterRequestsByView(requests, statusView), kindView);
   const reportSickRequests = visibleRequests.filter((request) => request.kind === "report_sick");
   const externalAppointmentRequests = visibleRequests.filter((request) => request.kind === "external_appointment");
 
@@ -531,21 +633,28 @@ function AdminRequestsView({
         </CardHeader>
       </Card>
 
-      <RequestStatusTabs activeView={statusView} onChange={setStatusView} />
-      <RequestsByKindCard
-        title="Report Sick"
-        requests={reportSickRequests}
-        profilesById={profilesById}
-        statusView={statusView}
-        onSelectRequest={onSelectRequest}
-      />
-      <RequestsByKindCard
-        title="External Appointment"
-        requests={externalAppointmentRequests}
-        profilesById={profilesById}
-        statusView={statusView}
-        onSelectRequest={onSelectRequest}
-      />
+      <div className="flex flex-wrap gap-3">
+        <RequestStatusTabs activeView={statusView} onChange={setStatusView} />
+        <RequestKindTabs activeView={kindView} onChange={setKindView} />
+      </div>
+      {kindView === "all" || kindView === "report_sick" ? (
+        <RequestsByKindCard
+          title="Report Sick"
+          requests={reportSickRequests}
+          profilesById={profilesById}
+          statusView={statusView}
+          onSelectRequest={onSelectRequest}
+        />
+      ) : null}
+      {kindView === "all" || kindView === "external_appointment" ? (
+        <RequestsByKindCard
+          title="External Appointment"
+          requests={externalAppointmentRequests}
+          profilesById={profilesById}
+          statusView={statusView}
+          onSelectRequest={onSelectRequest}
+        />
+      ) : null}
     </section>
   );
 }
@@ -775,6 +884,7 @@ export function InstsigApp({
   const [selectedRequestMode, setSelectedRequestMode] = useState<RequestDetailMode>(profile?.role === "admin" ? "admin" : "user");
   const [dashboardMode, setDashboardMode] = useState<DashboardMode>(profile?.role === "admin" ? "admin" : "user");
   const [statusView, setStatusView] = useState<RequestStatusView>("pending");
+  const [kindView, setKindView] = useState<RequestKindView>("all");
   const [requests, setRequests] = useState(initialRequests);
   const [updates, setUpdates] = useState(initialUpdates);
   const isAdmin = profile?.role === "admin";
@@ -789,13 +899,19 @@ export function InstsigApp({
     : null;
 
   function navigate(nextView: ShellView) {
-    if (nextView === "adminRequests" && !isAdmin) {
+    if ((nextView === "adminRequests" || nextView === "strength") && !isAdmin) {
       setView("dashboard");
       return;
     }
 
     setView(nextView);
     window.scrollTo({ top: 0, behavior: "instant" });
+  }
+
+  function openAdminRequests(nextKindView: RequestKindView = "all") {
+    setStatusView("pending");
+    setKindView(nextKindView);
+    navigate("adminRequests");
   }
 
   function handleSavedRequest(request: RequestRecord) {
@@ -841,6 +957,7 @@ export function InstsigApp({
           dashboardMode={dashboardMode}
           setDashboardMode={setDashboardMode}
           onNavigate={navigate}
+          onOpenAdminRequests={openAdminRequests}
           onSelectRequest={handleSelectRequest}
         />
       ) : null}
@@ -853,9 +970,14 @@ export function InstsigApp({
           profilesById={profilesById}
           statusView={statusView}
           setStatusView={setStatusView}
+          kindView={kindView}
+          setKindView={setKindView}
           onNavigate={navigate}
           onSelectRequest={handleSelectRequest}
         />
+      ) : null}
+      {view === "strength" && isAdmin ? (
+        <StrengthView requests={sortedRequests} updates={updates} profilesById={profilesById} onNavigate={navigate} />
       ) : null}
       {view === "requestDetail" && selectedRequest ? (
         isAdmin && selectedRequestMode === "admin" ? (

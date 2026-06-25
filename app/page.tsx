@@ -55,9 +55,12 @@ export default async function HomePage() {
       ].filter(Boolean) as string[],
     ),
   );
-  const { data: profiles } = profileIds.length
-    ? await supabase.from("profiles").select("*").in("id", profileIds)
-    : { data: [] as ProfileRecord[] };
+  const { data: profiles } =
+    profile?.role === "admin"
+      ? await supabase.from("profiles").select("*")
+      : profileIds.length
+        ? await supabase.from("profiles").select("*").in("id", profileIds)
+        : { data: [] as ProfileRecord[] };
   const batchRecords = (batches ?? []) as BatchRecord[];
 
   return (
