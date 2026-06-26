@@ -98,8 +98,8 @@ function ReadOnlyRadioField({
   layout?: "row" | "wrap" | "grid";
 }) {
   return (
-    <div className="grid gap-2 sm:grid-cols-[8rem_minmax(0,1fr)] sm:items-start sm:gap-4">
-      <Label className="text-[15px] font-medium leading-5 text-foreground sm:pt-3.5">{label}</Label>
+    <div className="grid gap-2">
+      <Label className="text-[15px] font-medium leading-5 text-foreground">{label}</Label>
       <RadioGroup name={name} disabled value={value} onValueChange={() => {}} options={options} layout={layout} itemClassName="min-h-11" />
     </div>
   );
@@ -179,16 +179,20 @@ export function ReportSickFollowupFields({
           </label>
         </div>
 
-        <div className="grid gap-4">
-          {entries.map((entry, index) => (
-            <FollowupStatusRow key={`${entry.startDate}-${entry.endDate}-${index}`} entry={entry} idPrefix={`${idPrefix}-status-${index}`} />
-          ))}
-        </div>
+        {!noStatusReceived ? (
+          <>
+            <div className="grid gap-4">
+              {entries.map((entry, index) => (
+                <FollowupStatusRow key={`${entry.startDate}-${entry.endDate}-${index}`} entry={entry} idPrefix={`${idPrefix}-status-${index}`} />
+              ))}
+            </div>
 
-        <Button type="button" variant="outline" className="w-fit gap-2" disabled>
-          <Plus className="h-4 w-4" />
-          Add Status
-        </Button>
+            <Button type="button" variant="outline" className="w-fit gap-2" disabled>
+              <Plus className="h-4 w-4" />
+              Add Status
+            </Button>
+          </>
+        ) : null}
       </div>
 
       <div className="grid gap-3">

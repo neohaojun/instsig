@@ -217,8 +217,8 @@ function RadioField({
   className?: string;
 }) {
   return (
-    <div className={cn("grid gap-2 sm:grid-cols-[8rem_minmax(0,1fr)] sm:items-start sm:gap-4", className)}>
-      <Label htmlFor={String(name)} className="text-[15px] font-medium leading-5 text-foreground sm:pt-3.5">
+    <div className={cn("grid gap-2", className)}>
+      <Label htmlFor={String(name)} className="text-[15px] font-medium leading-5 text-foreground">
         {label}
       </Label>
       <Controller
@@ -680,30 +680,33 @@ export function ReportSickFollowupForm({
                 </label>
               </div>
 
-              <div className="grid gap-4">
-                {statusFields.fields.map((field, index) => (
-                  <StatusEntryRow
-                    key={field.id}
-                    control={form.control}
-                    index={index}
-                    onRemove={() => statusFields.remove(index)}
-                    canRemove={statusFields.fields.length > 1}
-                    disabled={Boolean(noStatusReceived)}
-                    setValue={form.setValue}
-                  />
-                ))}
-              </div>
+              {!noStatusReceived ? (
+                <>
+                  <div className="grid gap-4">
+                    {statusFields.fields.map((field, index) => (
+                      <StatusEntryRow
+                        key={field.id}
+                        control={form.control}
+                        index={index}
+                        onRemove={() => statusFields.remove(index)}
+                        canRemove={statusFields.fields.length > 1}
+                        disabled={false}
+                        setValue={form.setValue}
+                      />
+                    ))}
+                  </div>
 
-              <Button
-                type="button"
-                variant="outline"
-                className="w-fit gap-2"
-                onClick={() => statusFields.append(createEmptyStatusEntry())}
-                disabled={Boolean(noStatusReceived)}
-              >
-                <Plus className="h-4 w-4" />
-                Add Status
-              </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-fit gap-2"
+                    onClick={() => statusFields.append(createEmptyStatusEntry())}
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add Status
+                  </Button>
+                </>
+              ) : null}
             </div>
 
             <div className="grid gap-3">

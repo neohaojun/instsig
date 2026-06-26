@@ -32,7 +32,7 @@ function StrengthPersonRow({
         {formatProfileName(profilesById[entry.profileId], entry.fallbackName)}
       </p>
       <p className="mt-1 text-sm text-muted-foreground">{entry.description}</p>
-      <p className="mt-2 text-xs uppercase tracking-[0.16em] text-muted-foreground">{entry.meta}</p>
+      <p className="mt-2 text-xs uppercase text-muted-foreground">{entry.meta}</p>
     </div>
   );
 }

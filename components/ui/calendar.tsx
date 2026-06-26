@@ -88,7 +88,7 @@ export function Calendar({
         </button>
       </div>
 
-      <div className="grid grid-cols-7 gap-1 text-center text-[0.65rem] uppercase tracking-[0.2em] text-muted-foreground">
+      <div className="grid grid-cols-7 gap-1 text-center text-[0.65rem] uppercase text-muted-foreground">
         {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((day) => (
           <div key={day} className="py-1">
             {day}

@@ -58,13 +58,13 @@ export function Sidebar({
     <aside className="hidden h-[calc(100vh-73px)] w-72 shrink-0 flex-col border-r border-border bg-background px-4 py-6 lg:flex">
       <div className="space-y-5">
         <div>
-          <p className="mb-3 px-3 text-[11px] font-medium uppercase tracking-[0.24em] text-muted-foreground">Overview</p>
+          <p className="mb-3 px-3 text-[11px] font-medium uppercase text-muted-foreground">Overview</p>
           <NavList items={userNav} pathname={pathname} />
         </div>
 
         {role === "admin" ? (
           <div>
-            <p className="mb-3 px-3 text-[11px] font-medium uppercase tracking-[0.24em] text-muted-foreground">Admin</p>
+            <p className="mb-3 px-3 text-[11px] font-medium uppercase text-muted-foreground">Admin</p>
             <NavList items={adminNav} pathname={pathname} />
           </div>
         ) : null}

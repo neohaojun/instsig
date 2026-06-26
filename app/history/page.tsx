@@ -7,8 +7,6 @@ import { Button } from "@/components/ui/button";
 import { StatusPill } from "@/components/request/status-pill";
 import Link from "next/link";
 import type { RequestRecord } from "@/lib/types";
-import { requestKindLabels } from "@/lib/request-meta";
-import { ChevronLeft } from "lucide-react";
 import { formatDisplayDateTime } from "@/lib/display-date";
 
 function formatReportSickReportedAt(request: RequestRecord) {
@@ -53,23 +51,32 @@ function HistoryCard({
   getHref: (request: RequestRecord) => string;
   getMeta: (request: RequestRecord) => string;
 }) {
+  const countLabel = `${requests.length} ${requests.length === 1 ? "request" : "requests"}`;
+
   return (
-    <Card className="overflow-hidden animate-enter">
+    <Card className="overflow-hidden animate-enter-soft">
       <CardHeader className="space-y-4 p-8">
-        <CardTitle className="text-3xl">{title}</CardTitle>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="space-y-2">
+            <CardTitle className="text-3xl">{title}</CardTitle>
+            <p className="text-sm text-muted-foreground">{countLabel}</p>
+          </div>
+        </div>
       </CardHeader>
       <CardContent className="grid gap-3 p-8 pt-0">
         {requests.length ? (
           requests.map((request, index) => (
             <Link key={request.id} href={getHref(request) as never} className="block">
               <div
-                className={`group rounded-2xl border border-border bg-card p-4 transition hover:bg-accent/50 ${index === 0 ? "animate-enter-soft animate-delay-1" : ""
+                className={`group rounded-2xl border border-border bg-card p-3 transition hover:bg-accent/50 ${index === 0 ? "animate-enter-soft animate-delay-1" : ""
                   }`}
               >
                 <div className="flex items-center justify-between gap-4 text-left">
                   <div className="min-w-0 space-y-1">
-                    <p className="text-sm font-medium text-card-foreground">{requestKindLabels[request.kind]}</p>
-                    <p className="text-xs text-muted-foreground">{getMeta(request)}</p>
+                    <p className="text-sm font-medium text-card-foreground">{getMeta(request)}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Submitted {formatDisplayDateTime(request.submitted_at ?? request.created_at)}
+                    </p>
                   </div>
                   <StatusPill status={request.status} />
                 </div>
@@ -127,21 +134,23 @@ export default async function HistoryPage() {
             </CardHeader>
           </Card>
 
-          <HistoryCard
-            title="Report Sick"
-            requests={reportSickRequests}
-            emptyText="None found."
-            getHref={(request) => `/requests/report-sick?id=${request.id}`}
-            getMeta={formatReportSickReportedAt}
-          />
+          <div className="grid gap-6 lg:grid-cols-2">
+            <HistoryCard
+              title="Report Sick History"
+              requests={reportSickRequests}
+              emptyText="None found."
+              getHref={(request) => `/requests/report-sick?id=${request.id}`}
+              getMeta={formatReportSickReportedAt}
+            />
 
-          <HistoryCard
-            title="External Appointment"
-            requests={externalAppointmentRequests}
-            emptyText="None found."
-            getHref={(request) => `/requests/external-appointment?id=${request.id}`}
-            getMeta={formatExternalAppointmentWhen}
-          />
+            <HistoryCard
+              title="Ext Appt History"
+              requests={externalAppointmentRequests}
+              emptyText="None found."
+              getHref={(request) => `/requests/external-appointment?id=${request.id}`}
+              getMeta={formatExternalAppointmentWhen}
+            />
+          </div>
         </div>
       </div>
     </main>
