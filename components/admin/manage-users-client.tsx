@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import { Edit2, Mail, Save, UserRound, X } from "lucide-react";
+import { Edit2, Mail, Save, Search, UserRound, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -266,6 +266,7 @@ export function ManageUsersClient({
 }) {
   const [profiles, setProfiles] = useState(initialProfiles);
   const [batchOptions, setBatchOptions] = useState(batches);
+  const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState<RoleFilter>("all");
   const [batchFilter, setBatchFilter] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -275,9 +276,30 @@ export function ManageUsersClient({
 
   const batchesById = useMemo(() => Object.fromEntries(batchOptions.map((batch) => [batch.id, batch])), [batchOptions]);
   const filteredProfiles = useMemo(() => {
+    const normalizedSearchQuery = searchQuery.trim().toLowerCase();
     const normalizedBatchFilter = batchFilter.trim().toLowerCase();
 
     return profiles
+      .filter((profile) => {
+        if (!normalizedSearchQuery) return true;
+        const batchName = profile.batch_id ? batchesById[profile.batch_id]?.name ?? "Unknown Batch" : "Not Assigned";
+        const searchableText = [
+          formatProfileName(profile, profile.email),
+          profile.full_name,
+          profile.rank,
+          profile.email,
+          profile.role,
+          batchName,
+          profile.sscc_batch,
+          profile.common_term_platoon,
+          profile.specialisation_phase_platoon,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+
+        return searchableText.includes(normalizedSearchQuery);
+      })
       .filter((profile) => roleFilter === "all" || profile.role === roleFilter)
       .filter((profile) => {
         if (!normalizedBatchFilter) return true;
@@ -285,7 +307,7 @@ export function ManageUsersClient({
         return batchName.toLowerCase().includes(normalizedBatchFilter);
       })
       .sort((a, b) => formatProfileName(a, a.email).localeCompare(formatProfileName(b, b.email), undefined, { sensitivity: "base" }));
-  }, [batchFilter, batchesById, profiles, roleFilter]);
+  }, [batchFilter, batchesById, profiles, roleFilter, searchQuery]);
 
   function startEditing(profile: EditableProfile) {
     const batchName = profile.batch_id ? batchesById[profile.batch_id]?.name : undefined;
@@ -366,6 +388,31 @@ export function ManageUsersClient({
       <Card className="overflow-hidden animate-enter-soft">
         <CardHeader className="space-y-4 p-5 sm:p-6">
           <div className="flex flex-wrap items-end gap-4">
+            <div className="min-w-full flex-1 space-y-2 md:min-w-80 md:flex-[2]">
+              <Label htmlFor="user-search">Search users</Label>
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="user-search"
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  placeholder="Search name, rank, email, batch, or platoon"
+                  className="pl-9 pr-10"
+                />
+                {searchQuery ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    className="absolute right-1 top-1/2 h-8 w-8 -translate-y-1/2 px-0"
+                    onClick={() => setSearchQuery("")}
+                    aria-label="Clear user search"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                ) : null}
+              </div>
+            </div>
             <div className="min-w-48 flex-1 space-y-2">
               <Label htmlFor="role-filter">Role</Label>
               <Select id="role-filter" value={roleFilter} onChange={(event) => setRoleFilter(event.target.value as RoleFilter)}>
@@ -384,7 +431,7 @@ export function ManageUsersClient({
                 onChange={(event) => setBatchFilter(formatBatchInput(event.target.value))}
               />
             </div>
-            <p className="pb-3 text-sm text-muted-foreground">
+            <p className="pb-3 text-sm text-muted-foreground md:ml-auto">
               {filteredProfiles.length} of {profiles.length} users
             </p>
           </div>

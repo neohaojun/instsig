@@ -44,12 +44,8 @@ export function RadioGroup({
           <label
             key={option.value}
             className={cn(
-              "flex min-h-12 cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 text-sm transition",
-              checked
-                ? "border-zinc-500 bg-zinc-950/5 text-foreground dark:border-primary dark:bg-primary/10"
-                : "border-border bg-card text-foreground hover:bg-accent",
-              disabled && "cursor-not-allowed",
-              disabled && !checked && "text-muted-foreground",
+              "flex min-h-9 cursor-pointer items-start gap-2.5 text-sm text-foreground",
+              disabled && "cursor-not-allowed text-muted-foreground",
               itemClassName,
             )}
           >
@@ -60,19 +56,10 @@ export function RadioGroup({
               checked={checked}
               disabled={disabled}
               onChange={() => onValueChange(option.value)}
-              className="sr-only"
+              className="mt-0.5 h-4 w-4 shrink-0 border-input bg-background accent-zinc-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed dark:accent-zinc-100"
             />
-            <span
-              className={cn(
-                "flex h-4 w-4 shrink-0 items-center justify-center rounded-full border",
-                checked ? "border-zinc-700 dark:border-zinc-100" : "border-zinc-500",
-              )}
-              aria-hidden="true"
-            >
-              <span className={cn("h-2 w-2 rounded-full", checked ? "bg-zinc-900 dark:bg-zinc-100" : "bg-transparent")} />
-            </span>
             <span className="min-w-0">
-              <span className="block font-medium leading-5 text-inherit">{option.label}</span>
+              <span className={cn("block leading-5", checked && "font-medium text-foreground")}>{option.label}</span>
               {option.description ? <span className="block text-xs leading-5 text-muted-foreground">{option.description}</span> : null}
             </span>
           </label>

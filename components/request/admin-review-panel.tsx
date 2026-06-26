@@ -32,6 +32,7 @@ export function AdminReviewPanel({
   const isFinalized = Boolean(request.finalized_at) || request.status === "finalized";
   const isRejected = Boolean(request.rejected_at) || request.status === "rejected";
   const isApproved = Boolean(request.approved_at) || request.status === "approved" || request.status === "submitted";
+  const canReject = request.kind === "report_sick";
 
   function save(actionType: "approve" | "reject" | "finalize") {
     if (pending) return;
@@ -120,9 +121,11 @@ export function AdminReviewPanel({
                 <Button type="button" disabled={pending} onClick={() => save("approve")} className="sm:flex-1">
                   {pending ? "Saving..." : "Approve"}
                 </Button>
-                <Button type="button" variant="outline" disabled={pending} onClick={() => save("reject")} className="sm:flex-1">
-                  Reject
-                </Button>
+                {canReject ? (
+                  <Button type="button" variant="outline" disabled={pending} onClick={() => save("reject")} className="sm:flex-1">
+                    Reject
+                  </Button>
+                ) : null}
               </>
             ) : null}
             {canFinalize ? (

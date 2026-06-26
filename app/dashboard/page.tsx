@@ -7,13 +7,13 @@ import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileText, CalendarClock } from "lucide-react";
 import { format, parseISO } from "date-fns";
-import type { ProfileRecord, RequestRecord, RequestUpdateRecord } from "@/lib/types";
-import { requestKindLabels } from "@/lib/request-meta";
+import type { BatchRecord, ProfileRecord, RequestRecord, RequestUpdateRecord } from "@/lib/types";
 import { formatProfileName } from "@/lib/profile-display";
 import { StatusPill } from "@/components/request/status-pill";
 import { formatDisplayDateTime } from "@/lib/display-date";
 import { buildStrengthSummary } from "@/lib/strength-summary";
 import { cn } from "@/lib/utils";
+import { formatRequesterDescription } from "@/lib/request-card-display";
 
 function isIncompleteRequest(request: RequestRecord) {
   if (request.kind === "report_sick") {
@@ -21,6 +21,14 @@ function isIncompleteRequest(request: RequestRecord) {
   }
 
   return request.status !== "approved" && request.status !== "rejected" && request.status !== "draft";
+}
+
+function isAwaitingDashboardAction(request: RequestRecord) {
+  if (request.kind === "report_sick") {
+    return request.status === "pending" || request.status === "submitted";
+  }
+
+  return request.status === "pending";
 }
 
 function formatReportedAt(request: RequestRecord) {
@@ -105,15 +113,22 @@ function RequestSubcard({
     <Link href={href as never} className="block">
       <div
         className={cn(
-          "group rounded-2xl border border-border bg-card p-4 transition hover:bg-accent/50",
+          "group rounded-2xl border border-border bg-card p-3 transition hover:bg-accent/50",
           actionLabel && "border-foreground/20 bg-muted/50 shadow-sm ring-1 ring-foreground/10",
         )}
       >
         <div className="flex items-center justify-between gap-4 text-left">
-          <div className="min-w-0 space-y-2">
-            {actionLabel ? <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-foreground">{actionLabel}</p> : null}
-            <p className="truncate text-sm font-medium text-card-foreground">{title}</p>
-            {description ? <p className="max-w-[36rem] text-sm text-muted-foreground">{description}</p> : null}
+          <div className="min-w-0 space-y-1">
+            <p className="flex min-w-0 items-center gap-2 text-sm font-medium text-card-foreground">
+              {actionLabel ? (
+                <span className="shrink-0 text-[15px] leading-none" aria-label={actionLabel}>
+                  <span aria-hidden="true">⚠️</span>
+                  <span className="sr-only">{actionLabel}</span>
+                </span>
+              ) : null}
+              <span className="truncate">{title}</span>
+            </p>
+            {description ? <p className="max-w-[36rem] text-sm leading-5 text-muted-foreground">{description}</p> : null}
             <p className="text-xs text-muted-foreground">{meta}</p>
           </div>
           <StatusPill status={request.status} />
@@ -127,11 +142,13 @@ function AdminPendingRequestsCard({
   title,
   requests,
   requestersById,
+  batchesById,
   viewAllHref,
 }: {
   title: string;
   requests: RequestRecord[];
   requestersById: Record<string, ProfileRecord | null | undefined>;
+  batchesById: Record<string, BatchRecord | null | undefined>;
   viewAllHref: string;
 }) {
   return (
@@ -141,7 +158,7 @@ function AdminPendingRequestsCard({
           <div className="space-y-2">
             <CardTitle className="text-3xl">{title}</CardTitle>
             <p className="text-sm text-muted-foreground">
-              {requests.length} pending {requests.length === 1 ? "request" : "requests"}
+              {requests.length} awaiting action
             </p>
           </div>
         </div>
@@ -150,12 +167,14 @@ function AdminPendingRequestsCard({
         {requests.length ? (
           sortActionableRequests(requests).slice(0, 2).map((request) => {
             const requester = requestersById[request.requester_id];
+            const requesterBatch = requester?.batch_id ? batchesById[requester.batch_id] : null;
 
             return (
               <RequestSubcard
                 key={request.id}
                 href={`/admin/requests/${request.id}`}
                 title={formatProfileName(requester, request.requester_email)}
+                description={formatRequesterDescription(requester, requesterBatch)}
                 meta={formatRequestWhen(request)}
                 showAdminAction
                 request={request}
@@ -164,12 +183,56 @@ function AdminPendingRequestsCard({
           })
         ) : (
           <div className="rounded-2xl border border-dashed border-border bg-muted/40 p-4 text-sm text-muted-foreground">
-            No pending {title.toLowerCase()} requests right now.
+            No {title.toLowerCase()} awaiting action right now.
           </div>
         )}
         <div className="pt-2">
           <Button asChild variant="link" className="h-auto px-0">
             <Link href={viewAllHref as never}>View all</Link>
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function UserHistoryCard({
+  title,
+  requests,
+  kind,
+}: {
+  title: string;
+  requests: RequestRecord[];
+  kind: keyof typeof requestPathByKind;
+}) {
+  const visibleRequests = requests.filter((request) => request.kind === kind).slice(0, 2);
+
+  return (
+    <Card className="overflow-hidden animate-enter-soft animate-delay-1">
+      <CardHeader className="space-y-4 p-8">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <CardTitle className="text-3xl">{title}</CardTitle>
+        </div>
+      </CardHeader>
+      <CardContent className="grid gap-3 p-8 pt-0">
+        {visibleRequests.length ? (
+          visibleRequests.map((request) => (
+            <RequestSubcard
+              key={request.id}
+              href={`${requestPathByKind[request.kind]}?id=${request.id}`}
+              title={formatRequestWhen(request)}
+              meta={`Submitted ${formatDisplayDateTime(request.submitted_at ?? request.created_at)}`}
+              request={request}
+            />
+          ))
+        ) : (
+          <div className="rounded-2xl border border-dashed border-border bg-muted/40 p-4 text-sm text-muted-foreground">
+            None found.
+          </div>
+        )}
+        <div className="pt-2">
+          <Button asChild variant="link" className="h-auto px-0">
+            <Link href="/history">View all</Link>
           </Button>
         </div>
       </CardContent>
@@ -186,8 +249,9 @@ export default async function DashboardPage() {
   if (!user) redirect("/login");
 
   const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single();
-  const [{ data: allRequests }] = await Promise.all([
+  const [{ data: allRequests }, { data: batches }] = await Promise.all([
     supabase.from("requests").select("*").order("updated_at", { ascending: false }).order("created_at", { ascending: false }),
+    supabase.from("batches").select("*"),
   ]);
 
   const requests = (allRequests ?? []) as RequestRecord[];
@@ -197,7 +261,6 @@ export default async function DashboardPage() {
     : { data: [] as RequestUpdateRecord[] };
   const pendingRequests = requests.filter(isIncompleteRequest);
   const requestHistory = requests.filter((request) => request.requester_id === user.id && request.status !== "draft");
-  const recentRequestHistory = requestHistory.slice(0, 2);
   const isAdmin = profile?.role === "admin";
   const { data: profilesForDashboard } = isAdmin
     ? await supabase.from("profiles").select("*")
@@ -206,9 +269,10 @@ export default async function DashboardPage() {
       : { data: [] as ProfileRecord[] };
   const profileRecords = (profilesForDashboard ?? []) as ProfileRecord[];
   const requestersById = buildProfilesMap(profileRecords);
+  const batchesById = Object.fromEntries(((batches ?? []) as BatchRecord[]).map((batch) => [batch.id, batch]));
   const strengthSummary = buildStrengthSummary(profileRecords, requests, (requestUpdates ?? []) as RequestUpdateRecord[]);
-  const reportSickPendingRequests = pendingRequests.filter((request) => request.kind === "report_sick");
-  const externalAppointmentPendingRequests = pendingRequests.filter((request) => request.kind === "external_appointment");
+  const reportSickPendingRequests = requests.filter((request) => request.kind === "report_sick" && isAwaitingDashboardAction(request));
+  const externalAppointmentPendingRequests = requests.filter((request) => request.kind === "external_appointment" && isAwaitingDashboardAction(request));
 
   return (
     <main className="min-h-screen bg-background text-foreground">
@@ -251,46 +315,27 @@ export default async function DashboardPage() {
           </CardHeader>
         </Card>
 
-        {recentRequestHistory.length ? (
-          <Card className="overflow-hidden animate-enter-soft animate-delay-1">
-            <CardHeader className="space-y-4 p-8">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="space-y-2">
-                  <CardTitle className="text-3xl">Request History</CardTitle>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="grid gap-3 p-8 pt-0">
-              {recentRequestHistory.map((request) => (
-                <RequestSubcard
-                  key={request.id}
-                  href={`${requestPathByKind[request.kind]}?id=${request.id}`}
-                  title={requestKindLabels[request.kind]}
-                  meta={formatRequestWhen(request)}
-                  request={request}
-                />
-              ))}
-              <div className="pt-2">
-                <Button asChild variant="link" className="h-auto px-0">
-                  <Link href="/history">View all</Link>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+        {requestHistory.length ? (
+          <div className="grid gap-6 lg:grid-cols-2">
+            <UserHistoryCard title="Report Sick History" requests={requestHistory} kind="report_sick" />
+            <UserHistoryCard title="Ext Appt History" requests={requestHistory} kind="external_appointment" />
+          </div>
         ) : null}
 
         {isAdmin ? (
           <div className="grid gap-6 lg:grid-cols-2">
             <AdminPendingRequestsCard
-              title="Report Sick"
+              title="Report Sick Requests"
               requests={reportSickPendingRequests}
               requestersById={requestersById}
+              batchesById={batchesById}
               viewAllHref={adminRequestPathByKind.report_sick}
             />
             <AdminPendingRequestsCard
-              title="External Appointment"
+              title="Ext Appt Requests"
               requests={externalAppointmentPendingRequests}
               requestersById={requestersById}
+              batchesById={batchesById}
               viewAllHref={adminRequestPathByKind.external_appointment}
             />
           </div>
