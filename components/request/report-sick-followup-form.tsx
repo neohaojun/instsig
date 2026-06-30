@@ -6,7 +6,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { addDays, format, isValid, parseISO } from "date-fns";
-import { Calendar as CalendarIcon, Plus, Trash2 } from "lucide-react";
+import { Calendar as CalendarIcon, ImageIcon, Plus, Trash2, Upload } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { ProfileRecord, ReportSickFollowupPayload, ReportSickStatusEntry, ReportSickStatusType, RequestRecord, RequestUpdateRecord } from "@/lib/types";
 import { Button } from "@/components/ui/button";
@@ -36,6 +36,9 @@ const statusTypeOptions = [
   "Excuse Covered Footwear",
   "Excuse Camo",
 ] as const satisfies readonly ReportSickStatusType[];
+
+const maxProofOfStatusBytes = 10 * 1024 * 1024;
+const acceptedProofOfStatusTypes = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"];
 
 const statusTypeSchema = z
   .string()
@@ -142,6 +145,51 @@ function isMissingFollowupSchemaError(error: SupabaseErrorSummary) {
 
 function hasSupabaseError(error: SupabaseErrorSummary | null) {
   return Boolean(error?.message || error?.code || error?.details || error?.hint);
+}
+
+function readFileAsDataUrl(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") resolve(reader.result);
+      else reject(new Error("proof-read-failed"));
+    };
+    reader.onerror = () => reject(reader.error ?? new Error("proof-read-failed"));
+    reader.readAsDataURL(file);
+  });
+}
+
+async function prepareInlineProof(file: File) {
+  if (file.size <= 1.5 * 1024 * 1024 || typeof createImageBitmap !== "function") {
+    return readFileAsDataUrl(file);
+  }
+
+  try {
+    const bitmap = await createImageBitmap(file);
+    const maxDimension = 2048;
+    const scale = Math.min(1, maxDimension / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+    canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("proof-canvas-unavailable");
+    context.fillStyle = "#ffffff";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    bitmap.close();
+
+    const compressed = await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob(
+        (blob) => blob ? resolve(blob) : reject(new Error("proof-compression-failed")),
+        "image/jpeg",
+        0.88,
+      );
+    });
+    return readFileAsDataUrl(new File([compressed], file.name, { type: compressed.type }));
+  } catch (error) {
+    console.warn("Could not compress proof of status; using original image", error);
+    return readFileAsDataUrl(file);
+  }
 }
 
 function createSupabaseErrorSummary(partial: Partial<SupabaseErrorSummary>): SupabaseErrorSummary {
@@ -452,6 +500,7 @@ export function ReportSickFollowupForm({
   const [pending, startTransition] = useTransition();
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
   const [banner, setBanner] = useState<string | null>(null);
+  const [proofOfStatus, setProofOfStatus] = useState<File | null>(null);
   const fieldLabelClassName = "text-[15px] font-medium leading-5 text-foreground";
 
   const defaultValues: FollowupValues = {
@@ -548,7 +597,54 @@ export function ReportSickFollowupForm({
         category: values.category,
         medication: values.medication,
         remarks: values.remarks ?? "",
+        proofOfStatusPath: typeof initialUpdate?.payload.proofOfStatusPath === "string"
+          ? initialUpdate.payload.proofOfStatusPath
+          : undefined,
+        proofOfStatusName: typeof initialUpdate?.payload.proofOfStatusName === "string"
+          ? initialUpdate.payload.proofOfStatusName
+          : undefined,
+        proofOfStatusDataUrl: typeof initialUpdate?.payload.proofOfStatusDataUrl === "string"
+          ? initialUpdate.payload.proofOfStatusDataUrl
+          : undefined,
       };
+
+      if (proofOfStatus) {
+        const attachmentData = new FormData();
+        attachmentData.set("requestId", request.id);
+        attachmentData.set("file", proofOfStatus);
+        try {
+          const uploadResponse = await fetch("/api/request-attachments", {
+            method: "POST",
+            body: attachmentData,
+          });
+          const uploadResult = await uploadResponse.json().catch(() => null) as {
+            path?: string;
+            name?: string;
+          } | null;
+
+          if (uploadResponse.ok && uploadResult?.path) {
+            payload.proofOfStatusPath = uploadResult.path;
+            payload.proofOfStatusName = uploadResult.name ?? proofOfStatus.name;
+            payload.proofOfStatusDataUrl = undefined;
+          } else {
+            console.warn("Storage upload unavailable; saving proof with the follow-up", { status: uploadResponse.status });
+            payload.proofOfStatusPath = undefined;
+            payload.proofOfStatusName = proofOfStatus.name;
+            payload.proofOfStatusDataUrl = await prepareInlineProof(proofOfStatus);
+          }
+        } catch (error) {
+          console.warn("Storage upload unavailable; saving proof with the follow-up", error);
+          try {
+            payload.proofOfStatusPath = undefined;
+            payload.proofOfStatusName = proofOfStatus.name;
+            payload.proofOfStatusDataUrl = await prepareInlineProof(proofOfStatus);
+          } catch (readError) {
+            console.warn("Failed to read proof of status", readError);
+            setBanner("We couldn't prepare the proof of status photo. Please choose it again.");
+            return;
+          }
+        }
+      }
 
       let followupErrorSummary: SupabaseErrorSummary | null = null;
       const submittedAt = new Date().toISOString();
@@ -705,6 +801,47 @@ export function ReportSickFollowupForm({
                     <Plus className="h-4 w-4" />
                     Add Status
                   </Button>
+
+                  <div className="grid gap-2">
+                    <Label htmlFor="proofOfStatus" className={fieldLabelClassName}>
+                      Upload Proof of Status
+                    </Label>
+                    <label
+                      htmlFor="proofOfStatus"
+                      className="flex min-h-28 cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-border bg-background/40 px-4 py-5 text-center transition-colors hover:bg-background/60"
+                    >
+                      {proofOfStatus ? <ImageIcon className="h-6 w-6 text-muted-foreground" /> : <Upload className="h-6 w-6 text-muted-foreground" />}
+                      <span className="text-sm font-medium text-foreground">
+                        {proofOfStatus?.name
+                          ?? (typeof initialUpdate?.payload.proofOfStatusName === "string" ? initialUpdate.payload.proofOfStatusName : "Choose a photo")}
+                      </span>
+                      <span className="text-xs text-muted-foreground">JPEG, PNG, WebP or HEIC, up to 10 MB</span>
+                    </label>
+                    <Input
+                      id="proofOfStatus"
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
+                      className="sr-only"
+                      onChange={(event) => {
+                        const file = event.target.files?.[0] ?? null;
+                        if (!file) return;
+                        if (!acceptedProofOfStatusTypes.includes(file.type)) {
+                          setProofOfStatus(null);
+                          setBanner("Please choose a JPEG, PNG, WebP or HEIC photo.");
+                          event.target.value = "";
+                          return;
+                        }
+                        if (file.size > maxProofOfStatusBytes) {
+                          setProofOfStatus(null);
+                          setBanner("The proof of status photo must be 10 MB or smaller.");
+                          event.target.value = "";
+                          return;
+                        }
+                        setBanner(null);
+                        setProofOfStatus(file);
+                      }}
+                    />
+                  </div>
                 </>
               ) : null}
             </div>

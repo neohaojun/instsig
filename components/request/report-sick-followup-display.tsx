@@ -1,7 +1,8 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { isValid, parseISO } from "date-fns";
-import { Calendar as CalendarIcon, Plus } from "lucide-react";
+import { Calendar as CalendarIcon, ExternalLink, FileImage, Plus } from "lucide-react";
 import type { ProfileRecord, ReportSickStatusEntry, ReportSickStatusType, RequestRecord, RequestUpdateRecord } from "@/lib/types";
 import { formatProfileName } from "@/lib/profile-display";
 import { cn } from "@/lib/utils";
@@ -49,7 +50,62 @@ type FollowupPayloadLike = Record<string, unknown> & {
   category?: unknown;
   medication?: unknown;
   remarks?: unknown;
+  proofOfStatusPath?: unknown;
+  proofOfStatusName?: unknown;
+  proofOfStatusDataUrl?: unknown;
 };
+
+function ProofOfStatusLink({ path, dataUrl, name }: { path?: string; dataUrl?: string; name: string }) {
+  const [url, setUrl] = useState<string | null>(dataUrl ?? null);
+
+  useEffect(() => {
+    if (dataUrl) {
+      setUrl(dataUrl);
+      return;
+    }
+    if (!path) {
+      setUrl(null);
+      return;
+    }
+
+    let active = true;
+
+    fetch(`/api/request-attachments?path=${encodeURIComponent(path)}`)
+      .then(async (response) => {
+        const data = await response.json().catch(() => null) as { url?: string } | null;
+        if (!response.ok) console.warn("Failed to create proof of status link", { status: response.status });
+        if (active) setUrl(data?.url ?? null);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [dataUrl, path]);
+
+  return (
+    <div className="grid gap-2">
+      <Label className="text-[15px] font-medium leading-5 text-foreground">Proof of Status</Label>
+      <div className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-muted/40 px-4 py-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <FileImage className="h-5 w-5 shrink-0 text-muted-foreground" />
+          <span className="truncate text-sm text-foreground">{name}</span>
+        </div>
+        {url ? (
+          <Button asChild variant="outline" size="sm">
+            <a href={url} target="_blank" rel="noreferrer" className="gap-2">
+              View
+              <ExternalLink className="h-4 w-4" />
+            </a>
+          </Button>
+        ) : (
+          <Button variant="outline" size="sm" disabled>
+            View
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+}
 
 function formatDateValue(value: string | null | undefined) {
   return formatDisplayDate(value, "");
@@ -191,6 +247,15 @@ export function ReportSickFollowupFields({
               <Plus className="h-4 w-4" />
               Add Status
             </Button>
+
+            {(typeof payload.proofOfStatusPath === "string" && payload.proofOfStatusPath)
+              || (typeof payload.proofOfStatusDataUrl === "string" && payload.proofOfStatusDataUrl.startsWith("data:image/")) ? (
+              <ProofOfStatusLink
+                path={typeof payload.proofOfStatusPath === "string" ? payload.proofOfStatusPath : undefined}
+                dataUrl={typeof payload.proofOfStatusDataUrl === "string" ? payload.proofOfStatusDataUrl : undefined}
+                name={typeof payload.proofOfStatusName === "string" && payload.proofOfStatusName ? payload.proofOfStatusName : "Proof of status"}
+              />
+            ) : null}
           </>
         ) : null}
       </div>
@@ -282,6 +347,7 @@ export function ReportSickFollowupFields({
         </Label>
         <Textarea id={`${idPrefix}-remarks`} value={String(payload.remarks ?? "")} readOnly disabled />
       </div>
+
     </div>
   );
 }

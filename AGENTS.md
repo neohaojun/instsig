@@ -125,10 +125,12 @@ UI expectations:
 Expected flow:
 
 1. new request entry points stay on the dashboard
-2. the dashboard shows a compact `Request History` card with up to 2 recent requests and a `View all` link at the bottom
-3. the dashboard keeps a compact pending-requests preview for admins with up to 2 subcards and a `View all` link at the bottom
-4. the `/history` page remains focused on completed or older records
-5. the admin request queue lives on `/admin/requests`
+2. admins can toggle the dashboard between `User` and `Admin` modes inside the `/` client shell
+3. the user dashboard shows separate compact history cards for report sick and external appointment requests, each with up to 2 recent requests and a `View all` link at the bottom
+4. the admin dashboard keeps separate compact pending-request previews for report sick and external appointment requests, each with up to 2 subcards and a `View all` link at the bottom
+5. the admin dashboard includes a `Strength` summary card with a `See more` path into the strength detail view
+6. the `/history` page remains focused on completed or older records
+7. the admin request queue lives on `/admin/requests`
 
 UI expectations:
 
@@ -136,30 +138,60 @@ UI expectations:
 - use colored status badges that reflect the request state
 - build request links with the hyphenated route slugs (`/requests/report-sick` and `/requests/external-appointment`), not the raw underscored `RequestKind` values
 - the dashboard request history card may surface in-progress requests so users can resume them
-- the admin queue page should split pending requests into separate `Report Sick` and `External Appointment` cards, mirroring the history page structure
-- each admin queue subcard should match the dashboard pending-request subcard format: requester name as the title, request type as the muted description line, original request date/time as the uppercase meta line, and status on the right
+- dashboard, history, and admin queue cards should use shared request-card formatting helpers where practical so date, requester, and 5W1H lines stay consistent
+- user dashboard history cards should be split into `Report Sick History` and `Ext Appt History`
+- the admin queue page should split requests into separate `Report Sick` and `Ext Appt` sections, mirroring the dashboard and history structure
+- each admin queue subcard should match the dashboard pending-request subcard format: requester name as the title, profile/batch details as the muted description line, original request date/time as the meta line, and status on the right
 - admin queue rows should link directly to the matching admin request detail page
 - do not show "start new request" controls inside the existing report sick dashboard list
 - do not duplicate the live report sick request list in history
 - on the dashboard pending-requests preview, fold the request type into the row description instead of showing a separate type badge
+- pending admin items may show a small action marker for `Review needed` or `Ready to endorse`; keep it subtle and consistent across dashboard and queue views
 
-## Admin Landing and Users
+## Admin Dashboard, Users, and Batches
 
 Expected flow:
 
-1. `/admin` acts as a minimal gateway page
-2. `/admin` only links to `/admin/requests` and `/admin/users`
-3. `/admin/users` presents a mobile-friendly profile directory
+1. `/admin` redirects back to `/`; the root shell is the canonical admin gateway
+2. admin-only views available from the shell or nav include `/admin/requests`, `/admin/users`, `/admin/batches`, and the strength detail view
+3. `/admin/users` presents a mobile-friendly profile directory and editing surface
+4. `/admin/batches` presents read-only imported batch records for lookup
 
 UI expectations:
 
-- keep the `/admin` landing page compact and task-oriented
-- do not add extra admin modules, counters, or dashboard-style summaries on `/admin`
+- keep admin dashboard content compact and task-oriented inside the root shell
+- do not recreate a separate `/admin` landing dashboard; it should continue to redirect to `/`
 - `/admin/users` should use the same gray glass-card language as the rest of the app
 - prefer stacked cards or responsive grids over wide tables on mobile
 - make sure `/admin/users` shows the available profile data that matters for admin lookup, including rank, email, role, batch, NR, SSCC batch, common term platoon, and specialisation phase platoon
 - prefer the shared rank-prefixed display format when showing linked person names
 - keep any missing profile values readable with a safe fallback such as `Not set`
+- keep `/admin/batches` visually aligned with the current admin surfaces; use safe fallbacks for missing Firestore IDs and dates
+
+## Strength Dashboard
+
+Expected flow:
+
+1. admin dashboard shows a compact strength summary
+2. `See more` opens the strength detail view in the root client shell, while `/dashboard/strength` remains a server route fallback
+3. strength data is calculated from profiles, requests, and report-sick follow-up updates
+
+UI expectations:
+
+- keep the summary focused on `Total`, `Current`, `Attend C`, `Attend B`, and `Reporting Sick`
+- the detail view should group personnel into `Attend C`, `Attend B`, `Reporting Sick`, `External Appt`, `Guard Duty`, `On Medication`, and `Others`
+- use rank-prefixed names through `formatProfileName`
+- keep category rows compact with a name, description, and uppercase meta line
+- do not turn the strength dashboard into a broad analytics page unless the underlying data model supports it
+
+Data expectations:
+
+- `lib/strength-summary.ts` is the source for strength calculations
+- `lib/active-report-sick-statuses.ts` determines active report-sick statuses from follow-up status entries
+- strength totals should exclude admin profiles from personnel counts
+- `Current` subtracts personnel who are unavailable due to active Attend C, same-day report sick, or same-day external appointment
+- `Guard Duty` and `Others` are currently placeholders unless supporting data is added
+- `On Medication` comes from doctor follow-up medication values, excluding empty or `Nil` values
 
 ## Admin Request Detail
 
@@ -186,6 +218,7 @@ Important shapes:
 - `ReportSickPayload` stores only the initial report-sick submission
 - `ReportSickFollowupPayload` stores post-visit details, including structured status entries and the `noStatusReceived` flag
 - `request_updates` with kind `doctor_followup` stores the report-sick follow-up stage
+- imported `batches` records are used to enrich requester descriptions and admin/user lookup views
 - requester follow-up saves should use the existing `request_updates` row and not depend on a new RPC unless the matching Supabase migration has definitely been applied
 - admin finalization should key off the presence of the follow-up record and request lifecycle fields, not a requester-side status flip from `approved` to `submitted`
 
@@ -206,17 +239,27 @@ When showing a person name linked to a profile, prefer the shared rank-prefixed 
 
 - `app/admin/page.tsx`
 - `app/admin/users/page.tsx`
+- `app/admin/batches/page.tsx`
+- `app/dashboard/strength/page.tsx`
 - `app/requests/report-sick/page.tsx`
 - `app/requests/external-appointment/page.tsx`
 - `app/admin/requests/[id]/page.tsx`
+- `components/instsig/instsig-app.tsx`
+- `components/dashboard/strength-card.tsx`
+- `components/dashboard/strength-detail.tsx`
 - `components/request/request-form.tsx`
 - `components/request/admin-report-sick-followup-card.tsx`
 - `components/request/report-sick-followup-form.tsx`
+- `components/request/report-sick-followup-display.tsx`
 - `components/request/request-summary.tsx`
 - `components/request/admin-review-panel.tsx`
 - `components/layout/topbar.tsx`
 - `components/layout/profile-menu.tsx`
+- `lib/active-report-sick-statuses.ts`
+- `lib/display-date.ts`
 - `lib/profile-display.ts`
+- `lib/request-card-display.ts`
+- `lib/strength-summary.ts`
 - `lib/types.ts`
 - `supabase/schema.sql`
 
@@ -246,6 +289,8 @@ If the app reports a missing table or schema cache issue for a known object such
 - Keep `typedRoutes: true` at the top level of `next.config.mjs`; do not move it under `experimental`.
 - Keep the base link `/` as the canonical app entry point, rendering the instsig app there directly like the `flykyte` app does instead of using `/` only as a redirector.
 - Preserve the `/` client shell pattern for dashboard, history, admin landing, admin queue, and common request detail navigation so app buttons switch views locally instead of forcing full route transitions.
+- Keep `/admin` as a redirect to `/`; do not rebuild it as a separate admin landing page while the root shell owns admin navigation.
+- Preserve local shell state updates after request creation, admin review, endorsement, and follow-up submission so common interactions do not require route transitions or full refetches.
 - The `/` client shell intentionally shifts backend work to the initial app load so common clicks feel instant; avoid adding per-click refetches unless data freshness requires it.
 - Watch shell payload size as request volume grows, especially for admin users. If initial load becomes heavy, prefer cached lazy detail fetches, pagination, or Supabase realtime updates over reverting to full route transitions.
 - Treat shell data as a snapshot. Keep mutation callbacks updating local shell state after successful writes, and use refresh/realtime/polling when cross-user freshness matters.
