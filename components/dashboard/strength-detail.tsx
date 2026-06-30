@@ -12,10 +12,10 @@ const categoryCards: {
 }[] = [
   { key: "attendC", title: "Attend C", emptyText: "No personnel on MC.", dotClassName: "bg-red-500" },
   { key: "attendB", title: "Attend B", emptyText: "No personnel on status.", dotClassName: "bg-amber-500" },
-  { key: "reportingSick", title: "Reporting Sick", emptyText: "No one reporting sick today.", dotClassName: "bg-yellow-500" },
-  { key: "externalAppointment", title: "External Appt", emptyText: "No external appointments today.", dotClassName: "bg-orange-500" },
-  { key: "guardDuty", title: "Guard Duty", emptyText: "No guard duty today.", dotClassName: "bg-zinc-400" },
-  { key: "onMedication", title: "On Medication", emptyText: "No personnel on medication past 24h.", dotClassName: "bg-zinc-400" },
+  { key: "reportingSick", title: "Reporting Sick", emptyText: "No one reporting sick.", dotClassName: "bg-yellow-500" },
+  { key: "externalAppointment", title: "External Appt", emptyText: "No external appointments.", dotClassName: "bg-orange-500" },
+  { key: "guardDuty", title: "Guard Duty", emptyText: "No guard duty.", dotClassName: "bg-zinc-400" },
+  { key: "onMedication", title: "On Medication", emptyText: "No personnel on medication.", dotClassName: "bg-zinc-400" },
   { key: "others", title: "Others", emptyText: "No other absences.", dotClassName: "bg-zinc-400" },
 ];
 

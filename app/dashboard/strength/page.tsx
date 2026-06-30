@@ -7,13 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { buildStrengthDetails } from "@/lib/strength-summary";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import type { ProfileRecord, RequestRecord, RequestUpdateRecord } from "@/lib/types";
+import type { BatchRecord, ProfileRecord, RequestRecord, RequestUpdateRecord } from "@/lib/types";
 
 function buildProfilesMap(profiles: ProfileRecord[] | null | undefined) {
   return Object.fromEntries((profiles ?? []).map((profile) => [profile.id, profile]));
 }
 
-export default async function StrengthPage() {
+export default async function StrengthPage({ searchParams }: { searchParams: Promise<{ date?: string }> }) {
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -24,9 +24,10 @@ export default async function StrengthPage() {
   const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single();
   if (profile?.role !== "admin") redirect("/");
 
-  const [{ data: requests }, { data: profiles }] = await Promise.all([
+  const [{ data: requests }, { data: profiles }, { data: batches }] = await Promise.all([
     supabase.from("requests").select("*").order("updated_at", { ascending: false }).order("created_at", { ascending: false }),
     supabase.from("profiles").select("*"),
+    supabase.from("batches").select("*"),
   ]);
   const requestRecords = (requests ?? []) as RequestRecord[];
   const reportSickRequestIds = requestRecords.filter((request) => request.kind === "report_sick").map((request) => request.id);
@@ -34,7 +35,16 @@ export default async function StrengthPage() {
     ? await supabase.from("request_updates").select("*").in("request_id", reportSickRequestIds).order("created_at", { ascending: true })
     : { data: [] as RequestUpdateRecord[] };
   const profileRecords = (profiles ?? []) as ProfileRecord[];
-  const details = buildStrengthDetails(profileRecords, requestRecords, (requestUpdates ?? []) as RequestUpdateRecord[]);
+  const batchesById = Object.fromEntries(((batches ?? []) as BatchRecord[]).map((batch) => [batch.id, batch]));
+  const { date } = await searchParams;
+  const selectedDate = date && !Number.isNaN(Date.parse(date)) ? date : new Date().toISOString().slice(0, 10);
+  const details = buildStrengthDetails(
+    profileRecords,
+    requestRecords,
+    (requestUpdates ?? []) as RequestUpdateRecord[],
+    batchesById,
+    new Date(`${selectedDate}T00:00:00`),
+  );
 
   return (
     <main className="min-h-screen bg-background text-foreground">
@@ -50,6 +60,16 @@ export default async function StrengthPage() {
                   Back to dashboard
                 </Link>
               </Button>
+              <form className="flex flex-wrap gap-3">
+                <input
+                  type="date"
+                  name="date"
+                  defaultValue={selectedDate}
+                  className="h-11 rounded-xl border border-input bg-background px-4 py-2 text-sm"
+                />
+                <Button type="submit" variant="outline">View date</Button>
+                <Button asChild variant="outline"><Link href="/dashboard/strength">Today</Link></Button>
+              </form>
             </div>
           </CardHeader>
         </Card>

@@ -10,6 +10,7 @@ import { ReportSickInitialRequestCard } from "@/components/request/report-sick-f
 import { StatusPill } from "@/components/request/status-pill";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatProfileName } from "@/lib/profile-display";
+import { formatRequesterDescription } from "@/lib/request-card-display";
 import type { BatchRecord, ProfileRecord } from "@/lib/types";
 
 function buildProfilesMap(profiles: ProfileRecord[] | null | undefined) {
@@ -38,8 +39,6 @@ export default async function AdminRequestDetailPage({
   if (!request) notFound();
 
   const followup = updates?.find((update) => update.kind === "doctor_followup") ?? null;
-  const { data: batches } = await supabase.from("batches").select("*").order("name", { ascending: true });
-
   const profileIds = [
     request.requester_id,
     request.approved_by,
@@ -51,7 +50,10 @@ export default async function AdminRequestDetailPage({
     ? await supabase.from("profiles").select("*").in("id", profileIds)
     : { data: [] as ProfileRecord[] };
   const profilesById = buildProfilesMap(people);
-  const batchesById = Object.fromEntries(((batches ?? []) as BatchRecord[]).map((batch) => [batch.id, batch]));
+  const requester = profilesById[request.requester_id];
+  const { data: requesterBatch } = requester?.batch_id
+    ? await supabase.from("batches").select("*").eq("id", requester.batch_id).maybeSingle()
+    : { data: null as BatchRecord | null };
   const showRightPane = request.kind === "report_sick";
 
   return (
@@ -65,24 +67,13 @@ export default async function AdminRequestDetailPage({
 
         <div className="animate-enter">
           {(() => {
-            const requester = profilesById[request.requester_id];
-            const requesterBatch = requester?.batch_id ? batchesById[requester.batch_id] : null;
             const requesterDisplayName = formatProfileName(requester, request.requester_email);
-            const batchSummary = [
-              requesterBatch?.name ? `Batch: ${requesterBatch.name}` : null,
-              requester?.sscc_batch ? `SSCC batch: ${requester.sscc_batch}` : null,
-            ]
-              .filter(Boolean)
-              .join(" · ");
-
             return (
               <Card className="overflow-hidden">
                 <CardHeader className="space-y-2 p-6">
                   <CardTitle className="text-base font-semibold text-foreground">Submitted by</CardTitle>
-                  <p className="text-sm leading-6 text-muted-foreground">
-                    {requesterDisplayName}
-                    {batchSummary ? ` · ${batchSummary}` : ""}
-                  </p>
+                  <p className="text-sm leading-6 text-foreground">{requesterDisplayName}</p>
+                  <p className="text-sm leading-6 text-muted-foreground">{formatRequesterDescription(requester, requesterBatch)}</p>
                 </CardHeader>
               </Card>
             );

@@ -55,6 +55,9 @@ alter table public.batches add column if not exists course_end timestamptz;
 alter table public.batches add column if not exists created_at timestamptz not null default now();
 alter table public.batches add column if not exists updated_at timestamptz not null default now();
 
+comment on column public.batches.common_term_end is
+  'Course phase boundary: the specialisation phase starts on this date.';
+
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   email text not null unique,

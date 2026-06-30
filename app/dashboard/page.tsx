@@ -270,7 +270,12 @@ export default async function DashboardPage() {
   const profileRecords = (profilesForDashboard ?? []) as ProfileRecord[];
   const requestersById = buildProfilesMap(profileRecords);
   const batchesById = Object.fromEntries(((batches ?? []) as BatchRecord[]).map((batch) => [batch.id, batch]));
-  const strengthSummary = buildStrengthSummary(profileRecords, requests, (requestUpdates ?? []) as RequestUpdateRecord[]);
+  const strengthSummary = buildStrengthSummary(
+    profileRecords,
+    requests,
+    (requestUpdates ?? []) as RequestUpdateRecord[],
+    batchesById,
+  );
   const reportSickPendingRequests = requests.filter((request) => request.kind === "report_sick" && isAwaitingDashboardAction(request));
   const externalAppointmentPendingRequests = requests.filter((request) => request.kind === "external_appointment" && isAwaitingDashboardAction(request));
 
