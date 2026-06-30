@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { ChevronLeft } from "lucide-react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { TopBar } from "@/components/layout/topbar";
 import { ManageUsersClient } from "@/components/admin/manage-users-client";
@@ -32,7 +33,10 @@ export default async function AdminUsersPage() {
             </div>
             <div className="flex flex-wrap gap-3 pt-2">
               <Button asChild variant="outline">
-                <Link href="/">Back to dashboard</Link>
+                <Link href="/">
+                  <ChevronLeft className="h-4 w-4" />
+                  Back to dashboard
+                </Link>
               </Button>
             </div>
           </CardHeader>

@@ -4,5 +4,5 @@ import type { RequestStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 export function StatusPill({ status }: { status: RequestStatus }) {
-  return <Badge className={cn("border", statusTone[status])}>{statusLabels[status]}</Badge>;
+  return <Badge className={cn("border normal-case", statusTone[status])}>{statusLabels[status]}</Badge>;
 }

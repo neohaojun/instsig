@@ -166,6 +166,19 @@ create index if not exists request_updates_request_id_idx on public.request_upda
 create unique index if not exists request_updates_request_id_kind_unique_idx on public.request_updates (request_id, kind);
 create index if not exists profiles_role_idx on public.profiles (role);
 
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'request-attachments',
+  'request-attachments',
+  false,
+  10485760,
+  array['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif']
+)
+on conflict (id) do update set
+  public = excluded.public,
+  file_size_limit = excluded.file_size_limit,
+  allowed_mime_types = excluded.allowed_mime_types;
+
 create or replace function public.submit_report_sick_followup(
   p_payload jsonb,
   p_request_id uuid
@@ -417,3 +430,57 @@ for select using (public.is_admin());
 create policy "batches write admin" on public.batches
 for all using (public.is_admin())
 with check (public.is_admin());
+
+drop policy if exists "request attachments read" on storage.objects;
+drop policy if exists "request attachments insert" on storage.objects;
+drop policy if exists "request attachments update" on storage.objects;
+drop policy if exists "request attachments delete" on storage.objects;
+
+create policy "request attachments read" on storage.objects
+for select to authenticated using (
+  bucket_id = 'request-attachments'
+  and ((storage.foldername(name))[1] = auth.uid()::text or public.is_admin())
+);
+
+create policy "request attachments insert" on storage.objects
+for insert to authenticated with check (
+  bucket_id = 'request-attachments'
+  and (storage.foldername(name))[1] = auth.uid()::text
+  and exists (
+    select 1 from public.requests r
+    where r.id::text = (storage.foldername(name))[2]
+      and r.requester_id = auth.uid()
+      and r.kind = 'report_sick'::public.request_kind
+      and r.status in ('approved', 'submitted', 'needs_changes')
+  )
+);
+
+create policy "request attachments update" on storage.objects
+for update to authenticated using (
+  bucket_id = 'request-attachments'
+  and (storage.foldername(name))[1] = auth.uid()::text
+  and exists (
+    select 1 from public.requests r
+    where r.id::text = (storage.foldername(name))[2]
+      and r.requester_id = auth.uid()
+      and r.kind = 'report_sick'::public.request_kind
+      and r.status in ('approved', 'submitted', 'needs_changes')
+  )
+)
+with check (
+  bucket_id = 'request-attachments'
+  and (storage.foldername(name))[1] = auth.uid()::text
+  and exists (
+    select 1 from public.requests r
+    where r.id::text = (storage.foldername(name))[2]
+      and r.requester_id = auth.uid()
+      and r.kind = 'report_sick'::public.request_kind
+      and r.status in ('approved', 'submitted', 'needs_changes')
+  )
+);
+
+create policy "request attachments delete" on storage.objects
+for delete to authenticated using (
+  bucket_id = 'request-attachments'
+  and (storage.foldername(name))[1] = auth.uid()::text
+);

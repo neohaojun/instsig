@@ -230,7 +230,7 @@ function AdminPendingRequestsCard({
                 key={request.id}
                 title={formatProfileName(requester, request.requester_email)}
                 description={formatRequesterDescription(requester, requesterBatch)}
-                meta={formatRequestWhen(request)}
+                meta={`Submitted ${formatDisplayDateTime(request.submitted_at ?? request.created_at)}`}
                 showAdminAction
                 request={request}
                 onSelect={(item) => onSelectRequest(item, "admin")}
@@ -756,7 +756,7 @@ function RequestQueueRow({
                 </p>
               ))}
             </div>
-            <p className="text-xs uppercase text-muted-foreground">Submitted {formatDisplayDateTime(request.submitted_at ?? request.created_at)}</p>
+            <p className="text-xs text-muted-foreground">Submitted {formatDisplayDateTime(request.submitted_at ?? request.created_at)}</p>
           </div>
         </div>
       </div>

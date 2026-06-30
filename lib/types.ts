@@ -53,6 +53,9 @@ export type ReportSickFollowupPayload = {
   category: "ARI" | "Non-ARI";
   medication: string;
   remarks: string;
+  proofOfStatusPath?: string;
+  proofOfStatusName?: string;
+  proofOfStatusDataUrl?: string;
 };
 
 export type ExternalAppointmentPayload = {

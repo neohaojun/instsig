@@ -76,12 +76,16 @@ If you are moving data from Firestore, the original document shape can be adapte
 
 `profiles.role` remains the app's admin/user source of truth, and `public.is_admin()` already checks that field.
 
-## 5. Recommended storage additions
+## 5. Request attachment storage
 
-Not required for the first version, but useful later:
+Running [`supabase/schema.sql`](./schema.sql) also creates a private `request-attachments` bucket for report-sick proof photos. The bucket:
 
-- a `request-attachments` bucket for MCs, letters, and appointment proof
-- a `user-avatars` bucket if you want profile photos
+- accepts JPEG, PNG, WebP, HEIC, and HEIF images up to 10 MB
+- lets users manage files only within their own user-ID folder
+- lets admins read attachments for review
+- serves files through short-lived signed URLs rather than public links
+
+The follow-up JSON stores the object path and original filename; the image bytes remain in Supabase Storage.
 
 ## 6. Recommended schema tweaks
 
