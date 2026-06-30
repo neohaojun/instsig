@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
+import { formatCoursePlatoon } from "@/lib/batch-display";
 import { formatProfileName } from "@/lib/profile-display";
 import { readSpreadsheetRows } from "@/lib/spreadsheet-import";
 import type { BatchRecord, ProfileRecord, UserRole } from "@/lib/types";
@@ -172,6 +173,8 @@ function FormField({
 function UserProfileCard({
   profileRow,
   batchName,
+  batch,
+  batchOptions,
   isEditing,
   isSaving,
   isDeleting,
@@ -185,6 +188,8 @@ function UserProfileCard({
 }: {
   profileRow: EditableProfile;
   batchName: string;
+  batch: BatchRecord | null | undefined;
+  batchOptions: BatchRecord[];
   isEditing: boolean;
   isSaving: boolean;
   isDeleting: boolean;
@@ -269,12 +274,13 @@ function UserProfileCard({
                 />
               </EditableInfoField>
               <EditableInfoField label="SCS Batch">
-                <Input
-                  inputMode="numeric"
-                  placeholder="--/--"
+                <Select
                   value={formState.scs_batch}
-                  onChange={(event) => onChange("scs_batch", formatBatchInput(event.target.value))}
-                />
+                  onChange={(event) => onChange("scs_batch", event.target.value)}
+                >
+                  <option value="">Not Assigned</option>
+                  {batchOptions.map((batch) => <option key={batch.id} value={batch.name}>{batch.name}</option>)}
+                </Select>
               </EditableInfoField>
               <EditableInfoField label="Course Code">
                 <Input
@@ -321,6 +327,7 @@ function UserProfileCard({
             <InfoField label="SCS Batch" value={profileValue(batchName)} />
             <InfoField label="Course Code" value={profileValue(profileRow.sscc_batch)} />
             <InfoField label="NR" value={profileValue(profileRow.nr)} />
+            <InfoField label="Current Platoon" value={profileValue(formatCoursePlatoon(profileRow, batch))} className="sm:col-span-2" />
             <InfoField label="Common Term Platoon" value={profileValue(profileRow.common_term_platoon)} className="sm:col-span-2" />
             <InfoField
               label="Specialisation Phase Platoon"
@@ -359,7 +366,6 @@ export function ManageUsersClient({
   const batchesById = useMemo(() => Object.fromEntries(batchOptions.map((batch) => [batch.id, batch])), [batchOptions]);
   const filteredProfiles = useMemo(() => {
     const normalizedSearchQuery = searchQuery.trim().toLowerCase();
-    const normalizedBatchFilter = batchFilter.trim().toLowerCase();
 
     return profiles
       .filter((profile) => {
@@ -385,9 +391,8 @@ export function ManageUsersClient({
       })
       .filter((profile) => roleFilter === "all" || profile.role === roleFilter)
       .filter((profile) => {
-        if (!normalizedBatchFilter) return true;
-        const batchName = profile.batch_id ? batchesById[profile.batch_id]?.name ?? "Unknown Batch" : "Not Assigned";
-        return batchName.toLowerCase().includes(normalizedBatchFilter);
+        if (!batchFilter) return true;
+        return batchFilter === "unassigned" ? !profile.batch_id : profile.batch_id === batchFilter;
       })
       .sort((a, b) => formatProfileName(a, a.email).localeCompare(formatProfileName(b, b.email), undefined, { sensitivity: "base" }));
   }, [batchFilter, batchesById, profiles, roleFilter, searchQuery]);
@@ -517,12 +522,12 @@ export function ManageUsersClient({
     <>
       <Card className="overflow-hidden animate-enter-soft">
         <CardHeader className="space-y-2 p-5 sm:p-6">
-          <div className="flex items-start gap-3">
+          <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border bg-muted/40 text-muted-foreground">
               <FileSpreadsheet className="h-5 w-5" />
             </div>
             <div>
-              <CardTitle className="text-lg">Add accounts from spreadsheet</CardTitle>
+              <CardTitle className="text-lg leading-none">Add accounts from spreadsheet</CardTitle>
             </div>
           </div>
         </CardHeader>
@@ -603,13 +608,15 @@ export function ManageUsersClient({
             </div>
             <div className="min-w-48 flex-1 space-y-2">
               <Label htmlFor="batch-filter">SCS Batch</Label>
-              <Input
+              <Select
                 id="batch-filter"
-                inputMode="numeric"
-                placeholder="Type SCS Batch"
                 value={batchFilter}
-                onChange={(event) => setBatchFilter(formatBatchInput(event.target.value))}
-              />
+                onChange={(event) => setBatchFilter(event.target.value)}
+              >
+                <option value="">All Batches</option>
+                <option value="unassigned">Not Assigned</option>
+                {batchOptions.map((batch) => <option key={batch.id} value={batch.id}>{batch.name}</option>)}
+              </Select>
             </div>
             <p className="pb-3 text-sm text-muted-foreground md:ml-auto">
               {filteredProfiles.length} of {profiles.length} users
@@ -629,6 +636,8 @@ export function ManageUsersClient({
                 <UserProfileCard
                   profileRow={profileRow}
                   batchName={batchName}
+                  batch={profileRow.batch_id ? batchesById[profileRow.batch_id] : null}
+                  batchOptions={batchOptions}
                   isEditing={isEditing}
                   isSaving={savingId === profileRow.id}
                   isDeleting={deletingId === profileRow.id}

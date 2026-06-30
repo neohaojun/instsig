@@ -1,5 +1,6 @@
 import { format, parseISO } from "date-fns";
 import { formatDisplayDateTime } from "@/lib/display-date";
+import { formatCoursePlatoon } from "@/lib/batch-display";
 import type { BatchRecord, ProfileRecord, RequestRecord, RequestUpdateRecord } from "@/lib/types";
 
 function displayText(value: unknown, fallback = "Not set") {
@@ -48,14 +49,10 @@ function formatStatusEntries(followup: RequestUpdateRecord | null | undefined) {
 export function formatRequesterDescription(
   requester: ProfileRecord | null | undefined,
   batch?: BatchRecord | null | undefined,
+  adminLabel?: string | null,
 ) {
-  const parts = [
-    batch?.name ?? null,
-    requester?.sscc_batch ? `SSCC ${requester.sscc_batch}` : null,
-    requester?.specialisation_phase_platoon ?? requester?.common_term_platoon ?? null,
-  ].filter(Boolean);
-
-  return parts.join(" ") || "Profile details not set";
+  if (adminLabel) return adminLabel;
+  return formatCoursePlatoon(requester, batch) || "SCTW Permstaff";
 }
 
 export function buildRequestCardLines(request: RequestRecord, followup?: RequestUpdateRecord | null) {

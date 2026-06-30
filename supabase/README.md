@@ -71,7 +71,7 @@ If you are moving data from Firestore, the original document shape can be adapte
 
 - Firestore document ID `scsBatch` -> `batches.firestore_id`
 - `courseStart` -> `batches.course_start`
-- `commonTermEnd` -> `batches.common_term_end`
+- `commonTermEnd` / specialisation phase start -> `batches.common_term_end`
 - `courseEnd` -> `batches.course_end`
 
 `profiles.role` remains the app's admin/user source of truth, and `public.is_admin()` already checks that field.

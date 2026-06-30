@@ -327,7 +327,12 @@ function DashboardView({
   const reportSickPendingRequests = requests.filter((request) => request.kind === "report_sick" && isAwaitingDashboardAction(request));
   const externalAppointmentPendingRequests = requests.filter((request) => request.kind === "external_appointment" && isAwaitingDashboardAction(request));
   const requestHistory = requests.filter((request) => request.requester_id === profile?.id && request.status !== "draft");
-  const strengthSummary = buildStrengthSummary(Object.values(profilesById).filter(Boolean) as ProfileRecord[], requests, updates);
+  const strengthSummary = buildStrengthSummary(
+    Object.values(profilesById).filter(Boolean) as ProfileRecord[],
+    requests,
+    updates,
+    batchesById,
+  );
   const activeMode = isAdmin ? dashboardMode : "user";
 
   return (
@@ -436,12 +441,22 @@ function DashboardView({
 
           <StrengthCard summary={strengthSummary} onSeeMore={() => onNavigate("strength")} />
 
-          <div className="grid gap-4 animate-enter-soft animate-delay-2">
+          <div className="grid gap-4 animate-enter-soft animate-delay-2 sm:grid-cols-2">
             <a href="/admin/users" className="block">
               <Card className="overflow-hidden transition hover:bg-accent/50">
                 <CardHeader className="space-y-2 p-8">
                   <div className="flex items-center justify-between gap-4">
                     <CardTitle className="text-3xl">Manage Users</CardTitle>
+                    <ArrowUpRight className="h-5 w-5 shrink-0 text-muted-foreground" />
+                  </div>
+                </CardHeader>
+              </Card>
+            </a>
+            <a href="/admin/batches" className="block">
+              <Card className="overflow-hidden transition hover:bg-accent/50">
+                <CardHeader className="space-y-2 p-8">
+                  <div className="flex items-center justify-between gap-4">
+                    <CardTitle className="text-3xl">Manage Batches</CardTitle>
                     <ArrowUpRight className="h-5 w-5 shrink-0 text-muted-foreground" />
                   </div>
                 </CardHeader>
@@ -500,14 +515,25 @@ function StrengthView({
   requests,
   updates,
   profilesById,
+  batchesById,
   onNavigate,
 }: {
   requests: RequestRecord[];
   updates: RequestUpdateRecord[];
   profilesById: Record<string, ProfileRecord | null | undefined>;
+  batchesById: Record<string, BatchRecord | null | undefined>;
   onNavigate: (view: ShellView) => void;
 }) {
-  const details = buildStrengthDetails(Object.values(profilesById).filter(Boolean) as ProfileRecord[], requests, updates);
+  const todayValue = format(new Date(), "yyyy-MM-dd");
+  const [selectedDate, setSelectedDate] = useState(todayValue);
+  const strengthDate = parseISO(selectedDate || todayValue);
+  const details = buildStrengthDetails(
+    Object.values(profilesById).filter(Boolean) as ProfileRecord[],
+    requests,
+    updates,
+    batchesById,
+    strengthDate,
+  );
 
   return (
     <section className="mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-6 lg:px-8">
@@ -518,6 +544,16 @@ function StrengthView({
             <Button type="button" variant="outline" onClick={() => onNavigate("dashboard")}>
               <ChevronLeft className="h-4 w-4" />
               Back to dashboard
+            </Button>
+            <Input
+              type="date"
+              aria-label="Strength date"
+              value={selectedDate}
+              onChange={(event) => setSelectedDate(event.target.value)}
+              className="w-auto min-w-40"
+            />
+            <Button type="button" variant="outline" onClick={() => setSelectedDate(todayValue)} disabled={selectedDate === todayValue}>
+              Today
             </Button>
           </div>
         </CardHeader>
@@ -911,12 +947,7 @@ function RequesterCard({
   const requester = profilesById[request.requester_id];
   const requesterBatch = requester?.batch_id ? batchesById[requester.batch_id] : null;
   const requesterDisplayName = formatProfileName(requester, request.requester_email);
-  const batchSummary = [
-    requesterBatch?.name ? `Batch: ${requesterBatch.name}` : null,
-    requester?.sscc_batch ? `SSCC batch: ${requester.sscc_batch}` : null,
-  ]
-    .filter(Boolean)
-    .join(" · ");
+  const batchSummary = formatRequesterDescription(requester, requesterBatch);
 
   return (
     <Card className="overflow-hidden">
@@ -1223,7 +1254,13 @@ export function InstsigApp({
         />
       ) : null}
       {view === "strength" && isAdmin ? (
-        <StrengthView requests={sortedRequests} updates={updates} profilesById={profilesById} onNavigate={navigate} />
+        <StrengthView
+          requests={sortedRequests}
+          updates={updates}
+          profilesById={profilesById}
+          batchesById={batchesById}
+          onNavigate={navigate}
+        />
       ) : null}
       {view === "requestDetail" && selectedRequest ? (
         isAdmin && selectedRequestMode === "admin" ? (

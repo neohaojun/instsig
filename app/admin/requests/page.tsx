@@ -318,7 +318,7 @@ function RequestQueueRow({
               </p>
               <StatusPill status={request.status} />
             </div>
-            <p className="text-sm leading-5 text-muted-foreground">{formatRequesterDescription(requester, requesterBatch)}</p>
+            <p className="text-sm leading-5 text-muted-foreground">{formatRequesterDescription(requester, requesterBatch, "SCTW Permstaff")}</p>
             <div className="space-y-1 pt-2 text-sm leading-5 text-foreground">
               {detailFields.map((field) => (
                 <p key={field.label}>

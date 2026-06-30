@@ -1,7 +1,8 @@
 import { isValid, parseISO, startOfDay } from "date-fns";
 import { formatStatusDuration, getActiveReportSickStatuses } from "@/lib/active-report-sick-statuses";
 import { formatDisplayDateTime } from "@/lib/display-date";
-import type { ProfileRecord, RequestRecord, RequestUpdateRecord } from "@/lib/types";
+import { isBatchActiveOnDate } from "@/lib/batch-display";
+import type { BatchRecord, ProfileRecord, RequestRecord, RequestUpdateRecord } from "@/lib/types";
 
 export type StrengthSummary = {
   total: number;
@@ -49,8 +50,8 @@ function isSameDate(value: string | null | undefined, date: Date) {
   return startOfDay(parsed).getTime() === startOfDay(date).getTime();
 }
 
-function isPersonnelProfile(profile: ProfileRecord) {
-  return profile.role !== "admin";
+function isPersonnelProfile(profile: ProfileRecord, batchesById: Record<string, BatchRecord | null | undefined>, date: Date) {
+  return profile.role !== "admin" && Boolean(profile.batch_id && isBatchActiveOnDate(batchesById[profile.batch_id], date));
 }
 
 function hasMedication(value: unknown) {
@@ -66,9 +67,10 @@ export function buildStrengthSummary(
   profiles: ProfileRecord[],
   requests: RequestRecord[],
   updates: RequestUpdateRecord[],
+  batchesById: Record<string, BatchRecord | null | undefined>,
   now: Date = new Date(),
 ): StrengthSummary {
-  const personnelIds = new Set(profiles.filter(isPersonnelProfile).map((profile) => profile.id));
+  const personnelIds = new Set(profiles.filter((profile) => isPersonnelProfile(profile, batchesById, now)).map((profile) => profile.id));
   const activeStatuses = getActiveReportSickStatuses(requests, updates, now).filter((status) =>
     personnelIds.has(status.request.requester_id),
   );
@@ -129,10 +131,11 @@ export function buildStrengthDetails(
   profiles: ProfileRecord[],
   requests: RequestRecord[],
   updates: RequestUpdateRecord[],
+  batchesById: Record<string, BatchRecord | null | undefined>,
   now: Date = new Date(),
 ): StrengthDetails {
-  const summary = buildStrengthSummary(profiles, requests, updates, now);
-  const personnelIds = new Set(profiles.filter(isPersonnelProfile).map((profile) => profile.id));
+  const summary = buildStrengthSummary(profiles, requests, updates, batchesById, now);
+  const personnelIds = new Set(profiles.filter((profile) => isPersonnelProfile(profile, batchesById, now)).map((profile) => profile.id));
   const activeStatuses = getActiveReportSickStatuses(requests, updates, now).filter((status) =>
     personnelIds.has(status.request.requester_id),
   );

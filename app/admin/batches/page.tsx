@@ -1,18 +1,12 @@
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { TopBar } from "@/components/layout/topbar";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { BatchRecord } from "@/lib/types";
-import { formatDisplayDateTime } from "@/lib/display-date";
-
-function formatDate(value: string | null | undefined) {
-  if (!value) return "Not set";
-  return formatDisplayDateTime(value, "Not set");
-}
+import { ManageBatchesClient } from "@/components/admin/manage-batches-client";
 
 export default async function AdminBatchesPage() {
   const supabase = await createSupabaseServerClient();
@@ -42,32 +36,7 @@ export default async function AdminBatchesPage() {
             </div>
           </CardHeader>
         </Card>
-        <Card className="animate-enter-soft animate-delay-1">
-          <CardContent className="overflow-x-auto p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Firestore ID</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Course start</TableHead>
-                  <TableHead>Common term end</TableHead>
-                  <TableHead>Course end</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {batchRows.map((batch) => (
-                  <TableRow key={batch.id}>
-                    <TableCell className="text-muted-foreground">{batch.firestore_id ?? "Not set"}</TableCell>
-                    <TableCell className="font-medium text-foreground">{batch.name}</TableCell>
-                    <TableCell className="text-muted-foreground">{formatDate(batch.course_start)}</TableCell>
-                    <TableCell className="text-muted-foreground">{formatDate(batch.common_term_end)}</TableCell>
-                    <TableCell className="text-muted-foreground">{formatDate(batch.course_end)}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+        <ManageBatchesClient initialBatches={batchRows} />
       </section>
     </main>
   );
