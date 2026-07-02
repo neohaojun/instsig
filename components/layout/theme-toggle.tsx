@@ -13,10 +13,22 @@ type ViewTransitionDocument = Document & {
 };
 
 function setThemeClass(theme: Theme) {
-  document.documentElement.classList.toggle("light", theme === "light");
-  document.documentElement.classList.toggle("dark", theme === "dark");
-  document.documentElement.style.colorScheme = theme;
-  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", theme === "light" ? "#ffffff" : "#0a0a0a");
+  const root = document.documentElement;
+  const canvasColor = theme === "light" ? "#ffffff" : "#0a0a0a";
+
+  root.classList.toggle("light", theme === "light");
+  root.classList.toggle("dark", theme === "dark");
+  root.style.colorScheme = theme;
+  root.style.backgroundColor = canvasColor;
+  document.body.style.backgroundColor = canvasColor;
+
+  // Mobile Safari can retain the first status-bar color when only the
+  // existing meta tag's content changes. Replacing the node forces a repaint.
+  document.querySelectorAll('meta[name="theme-color"]').forEach((meta) => meta.remove());
+  const themeColor = document.createElement("meta");
+  themeColor.name = "theme-color";
+  themeColor.content = canvasColor;
+  document.head.appendChild(themeColor);
 }
 
 function prefersReducedMotion() {
