@@ -51,8 +51,7 @@ html {
   min-height: 100%;
   height: -webkit-fill-available;
   color-scheme: light;
-  background-color: #ffffff;
-  background: hsl(var(--background));
+  background-color: hsl(var(--background));
 }
 
 html.theme-transitioning,
@@ -66,11 +65,7 @@ html.theme-transitioning *::after {
 
 html.dark {
   color-scheme: dark;
-  background-color: #09090b;
-  background:
-    radial-gradient(circle at top left, rgba(255, 255, 255, 0.04), transparent 28%),
-    radial-gradient(circle at top right, rgba(255, 255, 255, 0.02), transparent 22%),
-    linear-gradient(180deg, #09090b 0%, #111113 55%, #09090b 100%);
+  background-color: hsl(var(--background));
 }
 
 * {
@@ -87,19 +82,12 @@ body {
   height: -webkit-fill-available;
   margin: 0;
   color: hsl(var(--foreground));
-  background-color: #ffffff;
-  background: hsl(var(--background));
-  background-attachment: fixed;
+  background-color: hsl(var(--background));
 }
 
 html.dark body {
   color: hsl(var(--foreground));
-  background-color: #09090b;
-  background:
-    radial-gradient(circle at top left, rgba(255, 255, 255, 0.04), transparent 28%),
-    radial-gradient(circle at top right, rgba(255, 255, 255, 0.02), transparent 22%),
-    linear-gradient(180deg, #09090b 0%, #111113 55%, #09090b 100%);
-  background-attachment: fixed;
+  background-color: hsl(var(--background));
 }
 
 .bg-grid {
