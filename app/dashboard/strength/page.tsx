@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
+import { StrengthDatePicker } from "@/components/dashboard/strength-date-picker";
 import { StrengthDetail } from "@/components/dashboard/strength-detail";
 import { TopBar } from "@/components/layout/topbar";
 import { Button } from "@/components/ui/button";
@@ -50,9 +51,12 @@ export default async function StrengthPage({ searchParams }: { searchParams: Pro
     <main className="min-h-screen bg-background text-foreground">
       <TopBar role="admin" userName={profile?.full_name} userRank={profile?.rank} userEmail={user.email} />
       <section className="mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-6 lg:px-8">
-        <Card className="overflow-hidden animate-enter">
+        <Card className="relative z-10 overflow-visible animate-enter">
           <CardHeader className="space-y-4 p-8">
-            <CardTitle className="text-3xl">Strength</CardTitle>
+            <div className="flex items-start justify-between gap-3">
+              <CardTitle className="text-3xl">Strength</CardTitle>
+              <StrengthDatePicker value={selectedDate} />
+            </div>
             <div className="flex flex-wrap gap-3">
               <Button asChild variant="outline">
                 <Link href="/">
@@ -60,16 +64,6 @@ export default async function StrengthPage({ searchParams }: { searchParams: Pro
                   Back to dashboard
                 </Link>
               </Button>
-              <form className="flex flex-wrap gap-3">
-                <input
-                  type="date"
-                  name="date"
-                  defaultValue={selectedDate}
-                  className="h-11 rounded-xl border border-input bg-background px-4 py-2 text-sm"
-                />
-                <Button type="submit" variant="outline">View date</Button>
-                <Button asChild variant="outline"><Link href="/dashboard/strength">Today</Link></Button>
-              </form>
             </div>
           </CardHeader>
         </Card>

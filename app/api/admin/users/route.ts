@@ -17,6 +17,7 @@ const profileFieldsSchema = z.object({
   sscc_batch: nullableText,
   common_term_platoon: nullableText,
   specialisation_phase_platoon: nullableText,
+  ooc_date: z.string().date().nullable().optional(),
 });
 const importedUserSchema = profileFieldsSchema.extend({
   row: z.number().int().positive(),
@@ -68,6 +69,7 @@ function profileValues(input: z.infer<typeof profileFieldsSchema>, batchId: stri
     sscc_batch: cleanNullable(input.sscc_batch),
     common_term_platoon: cleanNullable(input.common_term_platoon),
     specialisation_phase_platoon: cleanNullable(input.specialisation_phase_platoon),
+    ooc_date: input.ooc_date ?? null,
   };
 }
 
@@ -197,6 +199,7 @@ export async function PATCH(request: Request) {
         sscc_batch: previous.sscc_batch,
         common_term_platoon: previous.common_term_platoon,
         specialisation_phase_platoon: previous.specialisation_phase_platoon,
+        ooc_date: previous.ooc_date,
       }).eq("id", input.id);
       if (rollbackError) console.error("Could not roll back account profile update", rollbackError);
       const duplicate = authError.message.toLowerCase().includes("already");

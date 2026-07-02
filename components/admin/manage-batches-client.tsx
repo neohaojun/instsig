@@ -1,22 +1,25 @@
 "use client";
 
 import { useState } from "react";
-import { Edit2, Plus, Save, X } from "lucide-react";
+import { format, isValid, parseISO } from "date-fns";
+import { Calendar as CalendarIcon, Edit2, Plus, Save, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { formatDisplayDate } from "@/lib/display-date";
 import type { BatchRecord } from "@/lib/types";
 
 type BatchForm = {
   name: string;
-  description: string;
   course_start: string;
   specialisation_phase_start: string;
   course_end: string;
 };
 
-const emptyForm: BatchForm = { name: "", description: "", course_start: "", specialisation_phase_start: "", course_end: "" };
+const emptyForm: BatchForm = { name: "", course_start: "", specialisation_phase_start: "", course_end: "" };
 
 function dateInput(value: string | null | undefined) {
   return value?.slice(0, 10) ?? "";
@@ -25,21 +28,67 @@ function dateInput(value: string | null | undefined) {
 function batchForm(batch: BatchRecord): BatchForm {
   return {
     name: batch.name,
-    description: batch.description ?? "",
     course_start: dateInput(batch.course_start),
     specialisation_phase_start: dateInput(batch.common_term_end),
     course_end: dateInput(batch.course_end),
   };
 }
 
+function BatchDateField({
+  label,
+  value,
+  onChange,
+  align = "start",
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  align?: "start" | "end";
+}) {
+  const [open, setOpen] = useState(false);
+  const parsedDate = value ? parseISO(value) : undefined;
+  const selectedDate = parsedDate && isValid(parsedDate) ? parsedDate : undefined;
+
+  return (
+    <div className="space-y-2">
+      <Label>{label}</Label>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button type="button" variant="outline" className="w-full justify-start px-4 text-left font-normal">
+            <CalendarIcon className="mr-2 h-4 w-4 shrink-0 text-muted-foreground" />
+            {selectedDate ? formatDisplayDate(selectedDate) : "Select a date"}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent
+          align={align}
+          className="z-[70] w-[20rem] max-w-[calc(100vw-2rem)] bg-popover p-4 opacity-100 shadow-xl"
+        >
+          <Calendar
+            selected={selectedDate}
+            disableFuture={false}
+            initialFocus
+            onSelect={(date) => {
+              if (!date) return;
+              onChange(format(date, "yyyy-MM-dd"));
+              setOpen(false);
+            }}
+          />
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
+}
+
 function BatchFields({ form, setForm }: { form: BatchForm; setForm: (form: BatchForm) => void }) {
   return (
     <div className="grid gap-4 sm:grid-cols-3">
-      <div className="space-y-2 sm:col-span-1"><Label>Batch name</Label><Input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="68/26" /></div>
-      <div className="space-y-2 sm:col-span-2"><Label>Description</Label><Input value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} placeholder="Optional" /></div>
-      <div className="space-y-2"><Label>Course start date</Label><Input required type="date" value={form.course_start} onChange={(event) => setForm({ ...form, course_start: event.target.value })} /></div>
-      <div className="space-y-2"><Label>Specialisation phase start date</Label><Input required type="date" value={form.specialisation_phase_start} onChange={(event) => setForm({ ...form, specialisation_phase_start: event.target.value })} /></div>
-      <div className="space-y-2"><Label>Course end date</Label><Input required type="date" value={form.course_end} onChange={(event) => setForm({ ...form, course_end: event.target.value })} /></div>
+      <div className="space-y-2 sm:col-span-3">
+        <Label>SCS Batch</Label>
+        <Input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="68/26" />
+      </div>
+      <BatchDateField label="Course Start" value={form.course_start} onChange={(value) => setForm({ ...form, course_start: value })} />
+      <BatchDateField label="Spec Phase Start" value={form.specialisation_phase_start} onChange={(value) => setForm({ ...form, specialisation_phase_start: value })} />
+      <BatchDateField label="Course End" value={form.course_end} align="end" onChange={(value) => setForm({ ...form, course_end: value })} />
     </div>
   );
 }
@@ -50,12 +99,12 @@ export function ManageBatchesClient({ initialBatches }: { initialBatches: BatchR
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<BatchForm>(emptyForm);
   const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   function payload() {
     return {
       ...form,
-      description: form.description.trim() || null,
       course_start: form.course_start || null,
       specialisation_phase_start: form.specialisation_phase_start || null,
       course_end: form.course_end || null,
@@ -92,6 +141,28 @@ export function ManageBatchesClient({ initialBatches }: { initialBatches: BatchR
 
   function cancel() { setCreating(false); setEditingId(null); setForm(emptyForm); setError(null); }
 
+  async function deleteBatch(batch: BatchRecord) {
+    if (!window.confirm(`Delete ${batch.name}? Users assigned to this batch will become unassigned.`)) return;
+    setDeletingId(batch.id);
+    setError(null);
+    try {
+      const response = await fetch("/api/admin/batches", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: batch.id }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.message || "This batch could not be deleted.");
+      setBatches((current) => current.filter((item) => item.id !== batch.id));
+      cancel();
+    } catch (deleteError) {
+      console.error("Could not delete batch", deleteError);
+      setError(deleteError instanceof Error ? deleteError.message : "This batch could not be deleted.");
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
   return (
     <div className="grid gap-4">
       {!creating && !editingId ? <Button className="w-fit" onClick={() => setCreating(true)}><Plus className="h-4 w-4" />Add batch</Button> : null}
@@ -101,7 +172,7 @@ export function ManageBatchesClient({ initialBatches }: { initialBatches: BatchR
       <div className="grid gap-3 md:grid-cols-2">
         {batches.map((batch) => {
           const editing = editingId === batch.id;
-          return <Card key={batch.id} className="overflow-hidden"><CardHeader className="flex-row items-start justify-between gap-4"><div><CardTitle>{batch.name}</CardTitle>{batch.description ? <p className="mt-1 text-sm text-muted-foreground">{batch.description}</p> : null}</div>{!editing ? <Button size="sm" variant="outline" onClick={() => { setEditingId(batch.id); setCreating(false); setForm(batchForm(batch)); setError(null); }}><Edit2 className="h-4 w-4" />Edit</Button> : null}</CardHeader><CardContent className="space-y-4">{editing ? <><BatchFields form={form} setForm={setForm} />{error ? <p className="text-sm text-destructive">{error}</p> : null}<div className="flex justify-end gap-2"><Button variant="outline" onClick={cancel}>Cancel</Button><Button onClick={() => void save()} disabled={saving}>{saving ? "Saving..." : "Save changes"}</Button></div></> : <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-3"><div><p className="text-muted-foreground">Course start</p><p>{dateInput(batch.course_start) || "Not set"}</p></div><div><p className="text-muted-foreground">Specialisation starts</p><p>{dateInput(batch.common_term_end) || "Not set"}</p></div><div><p className="text-muted-foreground">Course end</p><p>{dateInput(batch.course_end) || "Not set"}</p></div></div>}</CardContent></Card>;
+          return <Card key={batch.id} className="overflow-visible"><CardHeader className="flex-row items-start justify-between gap-4"><CardTitle>{batch.name} SSCC</CardTitle>{!editing ? <Button size="sm" variant="outline" onClick={() => { setEditingId(batch.id); setCreating(false); setForm(batchForm(batch)); setError(null); }}><Edit2 className="h-4 w-4" />Edit</Button> : null}</CardHeader><CardContent className="space-y-4">{editing ? <><BatchFields form={form} setForm={setForm} />{error ? <p className="text-sm text-destructive">{error}</p> : null}<div className="flex flex-wrap justify-end gap-2 border-t border-border pt-4"><Button variant="destructive" className="mr-auto" onClick={() => void deleteBatch(batch)} disabled={saving || deletingId === batch.id}><Trash2 className="h-4 w-4" />{deletingId === batch.id ? "Deleting..." : "Delete batch"}</Button><Button variant="outline" onClick={cancel} disabled={saving || deletingId === batch.id}>Cancel</Button><Button onClick={() => void save()} disabled={saving || deletingId === batch.id}>{saving ? "Saving..." : "Save changes"}</Button></div></> : <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-3"><div><p className="text-muted-foreground">Course Start</p><p>{dateInput(batch.course_start) || "Not set"}</p></div><div><p className="text-muted-foreground">Spec Phase Start</p><p>{dateInput(batch.common_term_end) || "Not set"}</p></div><div><p className="text-muted-foreground">Course End</p><p>{dateInput(batch.course_end) || "Not set"}</p></div></div>}</CardContent></Card>;
         })}
       </div>
     </div>

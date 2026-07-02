@@ -2,13 +2,17 @@
 
 import { useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { Download, Edit2, FileSpreadsheet, Mail, Save, Search, Trash2, Upload, UserRound, X } from "lucide-react";
+import { format, isValid, parseISO } from "date-fns";
+import { Calendar as CalendarIcon, Download, Edit2, FileSpreadsheet, Mail, Save, Search, Trash2, Upload, UserRound, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select } from "@/components/ui/select";
 import { formatCoursePlatoon } from "@/lib/batch-display";
+import { formatDisplayDate } from "@/lib/display-date";
 import { formatProfileName } from "@/lib/profile-display";
 import { readSpreadsheetRows } from "@/lib/spreadsheet-import";
 import type { BatchRecord, ProfileRecord, UserRole } from "@/lib/types";
@@ -28,6 +32,7 @@ type EditableProfile = Pick<
   | "sscc_batch"
   | "specialisation_phase_platoon"
   | "nr"
+  | "ooc_date"
 >;
 
 type ProfileFormState = {
@@ -41,6 +46,7 @@ type ProfileFormState = {
   sscc_batch: string;
   specialisation_phase_platoon: string;
   nr: string;
+  ooc_date: string;
 };
 
 type ImportResult = {
@@ -92,6 +98,7 @@ function toFormState(profile: EditableProfile, batchName?: string): ProfileFormS
     sscc_batch: formatBatchInput(profile.sscc_batch ?? ""),
     specialisation_phase_platoon: profile.specialisation_phase_platoon ?? "",
     nr: profile.nr ?? "",
+    ooc_date: profile.ooc_date ?? "",
   };
 }
 
@@ -170,6 +177,39 @@ function FormField({
   );
 }
 
+function OocDateField({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const parsedDate = value ? parseISO(value) : undefined;
+  const selectedDate = parsedDate && isValid(parsedDate) ? parsedDate : undefined;
+
+  return (
+    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button type="button" variant="outline" className="w-full justify-start px-4 text-left font-normal">
+            <CalendarIcon className="mr-2 h-4 w-4 shrink-0 text-muted-foreground" />
+            {selectedDate ? formatDisplayDate(selectedDate) : "Select OOC date"}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="z-[70] w-[20rem] max-w-[calc(100vw-2rem)] bg-popover p-4 opacity-100 shadow-xl">
+          <Calendar
+            selected={selectedDate}
+            initialFocus
+            onSelect={(date) => {
+              if (!date) return;
+              onChange(format(date, "yyyy-MM-dd"));
+              setOpen(false);
+            }}
+          />
+        </PopoverContent>
+      </Popover>
+      {value ? (
+        <Button type="button" variant="outline" className="shrink-0" onClick={() => onChange("")}>Clear OOC</Button>
+      ) : null}
+    </div>
+  );
+}
+
 function UserProfileCard({
   profileRow,
   batchName,
@@ -204,7 +244,7 @@ function UserProfileCard({
   const displayName = formatProfileName(profileRow, profileRow.email);
 
   return (
-    <Card className="overflow-hidden transition hover:border-primary/20 hover:bg-accent/40">
+    <Card className="overflow-visible transition hover:border-primary/20 hover:bg-accent/40">
       <CardHeader className="space-y-4 p-5">
         <div className="flex items-center justify-between gap-4">
           <div className="flex min-w-0 flex-1 items-center gap-3">
@@ -305,6 +345,9 @@ function UserProfileCard({
                   onChange={(event) => onChange("specialisation_phase_platoon", event.target.value)}
                 />
               </EditableInfoField>
+              <EditableInfoField label="OOC (Out of Course)" className="sm:col-span-2">
+                <OocDateField value={formState.ooc_date} onChange={(value) => onChange("ooc_date", value)} />
+              </EditableInfoField>
             </div>
             {errorMessage ? <p className="text-sm text-destructive">{errorMessage}</p> : null}
             <div className="flex flex-wrap justify-end gap-2 border-t border-border pt-4">
@@ -327,6 +370,7 @@ function UserProfileCard({
             <InfoField label="SCS Batch" value={profileValue(batchName)} />
             <InfoField label="Course Code" value={profileValue(profileRow.sscc_batch)} />
             <InfoField label="NR" value={profileValue(profileRow.nr)} />
+            <InfoField label="Course Status" value={profileRow.ooc_date ? `OOC from ${formatDisplayDate(profileRow.ooc_date)}` : "Active"} />
             <InfoField label="Current Platoon" value={profileValue(formatCoursePlatoon(profileRow, batch))} className="sm:col-span-2" />
             <InfoField label="Common Term Platoon" value={profileValue(profileRow.common_term_platoon)} className="sm:col-span-2" />
             <InfoField
@@ -382,6 +426,7 @@ export function ManageUsersClient({
           profile.common_term_platoon,
           profile.specialisation_phase_platoon,
           profile.nr,
+          profile.ooc_date,
         ]
           .filter(Boolean)
           .join(" ")
@@ -434,6 +479,7 @@ export function ManageUsersClient({
           sscc_batch: emptyToNull(normalizeBatchName(formState.sscc_batch)),
           common_term_platoon: emptyToNull(formState.common_term_platoon),
           specialisation_phase_platoon: emptyToNull(formState.specialisation_phase_platoon),
+          ooc_date: formState.ooc_date || null,
         }),
       });
       const payload = await response.json();

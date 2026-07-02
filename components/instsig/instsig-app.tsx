@@ -2,8 +2,9 @@
 
 import { useMemo, useState } from "react";
 import { format, parseISO } from "date-fns";
-import { ArrowUpRight, CalendarClock, ChevronLeft, FileText, Search, X } from "lucide-react";
+import { ArrowUpRight, CalendarClock, ChevronLeft, ChevronRight, FileText, Search, X } from "lucide-react";
 import { StrengthCard } from "@/components/dashboard/strength-card";
+import { StrengthDatePicker } from "@/components/dashboard/strength-date-picker";
 import { StrengthDetail } from "@/components/dashboard/strength-detail";
 import { TopBar } from "@/components/layout/topbar";
 import { AdminReportSickFollowupCard } from "@/components/request/admin-report-sick-followup-card";
@@ -185,7 +186,10 @@ function RequestSubcard({
             {description ? <p className="max-w-[36rem] text-sm leading-5 text-muted-foreground">{description}</p> : null}
             <p className="text-xs text-muted-foreground">{meta}</p>
           </div>
-          <StatusPill status={request.status} />
+          <div className="flex shrink-0 items-center gap-2">
+            <StatusPill status={request.status} />
+            <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
+          </div>
         </div>
       </div>
     </button>
@@ -537,23 +541,16 @@ function StrengthView({
 
   return (
     <section className="mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-6 lg:px-8">
-      <Card className="overflow-hidden animate-enter">
+      <Card className="relative z-10 overflow-visible animate-enter">
         <CardHeader className="space-y-4 p-8">
-          <CardTitle className="text-3xl">Strength</CardTitle>
+          <div className="flex items-start justify-between gap-3">
+            <CardTitle className="text-3xl">Strength</CardTitle>
+            <StrengthDatePicker value={selectedDate} onValueChange={setSelectedDate} />
+          </div>
           <div className="flex flex-wrap gap-3">
             <Button type="button" variant="outline" onClick={() => onNavigate("dashboard")}>
               <ChevronLeft className="h-4 w-4" />
               Back to dashboard
-            </Button>
-            <Input
-              type="date"
-              aria-label="Strength date"
-              value={selectedDate}
-              onChange={(event) => setSelectedDate(event.target.value)}
-              className="w-auto min-w-40"
-            />
-            <Button type="button" variant="outline" onClick={() => setSelectedDate(todayValue)} disabled={selectedDate === todayValue}>
-              Today
             </Button>
           </div>
         </CardHeader>
@@ -792,7 +789,7 @@ function RequestQueueRow({
                 </p>
               ))}
             </div>
-            <p className="text-xs text-muted-foreground">Submitted {formatDisplayDateTime(request.submitted_at ?? request.created_at)}</p>
+            <p className="mt-4 text-xs text-muted-foreground">Submitted {formatDisplayDateTime(request.submitted_at ?? request.created_at)}</p>
           </div>
         </div>
       </div>

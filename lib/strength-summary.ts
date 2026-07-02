@@ -1,7 +1,7 @@
 import { isValid, parseISO, startOfDay } from "date-fns";
 import { formatStatusDuration, getActiveReportSickStatuses } from "@/lib/active-report-sick-statuses";
 import { formatDisplayDateTime } from "@/lib/display-date";
-import { isBatchActiveOnDate } from "@/lib/batch-display";
+import { getBatchPhase, isBatchActiveOnDate } from "@/lib/batch-display";
 import type { BatchRecord, ProfileRecord, RequestRecord, RequestUpdateRecord } from "@/lib/types";
 
 export type StrengthSummary = {
@@ -14,6 +14,22 @@ export type StrengthSummary = {
   guardDuty: number;
   onMedication: number;
   others: number;
+  activeBatches: string[];
+};
+
+export type PlatoonStrength = {
+  name: string;
+  profileIds: string[];
+  summary: StrengthSummary;
+};
+
+export type BatchStrength = {
+  id: string;
+  name: string;
+  phase: "common" | "specialisation";
+  courseStart: string | null;
+  courseEnd: string | null;
+  platoons: PlatoonStrength[];
 };
 
 export type StrengthCategoryKey =
@@ -35,6 +51,7 @@ export type StrengthCategoryEntry = {
 
 export type StrengthDetails = {
   summary: StrengthSummary;
+  batches: BatchStrength[];
   categories: Record<StrengthCategoryKey, StrengthCategoryEntry[]>;
 };
 
@@ -51,7 +68,9 @@ function isSameDate(value: string | null | undefined, date: Date) {
 }
 
 function isPersonnelProfile(profile: ProfileRecord, batchesById: Record<string, BatchRecord | null | undefined>, date: Date) {
-  return profile.role !== "admin" && Boolean(profile.batch_id && isBatchActiveOnDate(batchesById[profile.batch_id], date));
+  const oocDate = parseDate(profile.ooc_date);
+  const isOoc = oocDate ? startOfDay(date).getTime() >= startOfDay(oocDate).getTime() : false;
+  return profile.role !== "admin" && !isOoc && Boolean(profile.batch_id && isBatchActiveOnDate(batchesById[profile.batch_id], date));
 }
 
 function hasMedication(value: unknown) {
@@ -70,7 +89,8 @@ export function buildStrengthSummary(
   batchesById: Record<string, BatchRecord | null | undefined>,
   now: Date = new Date(),
 ): StrengthSummary {
-  const personnelIds = new Set(profiles.filter((profile) => isPersonnelProfile(profile, batchesById, now)).map((profile) => profile.id));
+  const personnel = profiles.filter((profile) => isPersonnelProfile(profile, batchesById, now));
+  const personnelIds = new Set(personnel.map((profile) => profile.id));
   const activeStatuses = getActiveReportSickStatuses(requests, updates, now).filter((status) =>
     personnelIds.has(status.request.requester_id),
   );
@@ -124,6 +144,13 @@ export function buildStrengthSummary(
     guardDuty: 0,
     onMedication: onMedicationIds.size,
     others: 0,
+    activeBatches: Array.from(
+      new Set(
+        Object.values(batchesById)
+          .filter((batch): batch is BatchRecord => Boolean(batch && isBatchActiveOnDate(batch, now)))
+          .map((batch) => batch.name),
+      ),
+    ).sort((a, b) => a.localeCompare(b)),
   };
 }
 
@@ -140,6 +167,50 @@ export function buildStrengthDetails(
     personnelIds.has(status.request.requester_id),
   );
   const activeStatusRequestIds = new Set(activeStatuses.map((status) => status.request.id));
+
+  const batches = Object.values(batchesById)
+    .filter((batch): batch is BatchRecord => Boolean(batch && isBatchActiveOnDate(batch, now)))
+    .map((batch) => {
+      const phase = getBatchPhase(batch, now) === "specialisation" ? "specialisation" : "common";
+      const batchProfiles = profiles.filter((profile) => profile.batch_id === batch.id && isPersonnelProfile(profile, batchesById, now));
+      const platoonNames = Array.from(
+        new Set(
+          batchProfiles.map((profile) =>
+            (phase === "specialisation" ? profile.specialisation_phase_platoon : profile.common_term_platoon)?.trim() || "Not set",
+          ),
+        ),
+      ).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+
+      return {
+        id: batch.id,
+        name: batch.name,
+        phase,
+        courseStart: batch.course_start,
+        courseEnd: batch.course_end,
+        platoons: platoonNames.map((name) => ({
+          name,
+          profileIds: batchProfiles
+            .filter(
+              (profile) =>
+                ((phase === "specialisation" ? profile.specialisation_phase_platoon : profile.common_term_platoon)?.trim() || "Not set") ===
+                name,
+            )
+            .map((profile) => profile.id),
+          summary: buildStrengthSummary(
+            batchProfiles.filter(
+              (profile) =>
+                ((phase === "specialisation" ? profile.specialisation_phase_platoon : profile.common_term_platoon)?.trim() || "Not set") ===
+                name,
+            ),
+            requests,
+            updates,
+            batchesById,
+            now,
+          ),
+        })),
+      } satisfies BatchStrength;
+    })
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   const categories: StrengthDetails["categories"] = {
     attendC: [],
@@ -219,5 +290,5 @@ export function buildStrengthDetails(
     });
   });
 
-  return { summary, categories };
+  return { summary, batches, categories };
 }

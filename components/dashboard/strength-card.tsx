@@ -41,8 +41,11 @@ export function StrengthCard({
 
   return (
     <Card className="overflow-hidden animate-enter-soft animate-delay-2">
-      <CardHeader className="space-y-4 p-8">
+      <CardHeader className="space-y-1 p-8">
         <CardTitle className="text-3xl">Strength</CardTitle>
+        <p className="text-sm text-muted-foreground">
+          {summary.activeBatches.length ? `${summary.activeBatches.join(", ")} SSCC` : "No active batch for today"}
+        </p>
       </CardHeader>
       <CardContent className="p-8 pt-0">
         <div className="grid grid-cols-2 gap-6 lg:grid-cols-5">

@@ -69,6 +69,7 @@ create table if not exists public.profiles (
   sscc_batch text,
   specialisation_phase_platoon text,
   nr text,
+  ooc_date date,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -82,6 +83,7 @@ alter table public.profiles add column if not exists common_term_platoon text;
 alter table public.profiles add column if not exists sscc_batch text;
 alter table public.profiles add column if not exists specialisation_phase_platoon text;
 alter table public.profiles add column if not exists nr text;
+alter table public.profiles add column if not exists ooc_date date;
 alter table public.profiles add column if not exists created_at timestamptz not null default now();
 alter table public.profiles add column if not exists updated_at timestamptz not null default now();
 
