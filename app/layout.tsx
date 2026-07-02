@@ -25,6 +25,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
                   document.documentElement.classList.toggle("light", theme === "light");
                   document.documentElement.classList.toggle("dark", theme === "dark");
                   document.documentElement.style.colorScheme = theme;
+                  document.documentElement.style.backgroundColor = theme === "light" ? "#ffffff" : "#0a0a0a";
                   var themeColor = document.createElement("meta");
                   themeColor.name = "theme-color";
                   themeColor.content = theme === "light" ? "#ffffff" : "#0a0a0a";
