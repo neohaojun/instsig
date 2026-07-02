@@ -1,8 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { format, parseISO } from "date-fns";
 import { ArrowUpRight, CalendarClock, ChevronLeft, ChevronRight, FileText, Search, X } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { StrengthCard } from "@/components/dashboard/strength-card";
 import { StrengthDatePicker } from "@/components/dashboard/strength-date-picker";
 import { StrengthDetail } from "@/components/dashboard/strength-detail";
@@ -41,6 +43,8 @@ const requestPathByKind = {
   report_sick: "/requests/report-sick",
   external_appointment: "/requests/external-appointment",
 } as const;
+
+const BACKGROUND_REFRESH_INTERVAL_MS = 60_000;
 
 function isIncompleteRequest(request: RequestRecord) {
   if (request.kind === "report_sick") {
@@ -446,7 +450,7 @@ function DashboardView({
           <StrengthCard summary={strengthSummary} onSeeMore={() => onNavigate("strength")} />
 
           <div className="grid gap-4 animate-enter-soft animate-delay-2 sm:grid-cols-2">
-            <a href="/admin/users" className="block">
+            <Link href="/admin/users" className="block">
               <Card className="overflow-hidden transition hover:bg-accent/50">
                 <CardHeader className="space-y-2 p-8">
                   <div className="flex items-center justify-between gap-4">
@@ -455,8 +459,8 @@ function DashboardView({
                   </div>
                 </CardHeader>
               </Card>
-            </a>
-            <a href="/admin/batches" className="block">
+            </Link>
+            <Link href="/admin/batches" className="block">
               <Card className="overflow-hidden transition hover:bg-accent/50">
                 <CardHeader className="space-y-2 p-8">
                   <div className="flex items-center justify-between gap-4">
@@ -465,7 +469,7 @@ function DashboardView({
                   </div>
                 </CardHeader>
               </Card>
-            </a>
+            </Link>
           </div>
         </>
       ) : null}
@@ -1160,6 +1164,8 @@ export function InstsigApp({
   profilesById: Record<string, ProfileRecord | null | undefined>;
   batchesById: Record<string, BatchRecord | null | undefined>;
 }) {
+  const router = useRouter();
+  const lastRefreshAt = useRef(Date.now());
   const [view, setView] = useState<ShellView>("dashboard");
   const [returnView, setReturnView] = useState<ShellView>("dashboard");
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
@@ -1171,6 +1177,34 @@ export function InstsigApp({
   const [requests, setRequests] = useState(initialRequests);
   const [updates, setUpdates] = useState(initialUpdates);
   const isAdmin = profile?.role === "admin";
+
+  useEffect(() => {
+    setRequests(initialRequests);
+    setUpdates(initialUpdates);
+    lastRefreshAt.current = Date.now();
+  }, [initialRequests, initialUpdates]);
+
+  useEffect(() => {
+    function refreshIfVisible() {
+      if (document.visibilityState !== "visible") return;
+      lastRefreshAt.current = Date.now();
+      router.refresh();
+    }
+
+    function refreshStaleVisiblePage() {
+      if (document.visibilityState !== "visible") return;
+      if (Date.now() - lastRefreshAt.current < BACKGROUND_REFRESH_INTERVAL_MS) return;
+      refreshIfVisible();
+    }
+
+    const interval = window.setInterval(refreshIfVisible, BACKGROUND_REFRESH_INTERVAL_MS);
+    document.addEventListener("visibilitychange", refreshStaleVisiblePage);
+
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", refreshStaleVisiblePage);
+    };
+  }, [router]);
 
   const sortedRequests = useMemo(
     () => [...requests].sort((first, second) => Date.parse(second.updated_at) - Date.parse(first.updated_at)),
