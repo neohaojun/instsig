@@ -13,7 +13,7 @@ import { formatProfileName } from "@/lib/profile-display";
 import { cn } from "@/lib/utils";
 import { formatDisplayDateTime } from "@/lib/display-date";
 import { requestKindLabels } from "@/lib/request-meta";
-import { buildRequestCardLines, formatRequesterDescription } from "@/lib/request-card-display";
+import { buildRequestCardLines, formatRequestRequesterDescription } from "@/lib/request-card-display";
 
 type RequestStatusView = "pending" | "all";
 type RequestKindView = "report_sick" | "external_appointment";
@@ -153,6 +153,12 @@ function getQueueStats(requests: RequestRecord[], kindView: RequestKindView) {
       dotClassName: "bg-green-500",
       valueClassName: "text-green-500",
     },
+    {
+      label: "Rejected",
+      value: requests.filter((request) => request.status === "rejected").length,
+      dotClassName: "bg-red-500",
+      valueClassName: "text-red-500",
+    },
   ];
 
   if (kindView === "external_appointment") {
@@ -171,7 +177,7 @@ function getQueueStats(requests: RequestRecord[], kindView: RequestKindView) {
     ...sharedStats,
     {
       label: "Submitted",
-      value: requests.filter((request) => request.status === "submitted" || Boolean(request.followup_submitted_at)).length,
+      value: requests.filter((request) => request.status === "submitted").length,
       dotClassName: "bg-violet-500",
       valueClassName: "text-violet-500",
     },
@@ -318,7 +324,9 @@ function RequestQueueRow({
               </p>
               <StatusPill status={request.status} />
             </div>
-            <p className="text-sm leading-5 text-muted-foreground">{formatRequesterDescription(requester, requesterBatch, "SCTW Permstaff")}</p>
+            <p className="text-sm leading-5 text-muted-foreground">
+              {formatRequestRequesterDescription(request, requester, requesterBatch)}
+            </p>
             <div className="space-y-1 pt-2 text-sm leading-5 text-foreground">
               {detailFields.map((field) => (
                 <p key={field.label}>
@@ -340,7 +348,12 @@ function QueueStats({
   stats: { label: string; value: number; dotClassName: string; valueClassName: string }[];
 }) {
   return (
-    <div className={cn("grid gap-4 sm:grid-cols-2", stats.length <= 3 ? "lg:grid-cols-3" : "lg:grid-cols-5")}>
+    <div
+      className={cn(
+        "grid gap-4 sm:grid-cols-2",
+        stats.length <= 3 ? "lg:grid-cols-3" : stats.length <= 4 ? "lg:grid-cols-4" : stats.length <= 5 ? "lg:grid-cols-5" : "lg:grid-cols-6",
+      )}
+    >
       {stats.map((stat) => (
         <Card key={stat.label} className="overflow-hidden animate-enter-soft">
           <CardHeader className="space-y-3 p-6">

@@ -6,6 +6,7 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { RequestRecord } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 export function AdminReviewPanel({
   request,
@@ -14,6 +15,7 @@ export function AdminReviewPanel({
   hasFollowup,
   onClose,
   onUpdated,
+  onDeleted,
   showClose = true,
 }: {
   request: RequestRecord;
@@ -22,17 +24,48 @@ export function AdminReviewPanel({
   hasFollowup?: boolean;
   onClose?: () => void;
   onUpdated?: (request: RequestRecord) => void;
+  onDeleted?: (requestId: string) => void;
   showClose?: boolean;
 }) {
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const hasSubmittedFollowup = request.kind === "report_sick" && (Boolean(request.followup_submitted_at) || Boolean(hasFollowup));
   const isFinalized = Boolean(request.finalized_at) || request.status === "finalized";
   const isRejected = Boolean(request.rejected_at) || request.status === "rejected";
   const isApproved = Boolean(request.approved_at) || request.status === "approved" || request.status === "submitted";
   const canReject = request.kind === "report_sick";
+
+  async function deleteRequest() {
+    if (deleting) return;
+    setDeleting(true);
+    setMessage(null);
+    try {
+      const response = await fetch("/api/admin/requests", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: request.id }),
+      });
+      const result = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(result?.message || "This request could not be deleted.");
+      setDeleteOpen(false);
+      if (onDeleted) {
+        onDeleted(request.id);
+      } else {
+        router.replace("/admin/requests");
+        router.refresh();
+      }
+    } catch (error) {
+      console.error("Failed to delete request", error);
+      setMessage(error instanceof Error ? error.message : "This request could not be deleted.");
+      setDeleteOpen(false);
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   function save(actionType: "approve" | "reject" | "finalize") {
     if (pending) return;
@@ -104,7 +137,7 @@ export function AdminReviewPanel({
 
   const canReview = !isApproved && !isRejected && !isFinalized;
   const canFinalize = request.kind === "report_sick" && !isRejected && !isFinalized && hasSubmittedFollowup;
-  const showActionRow = canReview || canFinalize || showClose;
+  const showActionRow = canReview || canFinalize || showClose || Boolean(request.id);
 
   if (!showActionRow && !message) {
     return null;
@@ -138,9 +171,28 @@ export function AdminReviewPanel({
                 Back
               </Button>
             ) : null}
+            <Button type="button" variant="destructive" disabled={pending || deleting} onClick={() => setDeleteOpen(true)} className="sm:flex-1">
+              Delete request
+            </Button>
           </div>
         ) : null}
       </CardContent>
+      <Dialog open={deleteOpen} onOpenChange={(open) => { if (!deleting) setDeleteOpen(open); }}>
+        <DialogContent aria-labelledby="delete-request-title" className="max-w-md rounded-2xl">
+          <div className="space-y-3 p-6">
+            <h2 id="delete-request-title" className="text-lg font-semibold">Delete this request?</h2>
+            <p className="text-sm leading-6 text-muted-foreground">
+              This permanently removes the request and all linked follow-up and audit records. This action cannot be undone.
+            </p>
+            <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
+              <Button type="button" variant="outline" disabled={deleting} onClick={() => setDeleteOpen(false)}>Cancel</Button>
+              <Button type="button" variant="destructive" disabled={deleting} onClick={() => void deleteRequest()}>
+                {deleting ? "Deleting..." : "Delete request"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }

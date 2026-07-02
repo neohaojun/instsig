@@ -3,11 +3,12 @@
 import { useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { format, isValid, parseISO } from "date-fns";
-import { Calendar as CalendarIcon, Download, Edit2, FileSpreadsheet, Mail, Save, Search, Trash2, Upload, UserRound, X } from "lucide-react";
+import { Calendar as CalendarIcon, ChevronDown, Download, Edit2, FileSpreadsheet, Mail, Save, Search, Trash2, Upload, UserRound, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select } from "@/components/ui/select";
@@ -143,23 +144,6 @@ function InfoField({
   );
 }
 
-function EditableInfoField({
-  label,
-  className,
-  children,
-}: {
-  label: string;
-  className?: string;
-  children: ReactNode;
-}) {
-  return (
-    <div className={cn("rounded-xl border border-border/80 bg-muted/25 px-3 py-2.5", className)}>
-      <Label className="text-xs font-medium text-muted-foreground">{label}</Label>
-      <div className="mt-1">{children}</div>
-    </div>
-  );
-}
-
 function FormField({
   label,
   className,
@@ -214,39 +198,19 @@ function UserProfileCard({
   profileRow,
   batchName,
   batch,
-  batchOptions,
-  isEditing,
-  isSaving,
-  isDeleting,
-  formState,
-  errorMessage,
   onEdit,
-  onCancel,
-  onSave,
-  onDelete,
-  onChange,
 }: {
   profileRow: EditableProfile;
   batchName: string;
   batch: BatchRecord | null | undefined;
-  batchOptions: BatchRecord[];
-  isEditing: boolean;
-  isSaving: boolean;
-  isDeleting: boolean;
-  formState: ProfileFormState;
-  errorMessage?: string;
   onEdit: () => void;
-  onCancel: () => void;
-  onSave: () => void;
-  onDelete: () => void;
-  onChange: (field: keyof ProfileFormState, value: string) => void;
 }) {
   const displayName = formatProfileName(profileRow, profileRow.email);
 
   return (
-    <Card className="overflow-visible transition hover:border-primary/20 hover:bg-accent/40">
-      <CardHeader className="space-y-4 p-5">
-        <div className="flex items-center justify-between gap-4">
+    <Card className="h-full overflow-hidden transition hover:border-primary/20 hover:bg-accent/40">
+      <CardHeader className="p-5 pb-4">
+        <div className="flex items-start justify-between gap-4">
           <div className="flex min-w-0 flex-1 items-center gap-3">
             <div
               className={cn(
@@ -257,131 +221,158 @@ function UserProfileCard({
               <UserRound className="h-5 w-5" />
             </div>
             <div className="min-w-0 flex-1 space-y-0.5">
-              {isEditing ? (
-                <div className="grid gap-2 sm:grid-cols-[7rem_minmax(0,1fr)]">
-                  <FormField label="Rank">
-                    <Input value={formState.rank} onChange={(event) => onChange("rank", event.target.value)} />
-                  </FormField>
-                  <FormField label="Full Name">
-                    <Input value={formState.full_name} onChange={(event) => onChange("full_name", event.target.value)} />
-                  </FormField>
-                </div>
-              ) : (
-                <CardTitle className="break-words text-base leading-snug sm:text-lg">{displayName}</CardTitle>
-              )}
-              {isEditing ? (
-                <FormField label="Email">
-                  <Input type="email" value={formState.email} onChange={(event) => onChange("email", event.target.value)} />
-                </FormField>
-              ) : (
-                <div className="flex min-w-0 items-center gap-1.5 text-sm text-muted-foreground">
-                  <Mail className="h-3.5 w-3.5 shrink-0" />
-                  <span className="break-all">{profileRow.email}</span>
-                </div>
-              )}
+              <CardTitle className="break-words text-base leading-snug sm:text-lg">{displayName}</CardTitle>
+              <div className="flex min-w-0 items-center gap-1.5 text-sm text-muted-foreground">
+                <Mail className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate">{profileRow.email}</span>
+              </div>
             </div>
           </div>
           <div className="flex shrink-0 items-center">
-            {isEditing ? (
-              <Button size="sm" variant="ghost" onClick={onCancel} disabled={isSaving} aria-label="Cancel editing">
-                <X className="h-4 w-4" />
-              </Button>
-            ) : (
-              <Button size="sm" variant="outline" className="h-9 w-9 px-0" onClick={onEdit} aria-label={`Edit ${displayName}`}>
-                <Edit2 className="h-4 w-4" />
-              </Button>
-            )}
+            <Button size="sm" variant="outline" className="h-9 w-9 px-0" onClick={onEdit} aria-label={`Edit ${displayName}`}>
+              <Edit2 className="h-4 w-4" />
+            </Button>
           </div>
         </div>
       </CardHeader>
-      <CardContent className="grid gap-4 p-5 pt-0">
-        {isEditing ? (
+      <CardContent className="p-5 pt-0">
+          <div className="grid gap-2 sm:grid-cols-2">
+            <InfoField label="Role" value={profileRow.role === "admin" ? "Admin" : "User"} />
+            <InfoField label="SCS Batch" value={profileValue(batchName)} />
+            <InfoField label="Course Code / NR" value={`${profileValue(profileRow.sscc_batch)} · ${profileValue(profileRow.nr)}`} />
+            <InfoField label="Course Status" value={profileRow.ooc_date ? `OOC from ${formatDisplayDate(profileRow.ooc_date)}` : "Active"} />
+            <InfoField label="Current Platoon" value={profileValue(formatCoursePlatoon(profileRow, batch))} className="sm:col-span-2" />
+          </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function EditUserDialog({
+  profile,
+  batchOptions,
+  formState,
+  isSaving,
+  isDeleting,
+  errorMessage,
+  onClose,
+  onSave,
+  onDelete,
+  onChange,
+}: {
+  profile: EditableProfile | null;
+  batchOptions: BatchRecord[];
+  formState: ProfileFormState | null;
+  isSaving: boolean;
+  isDeleting: boolean;
+  errorMessage?: string;
+  onClose: () => void;
+  onSave: () => void;
+  onDelete: () => void;
+  onChange: (field: keyof ProfileFormState, value: string) => void;
+}) {
+  const open = Boolean(profile && formState);
+  return (
+    <Dialog open={open} onOpenChange={(nextOpen) => { if (!nextOpen && !isSaving && !isDeleting) onClose(); }}>
+      <DialogContent className="h-[100dvh] sm:h-auto sm:max-w-3xl" dismissible={!isSaving && !isDeleting} aria-labelledby="edit-user-title">
+        {profile && formState ? (
           <>
-            <div className="grid gap-2 sm:grid-cols-2">
-              <EditableInfoField label="Role" className="sm:col-span-2">
-                <Select value={formState.role} onChange={(event) => onChange("role", event.target.value)}>
-                  <option value="user">User</option>
-                  <option value="admin">Admin</option>
-                </Select>
-              </EditableInfoField>
-              <EditableInfoField label="New Password" className="sm:col-span-2">
-                <Input
-                  type="password"
-                  autoComplete="new-password"
-                  placeholder="Leave blank to keep current password"
-                  value={formState.password}
-                  onChange={(event) => onChange("password", event.target.value)}
-                />
-              </EditableInfoField>
-              <EditableInfoField label="SCS Batch">
-                <Select
-                  value={formState.scs_batch}
-                  onChange={(event) => onChange("scs_batch", event.target.value)}
-                >
-                  <option value="">Not Assigned</option>
-                  {batchOptions.map((batch) => <option key={batch.id} value={batch.name}>{batch.name}</option>)}
-                </Select>
-              </EditableInfoField>
-              <EditableInfoField label="Course Code">
-                <Input
-                  inputMode="numeric"
-                  placeholder="--/--"
-                  value={formState.sscc_batch}
-                  onChange={(event) => onChange("sscc_batch", formatBatchInput(event.target.value))}
-                />
-              </EditableInfoField>
-              <EditableInfoField label="NR">
-                <Input value={formState.nr} onChange={(event) => onChange("nr", event.target.value)} />
-              </EditableInfoField>
-              <EditableInfoField label="Common Term Platoon" className="sm:col-span-2">
-                <Input
-                  value={formState.common_term_platoon}
-                  onChange={(event) => onChange("common_term_platoon", event.target.value)}
-                />
-              </EditableInfoField>
-              <EditableInfoField label="Specialisation Phase Platoon" className="sm:col-span-2">
-                <Input
-                  value={formState.specialisation_phase_platoon}
-                  onChange={(event) => onChange("specialisation_phase_platoon", event.target.value)}
-                />
-              </EditableInfoField>
-              <EditableInfoField label="OOC (Out of Course)" className="sm:col-span-2">
-                <OocDateField value={formState.ooc_date} onChange={(value) => onChange("ooc_date", value)} />
-              </EditableInfoField>
+            <div className="flex items-start justify-between gap-4 border-b border-border px-5 py-4 sm:px-6">
+              <div className="min-w-0">
+                <h2 id="edit-user-title" className="text-xl font-semibold">Edit user</h2>
+                <p className="mt-1 truncate text-sm text-muted-foreground">{formatProfileName(profile, profile.email)}</p>
+              </div>
+              <Button type="button" size="sm" variant="ghost" className="h-9 w-9 shrink-0 px-0" onClick={onClose} disabled={isSaving || isDeleting} aria-label="Close editor">
+                <X className="h-4 w-4" />
+              </Button>
             </div>
-            {errorMessage ? <p className="text-sm text-destructive">{errorMessage}</p> : null}
-            <div className="flex flex-wrap justify-end gap-2 border-t border-border pt-4">
+
+            <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6">
+              <div className="space-y-6">
+                <section className="space-y-4">
+                  <div>
+                    <h3 className="font-medium">Account</h3>
+                    <p className="text-sm text-muted-foreground">Login, identity, and access level.</p>
+                  </div>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <FormField label="Rank">
+                      <Input value={formState.rank} onChange={(event) => onChange("rank", event.target.value)} />
+                    </FormField>
+                    <FormField label="Full Name">
+                      <Input value={formState.full_name} onChange={(event) => onChange("full_name", event.target.value)} />
+                    </FormField>
+                    <FormField label="Email" className="sm:col-span-2">
+                      <Input type="email" value={formState.email} onChange={(event) => onChange("email", event.target.value)} />
+                    </FormField>
+                    <FormField label="Role">
+                      <Select value={formState.role} onChange={(event) => onChange("role", event.target.value)}>
+                        <option value="user">User</option>
+                        <option value="admin">Admin</option>
+                      </Select>
+                    </FormField>
+                    <FormField label="New Password (optional)">
+                      <Input type="password" autoComplete="new-password" placeholder="Keep current password" value={formState.password} onChange={(event) => onChange("password", event.target.value)} />
+                    </FormField>
+                  </div>
+                </section>
+
+                <section className="space-y-4 border-t border-border pt-6">
+                  <div>
+                    <h3 className="font-medium">Course</h3>
+                    <p className="text-sm text-muted-foreground">Batch, course identifiers, and status.</p>
+                  </div>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <FormField label="SCS Batch">
+                      <Select value={formState.scs_batch} onChange={(event) => onChange("scs_batch", event.target.value)}>
+                        <option value="">Not Assigned</option>
+                        {batchOptions.map((batch) => <option key={batch.id} value={batch.name}>{batch.name}</option>)}
+                      </Select>
+                    </FormField>
+                    <FormField label="Course Code">
+                      <Input inputMode="numeric" placeholder="--/--" value={formState.sscc_batch} onChange={(event) => onChange("sscc_batch", formatBatchInput(event.target.value))} />
+                    </FormField>
+                    <FormField label="NR">
+                      <Input value={formState.nr} onChange={(event) => onChange("nr", event.target.value)} />
+                    </FormField>
+                    <FormField label="OOC (Out of Course)">
+                      <OocDateField value={formState.ooc_date} onChange={(value) => onChange("ooc_date", value)} />
+                    </FormField>
+                  </div>
+                </section>
+
+                <section className="space-y-4 border-t border-border pt-6">
+                  <div>
+                    <h3 className="font-medium">Platoon</h3>
+                    <p className="text-sm text-muted-foreground">Course phase assignments.</p>
+                  </div>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <FormField label="Common Term Platoon">
+                      <Input value={formState.common_term_platoon} onChange={(event) => onChange("common_term_platoon", event.target.value)} />
+                    </FormField>
+                    <FormField label="Specialisation Phase Platoon">
+                      <Input value={formState.specialisation_phase_platoon} onChange={(event) => onChange("specialisation_phase_platoon", event.target.value)} />
+                    </FormField>
+                  </div>
+                </section>
+                {errorMessage ? <p role="alert" className="text-sm text-destructive">{errorMessage}</p> : null}
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 border-t border-border bg-card px-5 py-4 sm:px-6">
               <Button variant="destructive" onClick={onDelete} disabled={isSaving || isDeleting} className="mr-auto">
                 <Trash2 className="h-4 w-4" />
                 {isDeleting ? "Deleting..." : "Delete account"}
               </Button>
-              <Button variant="outline" onClick={onCancel} disabled={isSaving}>
-                Cancel
-              </Button>
-              <Button onClick={onSave} disabled={isSaving}>
+              <Button variant="outline" onClick={onClose} disabled={isSaving || isDeleting}>Cancel</Button>
+              <Button onClick={onSave} disabled={isSaving || isDeleting}>
                 <Save className="h-4 w-4" />
                 {isSaving ? "Saving..." : "Save changes"}
               </Button>
             </div>
           </>
-        ) : (
-          <div className="grid gap-2 sm:grid-cols-2">
-            <InfoField label="Role" value={profileRow.role === "admin" ? "Admin" : "User"} />
-            <InfoField label="SCS Batch" value={profileValue(batchName)} />
-            <InfoField label="Course Code" value={profileValue(profileRow.sscc_batch)} />
-            <InfoField label="NR" value={profileValue(profileRow.nr)} />
-            <InfoField label="Course Status" value={profileRow.ooc_date ? `OOC from ${formatDisplayDate(profileRow.ooc_date)}` : "Active"} />
-            <InfoField label="Current Platoon" value={profileValue(formatCoursePlatoon(profileRow, batch))} className="sm:col-span-2" />
-            <InfoField label="Common Term Platoon" value={profileValue(profileRow.common_term_platoon)} className="sm:col-span-2" />
-            <InfoField
-              label="Specialisation Phase Platoon"
-              value={profileValue(profileRow.specialisation_phase_platoon)}
-              className="sm:col-span-2"
-            />
-          </div>
-        )}
-      </CardContent>
-    </Card>
+        ) : null}
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -403,6 +394,7 @@ export function ManageUsersClient({
   const [formState, setFormState] = useState<ProfileFormState | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
   const [importResults, setImportResults] = useState<ImportResult[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -441,6 +433,7 @@ export function ManageUsersClient({
       })
       .sort((a, b) => formatProfileName(a, a.email).localeCompare(formatProfileName(b, b.email), undefined, { sensitivity: "base" }));
   }, [batchFilter, batchesById, profiles, roleFilter, searchQuery]);
+  const editingProfile = editingId ? profiles.find((profile) => profile.id === editingId) ?? null : null;
 
   function startEditing(profile: EditableProfile) {
     const batchName = profile.batch_id ? batchesById[profile.batch_id]?.name : undefined;
@@ -567,17 +560,19 @@ export function ManageUsersClient({
   return (
     <>
       <Card className="overflow-hidden animate-enter-soft">
-        <CardHeader className="space-y-2 p-5 sm:p-6">
-          <div className="flex items-center gap-3">
+        <CardHeader className="p-5 sm:p-6">
+          <button type="button" className="flex w-full items-center gap-3 text-left" onClick={() => setImportOpen((current) => !current)} aria-expanded={importOpen} aria-controls="account-import-panel">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border bg-muted/40 text-muted-foreground">
               <FileSpreadsheet className="h-5 w-5" />
             </div>
-            <div>
+            <div className="min-w-0 flex-1">
               <CardTitle className="text-lg leading-none">Add accounts from spreadsheet</CardTitle>
+              <p className="mt-1 text-sm text-muted-foreground">Download a template or import multiple users.</p>
             </div>
-          </div>
+            <ChevronDown className={cn("h-5 w-5 shrink-0 text-muted-foreground transition-transform", importOpen && "rotate-180")} />
+          </button>
         </CardHeader>
-        <CardContent className="space-y-4 p-5 pt-0 sm:p-6 sm:pt-0">
+        {importOpen ? <CardContent id="account-import-panel" className="space-y-4 border-t border-border p-5 sm:p-6">
           <div className="flex flex-wrap gap-2">
             <Button type="button" variant="outline" onClick={downloadImportTemplate}>
               <Download className="h-4 w-4" />
@@ -613,7 +608,7 @@ export function ManageUsersClient({
               ) : null}
             </div>
           ) : null}
-        </CardContent>
+        </CardContent> : null}
       </Card>
 
       <Card className="overflow-hidden animate-enter-soft">
@@ -675,25 +670,13 @@ export function ManageUsersClient({
         {filteredProfiles.length ? (
           filteredProfiles.map((profileRow, index) => {
             const batchName = profileRow.batch_id ? batchesById[profileRow.batch_id]?.name ?? "Unknown Batch" : "Not Assigned";
-            const isEditing = editingId === profileRow.id;
-
             return (
               <div key={profileRow.id} className={index < 2 ? "animate-enter-soft" : ""}>
                 <UserProfileCard
                   profileRow={profileRow}
                   batchName={batchName}
                   batch={profileRow.batch_id ? batchesById[profileRow.batch_id] : null}
-                  batchOptions={batchOptions}
-                  isEditing={isEditing}
-                  isSaving={savingId === profileRow.id}
-                  isDeleting={deletingId === profileRow.id}
-                  formState={isEditing && formState ? formState : toFormState(profileRow, batchName)}
-                  errorMessage={isEditing ? saveError ?? undefined : undefined}
                   onEdit={() => startEditing(profileRow)}
-                  onCancel={cancelEditing}
-                  onSave={() => saveProfile(profileRow.id)}
-                  onDelete={() => deleteProfile(profileRow)}
-                  onChange={updateForm}
                 />
               </div>
             );
@@ -704,6 +687,18 @@ export function ManageUsersClient({
           </Card>
         )}
       </div>
+      <EditUserDialog
+        profile={editingProfile}
+        batchOptions={batchOptions}
+        formState={formState}
+        isSaving={savingId === editingId}
+        isDeleting={deletingId === editingId}
+        errorMessage={saveError ?? undefined}
+        onClose={cancelEditing}
+        onSave={() => { if (editingId) void saveProfile(editingId); }}
+        onDelete={() => { if (editingProfile) void deleteProfile(editingProfile); }}
+        onChange={updateForm}
+      />
     </>
   );
 }

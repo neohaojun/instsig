@@ -1,5 +1,9 @@
 import { isValid, parseISO, startOfDay } from "date-fns";
-import { formatStatusDuration, getActiveReportSickStatuses } from "@/lib/active-report-sick-statuses";
+import {
+  formatStatusDuration,
+  getActiveReportSickStatuses,
+  getPostReportSickStatuses,
+} from "@/lib/active-report-sick-statuses";
 import { formatDisplayDateTime } from "@/lib/display-date";
 import { getBatchPhase, isBatchActiveOnDate } from "@/lib/batch-display";
 import type { BatchRecord, ProfileRecord, RequestRecord, RequestUpdateRecord } from "@/lib/types";
@@ -94,12 +98,23 @@ export function buildStrengthSummary(
   const activeStatuses = getActiveReportSickStatuses(requests, updates, now).filter((status) =>
     personnelIds.has(status.request.requester_id),
   );
+  const postStatuses = getPostReportSickStatuses(requests, updates, now).filter((status) =>
+    personnelIds.has(status.request.requester_id),
+  );
 
   const attendCIds = new Set(
     activeStatuses.filter((status) => status.entry.type === "MC").map((status) => status.request.requester_id),
   );
   const attendBIds = new Set(
-    activeStatuses.filter((status) => status.entry.type !== "MC").map((status) => status.request.requester_id),
+    [
+      ...activeStatuses.filter((status) => status.entry.type !== "MC"),
+      ...postStatuses.filter((status) => status.entry.type === "MC" && status.daysAfterEnd === 1),
+    ].map((status) => status.request.requester_id),
+  );
+  const otherIds = new Set(
+    postStatuses
+      .filter((status) => status.entry.type === "Light Duty" || status.daysAfterEnd === 2)
+      .map((status) => status.request.requester_id),
   );
   const activeStatusRequestIds = new Set(activeStatuses.map((status) => status.request.id));
   const onMedicationIds = new Set(
@@ -143,7 +158,7 @@ export function buildStrengthSummary(
     externalAppointment: externalAppointmentIds.size,
     guardDuty: 0,
     onMedication: onMedicationIds.size,
-    others: 0,
+    others: otherIds.size,
     activeBatches: Array.from(
       new Set(
         Object.values(batchesById)
@@ -164,6 +179,9 @@ export function buildStrengthDetails(
   const summary = buildStrengthSummary(profiles, requests, updates, batchesById, now);
   const personnelIds = new Set(profiles.filter((profile) => isPersonnelProfile(profile, batchesById, now)).map((profile) => profile.id));
   const activeStatuses = getActiveReportSickStatuses(requests, updates, now).filter((status) =>
+    personnelIds.has(status.request.requester_id),
+  );
+  const postStatuses = getPostReportSickStatuses(requests, updates, now).filter((status) =>
     personnelIds.has(status.request.requester_id),
   );
   const activeStatusRequestIds = new Set(activeStatuses.map((status) => status.request.id));
@@ -235,6 +253,24 @@ export function buildStrengthDetails(
       categories.attendC.push(entry);
     } else {
       categories.attendB.push(entry);
+    }
+  });
+
+  postStatuses.forEach((status) => {
+    const abbreviation = status.entry.type === "MC" ? "MC" : "LD";
+    const label = `${abbreviation}+${status.daysAfterEnd}`;
+    const entry = {
+      id: `${status.request.id}-${status.entry.type}-${status.entry.endDate}-${label}`,
+      profileId: status.request.requester_id,
+      fallbackName: status.request.requester_email,
+      description: `(${label})`,
+      meta: `Status ended ${status.entry.endDate}`,
+    };
+
+    if (label === "MC+1") {
+      categories.attendB.push(entry);
+    } else {
+      categories.others.push(entry);
     }
   });
 

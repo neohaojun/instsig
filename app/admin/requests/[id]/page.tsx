@@ -10,7 +10,7 @@ import { ReportSickInitialRequestCard } from "@/components/request/report-sick-f
 import { StatusPill } from "@/components/request/status-pill";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatProfileName } from "@/lib/profile-display";
-import { formatRequesterDescription } from "@/lib/request-card-display";
+import { formatRequestRequesterDescription } from "@/lib/request-card-display";
 import type { BatchRecord, ProfileRecord } from "@/lib/types";
 
 function buildProfilesMap(profiles: ProfileRecord[] | null | undefined) {
@@ -73,7 +73,9 @@ export default async function AdminRequestDetailPage({
                 <CardHeader className="space-y-2 p-6">
                   <CardTitle className="text-base font-semibold text-foreground">Submitted by</CardTitle>
                   <p className="text-sm leading-6 text-foreground">{requesterDisplayName}</p>
-                  <p className="text-sm leading-6 text-muted-foreground">{formatRequesterDescription(requester, requesterBatch)}</p>
+                  <p className="text-sm leading-6 text-muted-foreground">
+                    {formatRequestRequesterDescription(request, requester, requesterBatch)}
+                  </p>
                 </CardHeader>
               </Card>
             );
