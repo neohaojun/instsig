@@ -5,7 +5,6 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 const dateField = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Set all three course dates.");
 const batchFields = z.object({
   name: z.string().trim().min(1).max(80),
-  description: z.string().trim().max(240).nullable(),
   course_start: dateField,
   specialisation_phase_start: dateField,
   course_end: dateField,
@@ -20,6 +19,7 @@ function validateDates(batch: z.infer<typeof batchFields>, context: z.Refinement
 
 const batchSchema = batchFields.superRefine(validateDates);
 const updateBatchSchema = batchFields.extend({ id: z.string().uuid() }).superRefine(validateDates);
+const deleteBatchSchema = z.object({ id: z.string().uuid() });
 
 async function requireAdmin() {
   const supabase = await createSupabaseServerClient();
@@ -35,7 +35,6 @@ async function requireAdmin() {
 function batchValues(input: z.infer<typeof batchFields>) {
   return {
     name: input.name,
-    description: input.description || null,
     course_start: input.course_start,
     common_term_end: input.specialisation_phase_start,
     course_end: input.course_end,
@@ -73,4 +72,18 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ message: error?.code === "23505" ? "A batch with that name already exists." : "The batch could not be updated." }, { status: 400 });
   }
   return NextResponse.json({ batch: data });
+}
+
+export async function DELETE(request: Request) {
+  const access = await requireAdmin();
+  if (access.error || !access.supabase) return access.error;
+  const parsed = deleteBatchSchema.safeParse(await request.json().catch(() => null));
+  if (!parsed.success) return NextResponse.json({ message: "This batch could not be deleted." }, { status: 400 });
+
+  const { error } = await access.supabase.from("batches").delete().eq("id", parsed.data.id);
+  if (error) {
+    console.error("Could not delete batch", error);
+    return NextResponse.json({ message: "This batch could not be deleted." }, { status: 500 });
+  }
+  return NextResponse.json({ id: parsed.data.id });
 }

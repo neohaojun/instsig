@@ -109,6 +109,7 @@ export type ProfileRecord = {
   sscc_batch: string | null;
   specialisation_phase_platoon: string | null;
   nr: string | null;
+  ooc_date: string | null;
 };
 
 export type BatchRecord = {

@@ -326,7 +326,7 @@ function RequestQueueRow({
                 </p>
               ))}
             </div>
-            <p className="text-xs text-muted-foreground">Submitted {formatDisplayDateTime(request.submitted_at ?? request.created_at)}</p>
+            <p className="mt-4 text-xs text-muted-foreground">Submitted {formatDisplayDateTime(request.submitted_at ?? request.created_at)}</p>
           </div>
         </div>
       </div>
