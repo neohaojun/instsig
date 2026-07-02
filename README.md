@@ -81,3 +81,13 @@ Use the project URL plus the new publishable key:
 NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
 ```
+
+Server-side account management and attachment storage also require a Supabase
+secret key. Add this as a server-only environment variable in local and deployed
+environments (never prefix it with `NEXT_PUBLIC_`):
+
+```bash
+SUPABASE_SECRET_KEY=sb_secret_...
+```
+
+The legacy `SUPABASE_SERVICE_ROLE_KEY` variable remains supported.

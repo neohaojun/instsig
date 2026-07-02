@@ -58,7 +58,10 @@ function DialogContent({
 }) {
   const { open, setOpen, triggerRef } = useDialog();
   const contentRef = React.useRef<HTMLDivElement | null>(null);
+  const setOpenRef = React.useRef(setOpen);
   const [mounted, setMounted] = React.useState(false);
+
+  setOpenRef.current = setOpen;
 
   React.useEffect(() => setMounted(true), []);
 
@@ -77,7 +80,7 @@ function DialogContent({
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape" && dismissible) {
         event.preventDefault();
-        setOpen(false);
+        setOpenRef.current(false);
         return;
       }
       if (event.key !== "Tab" || !contentRef.current) return;
@@ -103,7 +106,7 @@ function DialogContent({
       document.removeEventListener("keydown", handleKeyDown);
       triggerElement?.focus();
     };
-  }, [dismissible, open, setOpen, triggerRef]);
+  }, [dismissible, open, triggerRef]);
 
   if (!mounted || !open) return null;
   return createPortal(

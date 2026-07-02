@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { createSupabaseAdminClient, getSupabaseAdminKey } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -63,7 +63,7 @@ async function ensureBucket(admin: ReturnType<typeof createSupabaseAdminClient>)
 }
 
 export async function POST(request: Request) {
-  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  if (!getSupabaseAdminKey()) {
     return NextResponse.json({ message: "Use inline attachment storage." }, { status: 503 });
   }
 
