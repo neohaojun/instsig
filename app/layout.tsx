@@ -10,6 +10,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
       <head>
+        <meta name="theme-color" content="#09090b" />
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -19,6 +20,8 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
                   document.documentElement.classList.toggle("light", theme === "light");
                   document.documentElement.classList.toggle("dark", theme === "dark");
                   document.documentElement.style.colorScheme = theme;
+                  var themeColor = document.querySelector('meta[name="theme-color"]');
+                  if (themeColor) themeColor.setAttribute("content", theme === "light" ? "#ffffff" : "#0a0a0a");
                 } catch (_) {}
               })();
             `,

@@ -16,6 +16,7 @@ function setThemeClass(theme: Theme) {
   document.documentElement.classList.toggle("light", theme === "light");
   document.documentElement.classList.toggle("dark", theme === "dark");
   document.documentElement.style.colorScheme = theme;
+  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", theme === "light" ? "#ffffff" : "#0a0a0a");
 }
 
 function prefersReducedMotion() {
