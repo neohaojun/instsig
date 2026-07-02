@@ -81,6 +81,7 @@ body {
   min-height: 100dvh;
   height: -webkit-fill-available;
   margin: 0;
+  padding-bottom: env(safe-area-inset-bottom);
   color: hsl(var(--foreground));
   background-color: hsl(var(--background));
 }
