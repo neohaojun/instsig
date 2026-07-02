@@ -20,7 +20,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { formatDisplayDateTime } from "@/lib/display-date";
 import { formatProfileName } from "@/lib/profile-display";
-import { buildRequestCardLines, formatRequesterDescription } from "@/lib/request-card-display";
+import { buildRequestCardLines, formatRequestRequesterDescription } from "@/lib/request-card-display";
 import { requestKindLabels } from "@/lib/request-meta";
 import { buildStrengthDetails, buildStrengthSummary } from "@/lib/strength-summary";
 import type { BatchRecord, ProfileRecord, RequestKind, RequestRecord, RequestUpdateRecord } from "@/lib/types";
@@ -233,7 +233,7 @@ function AdminPendingRequestsCard({
               <RequestSubcard
                 key={request.id}
                 title={formatProfileName(requester, request.requester_email)}
-                description={formatRequesterDescription(requester, requesterBatch)}
+                description={formatRequestRequesterDescription(request, requester, requesterBatch)}
                 meta={`Submitted ${formatDisplayDateTime(request.submitted_at ?? request.created_at)}`}
                 showAdminAction
                 request={request}
@@ -642,6 +642,12 @@ function getQueueStats(requests: RequestRecord[], kindView: RequestKindView) {
       dotClassName: "bg-green-500",
       valueClassName: "text-green-500",
     },
+    {
+      label: "Rejected",
+      value: requests.filter((request) => request.status === "rejected").length,
+      dotClassName: "bg-red-500",
+      valueClassName: "text-red-500",
+    },
   ];
 
   if (kindView === "external_appointment") {
@@ -660,7 +666,7 @@ function getQueueStats(requests: RequestRecord[], kindView: RequestKindView) {
     ...sharedStats,
     {
       label: "Submitted",
-      value: requests.filter((request) => request.status === "submitted" || Boolean(request.followup_submitted_at)).length,
+      value: requests.filter((request) => request.status === "submitted").length,
       dotClassName: "bg-violet-500",
       valueClassName: "text-violet-500",
     },
@@ -781,7 +787,7 @@ function RequestQueueRow({
               </p>
               <StatusPill status={request.status} />
             </div>
-            <p className="text-sm leading-5 text-muted-foreground">{formatRequesterDescription(requester, requesterBatch)}</p>
+            <p className="text-sm leading-5 text-muted-foreground">{formatRequestRequesterDescription(request, requester, requesterBatch)}</p>
             <div className="space-y-1 pt-2 text-sm leading-5 text-foreground">
               {detailFields.map((field) => (
                 <p key={field.label}>
@@ -803,7 +809,12 @@ function QueueStats({
   stats: { label: string; value: number; dotClassName: string; valueClassName: string }[];
 }) {
   return (
-    <div className={cn("grid gap-4 sm:grid-cols-2", stats.length <= 3 ? "lg:grid-cols-3" : "lg:grid-cols-5")}>
+    <div
+      className={cn(
+        "grid gap-4 sm:grid-cols-2",
+        stats.length <= 3 ? "lg:grid-cols-3" : stats.length <= 4 ? "lg:grid-cols-4" : stats.length <= 5 ? "lg:grid-cols-5" : "lg:grid-cols-6",
+      )}
+    >
       {stats.map((stat) => (
         <Card key={stat.label} className="overflow-hidden animate-enter-soft">
           <CardHeader className="space-y-3 p-6">
@@ -944,7 +955,7 @@ function RequesterCard({
   const requester = profilesById[request.requester_id];
   const requesterBatch = requester?.batch_id ? batchesById[requester.batch_id] : null;
   const requesterDisplayName = formatProfileName(requester, request.requester_email);
-  const batchSummary = formatRequesterDescription(requester, requesterBatch);
+  const batchSummary = formatRequestRequesterDescription(request, requester, requesterBatch);
 
   return (
     <Card className="overflow-hidden">
@@ -968,6 +979,7 @@ function AdminRequestDetailView({
   batchesById,
   onBack,
   onRequestUpdated,
+  onRequestDeleted,
 }: {
   request: RequestRecord;
   followup: RequestUpdateRecord | null;
@@ -977,6 +989,7 @@ function AdminRequestDetailView({
   batchesById: Record<string, BatchRecord | null | undefined>;
   onBack: () => void;
   onRequestUpdated: (request: RequestRecord) => void;
+  onRequestDeleted: (requestId: string) => void;
 }) {
   const showRightPane = request.kind === "report_sick";
 
@@ -1018,6 +1031,7 @@ function AdminRequestDetailView({
               hasFollowup={Boolean(followup)}
               onClose={onBack}
               onUpdated={onRequestUpdated}
+              onDeleted={onRequestDeleted}
               showClose={false}
             />
           </div>
@@ -1208,6 +1222,13 @@ export function InstsigApp({
     setUpdates((current) => [followup, ...current.filter((item) => !(item.request_id === followup.request_id && item.kind === followup.kind))]);
   }
 
+  function handleRequestDeleted(requestId: string) {
+    setRequests((current) => current.filter((request) => request.id !== requestId));
+    setUpdates((current) => current.filter((update) => update.request_id !== requestId));
+    setSelectedRequestId(null);
+    navigate(returnView);
+  }
+
   return (
     <main className="min-h-screen bg-background text-foreground">
       <TopBar
@@ -1270,6 +1291,7 @@ export function InstsigApp({
             batchesById={batchesById}
             onBack={() => navigate(returnView)}
             onRequestUpdated={handleRequestUpdated}
+            onRequestDeleted={handleRequestDeleted}
           />
         ) : (
           <UserRequestDetailView

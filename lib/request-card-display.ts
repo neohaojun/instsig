@@ -55,6 +55,27 @@ export function formatRequesterDescription(
   return formatCoursePlatoon(requester, batch) || "SCTW Permstaff";
 }
 
+export function formatRequestRequesterDescription(
+  request: RequestRecord,
+  requester: ProfileRecord | null | undefined,
+  batch?: BatchRecord | null | undefined,
+  adminLabel?: string | null,
+) {
+  if (adminLabel) return adminLabel;
+
+  const payload = request.payload as Record<string, unknown>;
+  const dateValue = request.kind === "report_sick" ? payload.dateReportingSick : payload.when;
+
+  if (typeof dateValue === "string" && dateValue.trim()) {
+    const requestDate = parseISO(dateValue);
+    if (!Number.isNaN(requestDate.getTime())) {
+      return formatCoursePlatoon(requester, batch, requestDate) || "SCTW Permstaff";
+    }
+  }
+
+  return formatRequesterDescription(requester, batch);
+}
+
 export function buildRequestCardLines(request: RequestRecord, followup?: RequestUpdateRecord | null) {
   const payload = request.payload as Record<string, unknown>;
 

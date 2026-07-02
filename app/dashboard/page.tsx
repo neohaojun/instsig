@@ -13,7 +13,7 @@ import { StatusPill } from "@/components/request/status-pill";
 import { formatDisplayDateTime } from "@/lib/display-date";
 import { buildStrengthSummary } from "@/lib/strength-summary";
 import { cn } from "@/lib/utils";
-import { formatRequesterDescription } from "@/lib/request-card-display";
+import { formatRequestRequesterDescription } from "@/lib/request-card-display";
 
 function isIncompleteRequest(request: RequestRecord) {
   if (request.kind === "report_sick") {
@@ -174,7 +174,7 @@ function AdminPendingRequestsCard({
                 key={request.id}
                 href={`/admin/requests/${request.id}`}
                 title={formatProfileName(requester, request.requester_email)}
-                description={formatRequesterDescription(requester, requesterBatch)}
+                description={formatRequestRequesterDescription(request, requester, requesterBatch)}
                 meta={formatRequestWhen(request)}
                 showAdminAction
                 request={request}

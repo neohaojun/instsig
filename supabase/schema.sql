@@ -334,6 +334,7 @@ drop policy if exists "requests self read" on public.requests;
 drop policy if exists "requests self insert" on public.requests;
 drop policy if exists "requests self update" on public.requests;
 drop policy if exists "requests report sick followup update" on public.requests;
+drop policy if exists "requests admin delete" on public.requests;
 drop policy if exists "request updates read" on public.request_updates;
 drop policy if exists "request updates requester insert" on public.request_updates;
 drop policy if exists "request updates requester update" on public.request_updates;
@@ -359,6 +360,9 @@ for insert with check (requester_id = auth.uid());
 create policy "requests self update" on public.requests
 for update using ((requester_id = auth.uid() and status in ('draft', 'pending', 'needs_changes')) or public.is_admin())
 with check ((requester_id = auth.uid() and status in ('draft', 'pending', 'needs_changes')) or public.is_admin());
+
+create policy "requests admin delete" on public.requests
+for delete using (public.is_admin());
 
 create policy "requests report sick followup update" on public.requests
 for update using (

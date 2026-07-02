@@ -34,7 +34,8 @@ export function formatCoursePlatoon(
   if (phase === "specialisation") {
     return [batch.name, "SSCC", profile.sscc_batch, profile.specialisation_phase_platoon].filter(Boolean).join(" ");
   }
-  if (phase === "common") {
+  const courseStart = parseDate(batch.course_start);
+  if (phase === "common" || (courseStart && startOfDay(date) < courseStart)) {
     return [batch.name, "SSCC", profile.common_term_platoon].filter(Boolean).join(" ");
   }
 

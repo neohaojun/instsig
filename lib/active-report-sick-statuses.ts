@@ -8,6 +8,12 @@ export type ActiveReportSickStatus = {
   totalDays: number;
 };
 
+export type PostReportSickStatus = {
+  request: RequestRecord;
+  entry: ReportSickStatusEntry;
+  daysAfterEnd: 1 | 2;
+};
+
 function parseDateOnly(value: string) {
   const parsed = parseISO(value);
   return isValid(parsed) ? startOfDay(parsed) : null;
@@ -32,12 +38,7 @@ function normalizeStatusEntry(entry: unknown): ReportSickStatusEntry | null {
   };
 }
 
-export function getActiveReportSickStatuses(
-  requests: RequestRecord[],
-  updates: RequestUpdateRecord[],
-  now: Date = new Date(),
-) {
-  const today = startOfDay(now);
+function getReportSickStatuses(requests: RequestRecord[], updates: RequestUpdateRecord[]) {
   const followupsByRequestId = new Map(
     updates.filter((update) => update.kind === "doctor_followup").map((update) => [update.request_id, update]),
   );
@@ -51,26 +52,56 @@ export function getActiveReportSickStatuses(
       return entries
         .map(normalizeStatusEntry)
         .filter((entry): entry is ReportSickStatusEntry => Boolean(entry))
-        .flatMap((entry) => {
-          const startDate = parseDateOnly(entry.startDate);
-          const endDate = parseDateOnly(entry.endDate);
-          if (!startDate || !endDate || today < startDate || today > endDate) return [];
+        .map((entry) => ({ request, entry }));
+    });
+}
 
-          return [
-            {
-              request,
-              entry,
-              remainingDays: differenceInCalendarDays(endDate, today) + 1,
-              totalDays: Math.max(entry.days, differenceInCalendarDays(endDate, startDate) + 1),
-            },
-          ];
-        });
+export function getActiveReportSickStatuses(
+  requests: RequestRecord[],
+  updates: RequestUpdateRecord[],
+  now: Date = new Date(),
+) {
+  const today = startOfDay(now);
+
+  return getReportSickStatuses(requests, updates)
+    .flatMap(({ request, entry }) => {
+      const startDate = parseDateOnly(entry.startDate);
+      const endDate = parseDateOnly(entry.endDate);
+      if (!startDate || !endDate || today < startDate || today > endDate) return [];
+
+      return [
+        {
+          request,
+          entry,
+          remainingDays: differenceInCalendarDays(endDate, today) + 1,
+          totalDays: Math.max(entry.days, differenceInCalendarDays(endDate, startDate) + 1),
+        },
+      ];
     })
     .sort((first, second) => {
       const firstEnd = Date.parse(first.entry.endDate);
       const secondEnd = Date.parse(second.entry.endDate);
       return firstEnd - secondEnd;
     });
+}
+
+export function getPostReportSickStatuses(
+  requests: RequestRecord[],
+  updates: RequestUpdateRecord[],
+  now: Date = new Date(),
+) {
+  const today = startOfDay(now);
+
+  return getReportSickStatuses(requests, updates).flatMap(({ request, entry }) => {
+    if (entry.type !== "MC" && entry.type !== "Light Duty") return [];
+    const endDate = parseDateOnly(entry.endDate);
+    if (!endDate) return [];
+
+    const daysAfterEnd = differenceInCalendarDays(today, endDate);
+    if (daysAfterEnd !== 1 && daysAfterEnd !== 2) return [];
+
+    return [{ request, entry, daysAfterEnd: daysAfterEnd as 1 | 2 } satisfies PostReportSickStatus];
+  });
 }
 
 export function formatStatusDuration(status: ActiveReportSickStatus) {
