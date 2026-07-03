@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { format, parseISO } from "date-fns";
+import { ChevronLeft } from "lucide-react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { TopBar } from "@/components/layout/topbar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -128,7 +129,10 @@ export default async function HistoryPage() {
               </div>
               <div className="flex flex-wrap gap-3">
                 <Button asChild variant="outline">
-                  <Link href="/">Back to dashboard</Link>
+                  <Link href="/?mode=user">
+                    <ChevronLeft className="h-4 w-4" />
+                    Back to dashboard
+                  </Link>
                 </Button>
               </div>
             </CardHeader>

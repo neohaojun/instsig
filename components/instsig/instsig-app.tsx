@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { format, parseISO } from "date-fns";
 import { ArrowUpRight, CalendarClock, ChevronLeft, ChevronRight, FileText, Search, X } from "lucide-react";
 import Link from "next/link";
+import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { StrengthCard } from "@/components/dashboard/strength-card";
 import { StrengthDatePicker } from "@/components/dashboard/strength-date-picker";
@@ -405,24 +406,22 @@ function DashboardView({
             </CardHeader>
           </Card>
 
-          {requestHistory.length ? (
-            <div className="grid gap-6 lg:grid-cols-2">
-              <UserHistoryCard
-                title="Report Sick History"
+          <div className="grid gap-6 lg:grid-cols-2">
+            <UserHistoryCard
+              title="Report Sick History"
                 requests={requestHistory}
                 kind="report_sick"
-                onViewAll={() => onNavigate("history")}
-                onSelectRequest={onSelectRequest}
-              />
-              <UserHistoryCard
-                title="Ext Appt History"
+                onViewAll={() => window.location.assign("/history")}
+              onSelectRequest={onSelectRequest}
+            />
+            <UserHistoryCard
+              title="Ext Appt History"
                 requests={requestHistory}
                 kind="external_appointment"
-                onViewAll={() => onNavigate("history")}
-                onSelectRequest={onSelectRequest}
-              />
-            </div>
-          ) : null}
+                onViewAll={() => window.location.assign("/history")}
+              onSelectRequest={onSelectRequest}
+            />
+          </div>
         </>
       ) : null}
 
@@ -1152,6 +1151,7 @@ function NewRequestView({
 export function InstsigApp({
   userEmail,
   profile,
+  initialDashboardMode,
   initialRequests,
   initialUpdates,
   profilesById,
@@ -1159,6 +1159,7 @@ export function InstsigApp({
 }: {
   userEmail: string | null;
   profile: ProfileRecord | null;
+  initialDashboardMode?: DashboardMode;
   initialRequests: RequestRecord[];
   initialUpdates: RequestUpdateRecord[];
   profilesById: Record<string, ProfileRecord | null | undefined>;
@@ -1170,7 +1171,7 @@ export function InstsigApp({
   const [returnView, setReturnView] = useState<ShellView>("dashboard");
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
   const [selectedRequestMode, setSelectedRequestMode] = useState<RequestDetailMode>(profile?.role === "admin" ? "admin" : "user");
-  const [dashboardMode, setDashboardMode] = useState<DashboardMode>(profile?.role === "admin" ? "admin" : "user");
+  const [dashboardMode, setDashboardMode] = useState<DashboardMode>(initialDashboardMode ?? (profile?.role === "admin" ? "admin" : "user"));
   const [statusView, setStatusView] = useState<RequestStatusView>("pending");
   const [kindView, setKindView] = useState<RequestKindView>("report_sick");
   const [requestSearchQuery, setRequestSearchQuery] = useState("");
@@ -1221,29 +1222,38 @@ export function InstsigApp({
       return;
     }
 
+    if (
+      nextView === "dashboard" &&
+      (view === "history" ||
+        view === "newReportSick" ||
+        view === "newExternalAppointment" ||
+        (view === "requestDetail" && selectedRequestMode === "user"))
+    ) {
+      setDashboardMode("user");
+    }
+
     setView(nextView);
     window.scrollTo({ top: 0, behavior: "instant" });
   }
 
   function openAdminRequests(nextKindView: RequestKindView = "report_sick") {
-    setStatusView("pending");
-    setKindView(nextKindView);
-    setRequestSearchQuery("");
-    navigate("adminRequests");
+    router.push(`/admin/requests?kind=${nextKindView}`);
   }
 
   function handleSavedRequest(request: RequestRecord) {
     setRequests((current) => [request, ...current.filter((item) => item.id !== request.id)]);
+    setDashboardMode("user");
     setView("dashboard");
     window.scrollTo({ top: 0, behavior: "instant" });
   }
 
   function handleSelectRequest(request: RequestRecord, mode: RequestDetailMode = isAdmin ? "admin" : "user") {
-    setSelectedRequestId(request.id);
-    setSelectedRequestMode(mode);
-    setReturnView(view === "requestDetail" ? "dashboard" : view);
-    setView("requestDetail");
-    window.scrollTo({ top: 0, behavior: "instant" });
+    if (mode === "admin") {
+      router.push(`/admin/requests/${request.id}`);
+      return;
+    }
+
+    router.push(requestDetailHref(request) as Route);
   }
 
   function handleRequestUpdated(request: RequestRecord) {

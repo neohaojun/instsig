@@ -8,7 +8,12 @@ function buildProfilesMap(profiles: ProfileRecord[] | null | undefined) {
   return Object.fromEntries((profiles ?? []).map((profile) => [profile.id, profile]));
 }
 
-export default async function HomePage() {
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ mode?: string }>;
+}) {
+  const { mode } = await searchParams;
   let supabase;
 
   try {
@@ -67,6 +72,7 @@ export default async function HomePage() {
     <InstsigApp
       userEmail={user.email ?? null}
       profile={(profile as ProfileRecord | null) ?? null}
+      initialDashboardMode={mode === "user" ? "user" : undefined}
       initialRequests={relevantRequests}
       initialUpdates={(requestUpdates ?? []) as RequestUpdateRecord[]}
       profilesById={buildProfilesMap(profiles)}
