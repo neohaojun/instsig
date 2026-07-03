@@ -5,7 +5,7 @@ import { getOptionalSupabasePublicConfig } from "@/lib/supabase/env";
 const protectedPrefixes = ["/requests", "/admin"];
 
 function isProtectedPath(pathname: string) {
-  return pathname === "/" || protectedPrefixes.some((prefix) => pathname.startsWith(prefix));
+  return protectedPrefixes.some((prefix) => pathname.startsWith(prefix));
 }
 
 export async function middleware(request: NextRequest) {
@@ -62,5 +62,8 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/", "/requests/:path*", "/admin/:path*"],
+  // The root page performs its own session check. Keeping it out of middleware
+  // lets Next.js stream app/loading.tsx while that check and the initial shell
+  // queries are still running.
+  matcher: ["/requests/:path*", "/admin/:path*"],
 };
