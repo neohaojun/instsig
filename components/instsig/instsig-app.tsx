@@ -11,6 +11,7 @@ import { StrengthDatePicker } from "@/components/dashboard/strength-date-picker"
 import { StrengthDetail } from "@/components/dashboard/strength-detail";
 import { TopBar } from "@/components/layout/topbar";
 import { AdminReportSickFollowupCard } from "@/components/request/admin-report-sick-followup-card";
+import { AdminEditableRequestCard } from "@/components/request/admin-editable-request-card";
 import { AdminReviewPanel } from "@/components/request/admin-review-panel";
 import { ExternalAppointmentRequestCard } from "@/components/request/external-appointment-card";
 import { PageCloseButton } from "@/components/request/page-close-button";
@@ -259,7 +260,7 @@ function AdminPendingRequestsCard({
           })
         ) : (
           <div className="rounded-2xl border border-dashed border-border bg-muted/40 p-4 text-sm text-muted-foreground">
-            No {title.toLowerCase()} awaiting action right now.
+            No pending requests found.
           </div>
         )}
         <div className="pt-2">
@@ -433,16 +434,16 @@ function DashboardView({
           <div className="grid gap-6 lg:grid-cols-2">
             <UserHistoryCard
               title="Report Sick History"
-                requests={requestHistory}
-                kind="report_sick"
-                onViewAll={() => window.location.assign("/history")}
+              requests={requestHistory}
+              kind="report_sick"
+              onViewAll={() => window.location.assign("/history")}
               onSelectRequest={onSelectRequest}
             />
             <UserHistoryCard
               title="Ext Appt History"
-                requests={requestHistory}
-                kind="external_appointment"
-                onViewAll={() => window.location.assign("/history")}
+              requests={requestHistory}
+              kind="external_appointment"
+              onViewAll={() => window.location.assign("/history")}
               onSelectRequest={onSelectRequest}
             />
           </div>
@@ -915,11 +916,16 @@ function RequestsSection({
   onSelectRequest: (request: RequestRecord, mode: RequestDetailMode) => void;
 }) {
   const emptyLabel =
-    statusView === "pending" ? "No pending requests right now." : "No requests found for this view.";
+    statusView === "pending" ? "No pending requests found." : "None found.";
 
   return (
-    <section className="grid gap-4 animate-enter-soft">
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+    <section key={statusView} className="grid gap-4 animate-enter-soft">
+      <div
+        className={cn(
+          "grid gap-3",
+          statusView === "pending" ? "grid-cols-1" : "md:grid-cols-2 xl:grid-cols-3",
+        )}
+      >
         {requests.length ? (
           sortActionableRequests(requests).map((request, index) => {
             const requester = profilesById[request.requester_id];
@@ -1049,6 +1055,7 @@ function AdminRequestDetailView({
   onBack,
   onRequestUpdated,
   onRequestDeleted,
+  onFollowupSaved,
 }: {
   request: RequestRecord;
   followup: RequestUpdateRecord | null;
@@ -1059,6 +1066,7 @@ function AdminRequestDetailView({
   onBack: () => void;
   onRequestUpdated: (request: RequestRecord) => void;
   onRequestDeleted: (requestId: string) => void;
+  onFollowupSaved: (request: RequestRecord, followup: RequestUpdateRecord) => void;
 }) {
   const showRightPane = request.kind === "report_sick";
 
@@ -1073,10 +1081,13 @@ function AdminRequestDetailView({
 
       <div className={`grid gap-6 ${showRightPane ? "xl:grid-cols-2" : "xl:grid-cols-[1fr_0.92fr]"}`}>
         <div className="animate-enter">
-          {request.kind === "report_sick" ? (
-            <ReportSickInitialRequestCard request={request} profilesById={profilesById} />
-          ) : request.kind === "external_appointment" ? (
-            <ExternalAppointmentRequestCard request={request} profilesById={profilesById} />
+          {request.kind === "report_sick" || request.kind === "external_appointment" ? (
+            <AdminEditableRequestCard
+              request={request}
+              profilesById={profilesById}
+              adminId={profile.id}
+              adminEmail={userEmail ?? ""}
+            />
           ) : (
             <RequestSummary
               request={request}
@@ -1091,7 +1102,14 @@ function AdminRequestDetailView({
         <div className="animate-enter-soft animate-delay-1 self-start xl:sticky xl:top-24">
           <div className="grid gap-4">
             {request.kind === "report_sick" && followup ? (
-              <AdminReportSickFollowupCard request={request} followup={followup} profilesById={profilesById} />
+              <AdminReportSickFollowupCard
+                request={request}
+                followup={followup}
+                profilesById={profilesById}
+                adminId={profile.id}
+                adminEmail={userEmail ?? ""}
+                onSaved={onFollowupSaved}
+              />
             ) : null}
             <AdminReviewPanel
               request={request}
@@ -1272,8 +1290,8 @@ export function InstsigApp({
   const defaultUnitId = initialUnitId && accessibleUnitIds.has(initialUnitId)
     ? initialUnitId
     : unitMemberships.find((membership) => membership.membership_role === "unit_admin" || membership.membership_role === "unit_viewer")?.unit_id
-      ?? profile?.unit_id
-      ?? null;
+    ?? profile?.unit_id
+    ?? null;
   const [view, setView] = useState<ShellView>("dashboard");
   const [returnView, setReturnView] = useState<ShellView>("dashboard");
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
@@ -1504,6 +1522,7 @@ export function InstsigApp({
             onBack={() => navigate(returnView)}
             onRequestUpdated={handleRequestUpdated}
             onRequestDeleted={handleRequestDeleted}
+            onFollowupSaved={handleFollowupSaved}
           />
         ) : (
           <UserRequestDetailView

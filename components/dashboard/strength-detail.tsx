@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
-import { Plus, X } from "lucide-react";
+import { Check, Copy, Plus, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { StrengthCard } from "@/components/dashboard/strength-card";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { formatProfileName } from "@/lib/profile-display";
+import { buildStrengthMessage, type StrengthMessageKind } from "@/lib/strength-message";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import type { ProfileRecord, StrengthManualCategory, StrengthManualRecord } from "@/lib/types";
@@ -42,6 +43,7 @@ const manualCategoryLabels: Record<StrengthManualCategory, string> = {
   guard_duty: "Guard Duty",
   on_medication: "On Medication",
   others: "Others",
+  stay_in_perm_staff: "NSF Perm Staff Staying In",
 };
 
 function StrengthPersonRow({
@@ -101,6 +103,8 @@ export function StrengthDetail({
   const [selectedProfileId, setSelectedProfileId] = useState("");
   const [note, setNote] = useState("");
   const [message, setMessage] = useState<string | null>(null);
+  const [copyMessage, setCopyMessage] = useState<string | null>(null);
+  const [copiedKind, setCopiedKind] = useState<StrengthMessageKind | null>(null);
   const [isPending, startTransition] = useTransition();
   const platoonTabs = details.batches.flatMap((batch) =>
     batch.platoons
@@ -125,17 +129,45 @@ export function StrengthDetail({
         .sort((first, second) => formatProfileName(first, first.email).localeCompare(formatProfileName(second, second.email))),
     [activeProfileIds, profilesById],
   );
+  const permStaffOptions = useMemo(
+    () =>
+      Object.values(profilesById)
+        .filter((profile): profile is ProfileRecord => Boolean(profile && profile.role !== "admin" && !activeProfileIds.has(profile.id)))
+        .sort((first, second) => formatProfileName(first, first.email).localeCompare(formatProfileName(second, second.email))),
+    [activeProfileIds, profilesById],
+  );
+  const dialogOptions = addCategory === "stay_in_perm_staff" ? permStaffOptions : personnelOptions;
 
   useEffect(() => {
     if (!addCategory) return;
-    setSelectedProfileId((current) => (current && personnelOptions.some((profile) => profile.id === current) ? current : personnelOptions[0]?.id ?? ""));
-  }, [addCategory, personnelOptions]);
+    setSelectedProfileId((current) => (current && dialogOptions.some((profile) => profile.id === current) ? current : dialogOptions[0]?.id ?? ""));
+  }, [addCategory, dialogOptions]);
 
   function openAddDialog(category: StrengthManualCategory) {
     setAddCategory(category);
-    setSelectedProfileId(personnelOptions[0]?.id ?? "");
+    const options = category === "stay_in_perm_staff" ? permStaffOptions : personnelOptions;
+    setSelectedProfileId(options[0]?.id ?? "");
     setNote("");
     setMessage(null);
+  }
+
+  async function handleCopyMessage(kind: StrengthMessageKind) {
+    const text = buildStrengthMessage({
+      kind,
+      selectedDate,
+      details,
+      profilesById,
+      permStaffTotal: permStaffOptions.length,
+    });
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopyMessage(null);
+      setCopiedKind(kind);
+      window.setTimeout(() => setCopiedKind((current) => (current === kind ? null : current)), 2000);
+    } catch (error) {
+      console.error("Failed to copy strength message", error);
+      setCopyMessage("Could not copy the message. Try again.");
+    }
   }
 
   function handleAddRecord() {
@@ -272,10 +304,24 @@ export function StrengthDetail({
           </div>
         </div>
       ) : null}
+      <Card className="animate-enter-soft">
+        <CardHeader className="p-6 pb-3">
+          <CardTitle className="text-xl">SIDO Messages</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-3 p-6 pt-3 sm:grid-cols-2">
+          {(["book-in", "stay-in"] as const).map((kind) => (
+            <Button key={kind} type="button" variant="outline" className="justify-start" onClick={() => void handleCopyMessage(kind)}>
+              {copiedKind === kind ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
+              {copiedKind === kind ? "Copied" : `Copy ${kind === "book-in" ? "Book-In" : "Stay-In"} Message`}
+            </Button>
+          ))}
+          {copyMessage ? <p className="text-sm text-destructive sm:col-span-2">{copyMessage}</p> : null}
+        </CardContent>
+      </Card>
       <div className="grid gap-6 lg:grid-cols-3">
         {categoryCards.map((card) => {
           const entries = details.categories[card.key].filter(
-            (entry) => !selectedPlatoon || selectedPlatoon.profileIds.has(entry.profileId),
+            (entry) => card.key === "stayInPermStaff" || !selectedPlatoon || selectedPlatoon.profileIds.has(entry.profileId),
           );
           const manualCategory = card.manualCategory;
 
@@ -343,16 +389,16 @@ export function StrengthDetail({
                   id="strength-person"
                   value={selectedProfileId}
                   onChange={(event) => setSelectedProfileId(event.target.value)}
-                  disabled={!personnelOptions.length || isPending}
+                  disabled={!dialogOptions.length || isPending}
                 >
-                  {personnelOptions.length ? (
-                    personnelOptions.map((person) => (
+                  {dialogOptions.length ? (
+                    dialogOptions.map((person) => (
                       <option key={person.id} value={person.id}>
                         {formatProfileName(person, person.email)}
                       </option>
                     ))
                   ) : (
-                    <option value="">No active personnel</option>
+                    <option value="">No eligible personnel</option>
                   )}
                 </Select>
               </div>
@@ -372,7 +418,7 @@ export function StrengthDetail({
               <Button type="button" variant="outline" onClick={() => setAddCategory(null)} disabled={isPending}>
                 Cancel
               </Button>
-              <Button type="button" onClick={handleAddRecord} disabled={!personnelOptions.length || isPending}>
+              <Button type="button" onClick={handleAddRecord} disabled={!dialogOptions.length || isPending}>
                 Save
               </Button>
             </div>

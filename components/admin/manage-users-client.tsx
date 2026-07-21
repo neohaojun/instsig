@@ -141,9 +141,9 @@ function InfoField({
   className?: string;
 }) {
   return (
-    <div className={cn("rounded-xl border border-border/80 bg-muted/25 px-3 py-2.5", className)}>
-      <p className="text-xs font-medium text-muted-foreground">{label}</p>
-      <p className="mt-1 break-words text-sm font-medium leading-5 text-foreground">{value}</p>
+    <div className={cn("min-w-0", className)}>
+      <p className="text-muted-foreground">{label}</p>
+      <p className="break-words text-foreground">{value}</p>
     </div>
   );
 }
@@ -214,41 +214,38 @@ function UserProfileCard({
   const displayName = formatProfileName(profileRow, profileRow.email);
 
   return (
-    <Card className="h-full overflow-hidden transition hover:border-primary/20 hover:bg-accent/40">
-      <CardHeader className="p-5 pb-4">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex min-w-0 flex-1 items-center gap-3">
-            <div
-              className={cn(
-                "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border bg-muted/40 text-muted-foreground",
-                profileRow.role === "admin" && "border-foreground bg-foreground text-background",
-              )}
-            >
-              <UserRound className="h-5 w-5" />
-            </div>
-            <div className="min-w-0 flex-1 space-y-0.5">
-              <CardTitle className="break-words text-base leading-snug sm:text-lg">{displayName}</CardTitle>
-              <div className="flex min-w-0 items-center gap-1.5 text-sm text-muted-foreground">
-                <Mail className="h-3.5 w-3.5 shrink-0" />
-                <span className="truncate">{profileRow.email}</span>
-              </div>
-            </div>
+    <Card className="h-full min-w-0 overflow-hidden">
+      <CardHeader className="flex-row items-start justify-between gap-3 p-5 sm:p-6">
+        <div className="flex min-w-0 flex-1 items-start gap-3">
+          <div
+            className={cn(
+              "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border bg-muted/40 text-muted-foreground",
+              profileRow.role === "admin" && "border-foreground bg-foreground text-background",
+            )}
+          >
+            <UserRound className="h-5 w-5" />
           </div>
-          <div className="flex shrink-0 items-center">
-            <Button size="sm" variant="outline" className="h-9 w-9 px-0" onClick={onEdit} aria-label={`Edit ${displayName}`}>
-              <Edit2 className="h-4 w-4" />
-            </Button>
+          <div className="min-w-0 flex-1 space-y-1">
+            <CardTitle className="break-words text-base leading-snug sm:text-lg">{displayName}</CardTitle>
+            <div className="flex min-w-0 items-center gap-1.5 text-sm text-muted-foreground">
+              <Mail className="h-3.5 w-3.5 shrink-0" />
+              <span className="min-w-0 break-all sm:truncate">{profileRow.email}</span>
+            </div>
           </div>
         </div>
+        <Button size="sm" variant="outline" className="shrink-0" onClick={onEdit} aria-label={`Edit ${displayName}`}>
+          <Edit2 className="h-4 w-4" />
+          <span className="hidden sm:inline">Edit</span>
+        </Button>
       </CardHeader>
-      <CardContent className="p-5 pt-0">
-          <div className="grid gap-2 sm:grid-cols-2">
+      <CardContent className="p-5 pt-0 sm:p-6 sm:pt-0">
+          <div className="grid grid-cols-1 gap-x-4 gap-y-3 text-sm sm:grid-cols-2">
             <InfoField label="Role" value={profileRow.role === "admin" ? "Admin" : "User"} />
             <InfoField label="Unit" value={profileValue(unitName)} />
             <InfoField label="SCS Batch" value={profileValue(batchName)} />
             <InfoField label="Course Code / NR" value={`${profileValue(profileRow.sscc_batch)} · ${profileValue(profileRow.nr)}`} />
             <InfoField label="Course Status" value={profileRow.ooc_date ? `OOC from ${formatDisplayDate(profileRow.ooc_date)}` : "Active"} />
-            <InfoField label="Current Platoon" value={profileValue(formatCoursePlatoon(profileRow, batch))} className="sm:col-span-2" />
+            <InfoField label="Current Platoon" value={profileValue(formatCoursePlatoon(profileRow, batch))} />
           </div>
       </CardContent>
     </Card>
@@ -387,8 +384,8 @@ function EditUserDialog({
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2 border-t border-border bg-card px-5 py-4 sm:px-6">
-              <Button variant="destructive" onClick={onDelete} disabled={isSaving || isDeleting} className="mr-auto">
+            <div className="grid grid-cols-2 gap-2 border-t border-border bg-card px-5 py-4 sm:flex sm:flex-wrap sm:items-center sm:px-6">
+              <Button variant="destructive" onClick={onDelete} disabled={isSaving || isDeleting} className="col-span-2 sm:col-span-1 sm:mr-auto">
                 <Trash2 className="h-4 w-4" />
                 {isDeleting ? "Deleting..." : "Delete account"}
               </Button>
@@ -612,12 +609,12 @@ export function ManageUsersClient({
           </button>
         </CardHeader>
         {importOpen ? <CardContent id="account-import-panel" className="space-y-4 border-t border-border p-5 sm:p-6">
-          <div className="flex flex-wrap gap-2">
-            <Button type="button" variant="outline" onClick={downloadImportTemplate}>
+          <div className="grid gap-2 sm:flex sm:flex-wrap">
+            <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={downloadImportTemplate}>
               <Download className="h-4 w-4" />
               Download template
             </Button>
-            <Button type="button" onClick={() => fileInputRef.current?.click()} disabled={importing}>
+            <Button type="button" className="w-full sm:w-auto" onClick={() => fileInputRef.current?.click()} disabled={importing}>
               <Upload className="h-4 w-4" />
               {importing ? "Importing..." : "Upload spreadsheet"}
             </Button>

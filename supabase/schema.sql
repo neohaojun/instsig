@@ -312,13 +312,10 @@ where p.role = 'admin'
   )
 on conflict (profile_id, unit_id) do nothing;
 
-do $$ begin
-  alter table public.strength_records
-    add constraint strength_records_category_check
-    check (category in ('guard_duty', 'on_medication', 'others'));
-exception
-  when duplicate_object then null;
-end $$;
+alter table public.strength_records drop constraint if exists strength_records_category_check;
+alter table public.strength_records
+  add constraint strength_records_category_check
+  check (category in ('guard_duty', 'on_medication', 'others', 'stay_in_perm_staff'));
 
 create index if not exists requests_requester_email_idx on public.requests (requester_email);
 create index if not exists requests_kind_status_idx on public.requests (kind, status);

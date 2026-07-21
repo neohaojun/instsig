@@ -104,7 +104,13 @@ export default async function AdminRequestDetailPage({
           <div className="animate-enter-soft animate-delay-1 self-start xl:sticky xl:top-24">
             <div className="grid gap-4">
               {request.kind === "report_sick" && followup ? (
-                <AdminReportSickFollowupCard request={request} followup={followup} profilesById={profilesById} />
+                <AdminReportSickFollowupCard
+                  request={request}
+                  followup={followup}
+                  profilesById={profilesById}
+                  adminId={profile.id}
+                  adminEmail={user.email ?? ""}
+                />
               ) : null}
               <AdminReviewPanel
                 request={request}

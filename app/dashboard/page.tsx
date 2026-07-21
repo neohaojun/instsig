@@ -183,7 +183,7 @@ function AdminPendingRequestsCard({
           })
         ) : (
           <div className="rounded-2xl border border-dashed border-border bg-muted/40 p-4 text-sm text-muted-foreground">
-            No {title.toLowerCase()} awaiting action right now.
+            None found.
           </div>
         )}
         <div className="pt-2">
