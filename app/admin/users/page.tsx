@@ -42,18 +42,18 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
   return (
     <main className="min-h-screen bg-background text-foreground">
       <TopBar role="admin" userName={profile?.full_name} userRank={profile?.rank} userEmail={user.email} />
-      <section className="mx-auto grid min-w-0 max-w-7xl gap-4 px-4 py-4 sm:gap-6 sm:px-6 sm:py-6 lg:px-8">
+      <section className="mx-auto grid min-w-0 max-w-7xl gap-6 px-4 py-6 sm:px-6 lg:px-8">
         <Card className="overflow-hidden animate-enter">
-          <CardHeader className="space-y-4 p-5 sm:p-8">
+          <CardHeader className="space-y-4 p-6 sm:p-8">
             <div className="max-w-3xl space-y-3">
-              <CardTitle className="text-2xl leading-tight sm:text-4xl">Manage Users</CardTitle>
+              <CardTitle className="text-3xl leading-tight sm:text-4xl">Manage Users</CardTitle>
               {selectedUnit ? <p className="text-sm text-muted-foreground">{getUnitLabel(selectedUnit)}</p> : null}
             </div>
-            <div className="flex flex-wrap gap-3 sm:pt-2">
-              <Button asChild variant="outline" className="w-full sm:w-auto">
+            <div className="flex flex-wrap gap-3 pt-2">
+              <Button asChild variant="outline">
                 <Link href={unit ? `/?unit=${unit}` : "/"}>
                   <ArrowUpLeft className="h-4 w-4" />
-                  Back to dashboard
+                  Back to Dashboard
                 </Link>
               </Button>
             </div>

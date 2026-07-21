@@ -15,6 +15,7 @@ import { formatDisplayDateTime } from "@/lib/display-date";
 import { requestKindLabels } from "@/lib/request-meta";
 import { buildRequestCardLines, formatRequestRequesterDescription } from "@/lib/request-card-display";
 import { getDescendantUnitIds, getUnitLabel } from "@/lib/unit-scope";
+import { RequestQueueClient } from "@/components/admin/request-queue-client";
 
 type RequestStatusView = "pending" | "all";
 type RequestKindView = "report_sick" | "external_appointment";
@@ -392,11 +393,16 @@ function RequestsSection({
   statusView: RequestStatusView;
 }) {
   const emptyLabel =
-    statusView === "pending" ? "No pending requests right now." : "No requests found for this view.";
+    statusView === "pending" ? "No pending requests found." : "None found.";
 
   return (
-    <section className="grid gap-4 animate-enter-soft">
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+    <section key={statusView} className="grid gap-4 animate-enter-soft">
+      <div
+        className={cn(
+          "grid gap-3",
+          statusView === "pending" ? "grid-cols-1" : "md:grid-cols-2 xl:grid-cols-3",
+        )}
+      >
         {requests.length ? (
           sortActionableRequests(requests).map((request, index) => {
             const requester = profilesById[request.requester_id];
@@ -451,7 +457,7 @@ export default async function AdminRequestsPage({
   const selectedUnit = ((units ?? []) as UnitRecord[]).find((item) => item.id === unitId);
   const unitRequests = unitIds ? (requests ?? []).filter((request) => unitIds.has(request.unit_id)) : (requests ?? []);
   const kindRequests = filterRequestsByKind(unitRequests, kindView);
-  const baseRequests = filterRequestsByView(kindRequests, statusView);
+  const baseRequests = kindRequests;
 
   const requesterIds = Array.from(new Set(baseRequests.map((request) => request.requester_id)));
   const baseRequestIds = baseRequests.map((request) => request.id);
@@ -469,7 +475,6 @@ export default async function AdminRequestsPage({
   const followupsByRequestId = Object.fromEntries(
     ((requestUpdates ?? []) as RequestUpdateRecord[]).map((update) => [update.request_id, update]),
   );
-  const visibleRequests = filterRequestsBySearch(baseRequests, requestersById, searchQuery);
   const stats = getQueueStats(kindRequests, kindView);
 
   return (
@@ -493,18 +498,13 @@ export default async function AdminRequestsPage({
 
         <QueueStats stats={stats} />
 
-        <div className="flex flex-wrap gap-3">
-          <RequestStatusTabs activeView={statusView} kindView={kindView} searchQuery={searchQuery} unitId={unitId} />
-        </div>
-
-        <RequestQueueSearch statusView={statusView} kindView={kindView} searchQuery={searchQuery} unitId={unitId} />
-
-        <RequestsSection
-          requests={visibleRequests}
+        <RequestQueueClient
+          requests={baseRequests}
           profilesById={requestersById}
           batchesById={batchesById}
           followupsByRequestId={followupsByRequestId}
-          statusView={statusView}
+          initialStatusView={statusView}
+          initialSearchQuery={searchQuery}
         />
       </section>
     </main>

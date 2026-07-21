@@ -43,7 +43,8 @@ export type StrengthCategoryKey =
   | "externalAppointment"
   | "guardDuty"
   | "onMedication"
-  | "others";
+  | "others"
+  | "stayInPermStaff";
 
 export type StrengthCategoryEntry = {
   id: string;
@@ -51,6 +52,7 @@ export type StrengthCategoryEntry = {
   fallbackName: string;
   description: string;
   meta: string;
+  untilDate?: string;
 };
 
 export type StrengthDetails = {
@@ -95,6 +97,28 @@ function getManualRecordsForDate(
   return records.filter(
     (record) => record.category === category && personnelIds.has(record.profile_id) && isSameDate(record.duty_date, date),
   );
+}
+
+function combineCategoryEntriesByProfile(entries: StrengthCategoryEntry[]) {
+  const combined = new Map<string, StrengthCategoryEntry>();
+
+  entries.forEach((entry) => {
+    const existing = combined.get(entry.profileId);
+    if (!existing) {
+      combined.set(entry.profileId, entry);
+      return;
+    }
+
+    combined.set(entry.profileId, {
+      ...existing,
+      id: `${existing.id}-${entry.id}`,
+      description: `${existing.description} · ${entry.description}`,
+      meta: `${existing.meta} · ${entry.meta}`,
+      untilDate: undefined,
+    });
+  });
+
+  return [...combined.values()];
 }
 
 export function buildStrengthSummary(
@@ -238,6 +262,7 @@ export function buildStrengthDetails(
     guardDuty: [],
     onMedication: [],
     others: [],
+    stayInPermStaff: [],
   };
 
   activeStatuses.forEach((status) => {
@@ -247,6 +272,7 @@ export function buildStrengthDetails(
       fallbackName: status.request.requester_email,
       description: status.entry.type,
       meta: formatStatusDuration(status),
+      untilDate: status.entry.endDate,
     };
 
     if (status.entry.type === "MC") {
@@ -310,9 +336,16 @@ export function buildStrengthDetails(
   });
 
   manualRecords.forEach((record) => {
-    if (!personnelIds.has(record.profile_id) || !isSameDate(record.duty_date, now)) return;
+    if (!isSameDate(record.duty_date, now)) return;
+    if (record.category !== "stay_in_perm_staff" && !personnelIds.has(record.profile_id)) return;
     const categoryKey =
-      record.category === "guard_duty" ? "guardDuty" : record.category === "on_medication" ? "onMedication" : "others";
+      record.category === "guard_duty"
+        ? "guardDuty"
+        : record.category === "on_medication"
+          ? "onMedication"
+          : record.category === "stay_in_perm_staff"
+            ? "stayInPermStaff"
+            : "others";
     categories[categoryKey].push({
       id: record.id,
       profileId: record.profile_id,
@@ -321,6 +354,8 @@ export function buildStrengthDetails(
       meta: "Manual strength record",
     });
   });
+
+  categories.attendB = combineCategoryEntriesByProfile(categories.attendB);
 
   return { summary, batches, categories };
 }

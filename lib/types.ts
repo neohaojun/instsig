@@ -121,7 +121,7 @@ export type RequestUpdateRecord = {
   updated_at: string;
 };
 
-export type StrengthManualCategory = "guard_duty" | "on_medication" | "others";
+export type StrengthManualCategory = "guard_duty" | "on_medication" | "others" | "stay_in_perm_staff";
 
 export type StrengthManualRecord = {
   id: string;

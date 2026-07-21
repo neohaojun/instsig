@@ -490,11 +490,17 @@ export function ReportSickFollowupForm({
   initialUpdate,
   onClose,
   onSaved,
+  editMode = "requester",
+  actorId,
+  actorEmail,
 }: {
   request: RequestRecord;
   initialUpdate?: RequestUpdateRecord | null;
   onClose?: () => void;
   onSaved?: (request: RequestRecord, update: RequestUpdateRecord) => void;
+  editMode?: "requester" | "admin";
+  actorId?: string;
+  actorEmail?: string;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -654,8 +660,8 @@ export function ReportSickFollowupForm({
           request_id: request.id,
           kind: "doctor_followup",
           payload,
-          created_by: user.id,
-          created_by_email: user.email,
+          created_by: editMode === "admin" && initialUpdate ? initialUpdate.created_by : user.id,
+          created_by_email: editMode === "admin" && initialUpdate ? initialUpdate.created_by_email : user.email,
         },
         { onConflict: "request_id,kind" },
       ).select().single();
@@ -673,6 +679,13 @@ export function ReportSickFollowupForm({
         } else {
           followupErrorSummary = upsertErrorSummary;
         }
+      } else if (editMode === "admin") {
+        const { error: requestUpdateError } = await supabase
+          .from("requests")
+          .update({ updated_at: submittedAt })
+          .eq("id", request.id);
+
+        followupErrorSummary = normalizeSupabaseError(requestUpdateError);
       } else {
         const { data: updatedRequest, error: requestUpdateError } = await supabase
           .from("requests")
@@ -725,14 +738,28 @@ export function ReportSickFollowupForm({
         return;
       }
 
+      if (editMode === "admin" && actorId) {
+        const { error: eventError } = await supabase.from("request_events").insert({
+          request_id: request.id,
+          actor_id: actorId,
+          actor_email: actorEmail ?? null,
+          action: "edit_followup",
+          note: null,
+          changes: { payload },
+        });
+        if (eventError) console.error("Failed to record admin follow-up edit", eventError);
+      }
+
       if (onSaved && savedFollowup) {
         onSaved(
-          {
-            ...request,
-            status: "submitted",
-            followup_submitted_at: submittedAt,
-            updated_at: submittedAt,
-          },
+          editMode === "admin"
+            ? { ...request, updated_at: submittedAt }
+            : {
+              ...request,
+              status: "submitted",
+              followup_submitted_at: submittedAt,
+              updated_at: submittedAt,
+            },
           savedFollowup as RequestUpdateRecord,
         );
         return;
@@ -950,7 +977,7 @@ export function ReportSickFollowupForm({
               Close
             </Button>
             <Button type="submit" disabled={pending}>
-              {pending ? "Saving..." : initialUpdate ? "Update Follow-Up" : "Submit for Endorsement"}
+              {pending ? "Saving..." : initialUpdate ? "Save changes" : "Submit for Endorsement"}
             </Button>
           </div>
         </form>
