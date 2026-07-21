@@ -68,18 +68,28 @@ export function RequestForm({
   kind,
   userEmail,
   userId,
+  unitId,
   initialRequest,
   requestId: requestIdProp,
   onClose,
   onSaved,
+  editMode = "requester",
+  actorId,
+  actorEmail,
+  submittedOnBehalf = false,
 }: {
   kind: RequestKind;
   userEmail: string;
   userId: string;
+  unitId?: string | null;
   initialRequest?: RequestRecord | null;
   requestId?: string | null;
   onClose?: () => void;
   onSaved?: (request: RequestRecord) => void;
+  editMode?: "requester" | "admin";
+  actorId?: string;
+  actorEmail?: string;
+  submittedOnBehalf?: boolean;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -126,23 +136,86 @@ export function RequestForm({
     const payloadRecord = payload as ReportSickPayload | ExternalAppointmentPayload;
 
     startTransition(async () => {
-      const baseRequest = {
-        kind,
-        requester_id: userId,
-        requester_email: userEmail,
-        payload: payloadRecord,
-        status: "pending" as const,
-        updated_at: new Date().toISOString(),
-        submitted_at: new Date().toISOString(),
-      };
-
-      const result = requestId
-        ? await supabase.from("requests").update(baseRequest).eq("id", requestId).select().single()
-        : await supabase.from("requests").insert(baseRequest).select().single();
+      const timestamp = new Date().toISOString();
+      let requestUnitId = unitId ?? initialRequest?.unit_id ?? null;
+      if (!requestId && !requestUnitId) {
+        const { data: requesterProfile, error: profileError } = await supabase
+          .from("profiles")
+          .select("unit_id")
+          .eq("id", userId)
+          .single();
+        if (profileError || !requesterProfile?.unit_id) {
+          console.error("Failed to resolve request unit", profileError);
+          setBanner("Your unit assignment is missing. Please contact an administrator.");
+          return;
+        }
+        requestUnitId = requesterProfile.unit_id;
+      }
+      const result = editMode === "admin" && initialRequest && requestId
+        ? await supabase
+            .from("requests")
+            .update({ payload: payloadRecord, updated_at: timestamp })
+            .eq("id", requestId)
+            .select()
+            .single()
+        : requestId
+          ? await supabase
+              .from("requests")
+              .update({
+                kind,
+                requester_id: userId,
+                requester_email: userEmail,
+                payload: payloadRecord,
+                status: "pending" as const,
+                updated_at: timestamp,
+                submitted_at: timestamp,
+              })
+              .eq("id", requestId)
+              .select()
+              .single()
+          : await supabase
+              .from("requests")
+              .insert({
+                unit_id: requestUnitId,
+                kind,
+                requester_id: userId,
+                requester_email: userEmail,
+                payload: payloadRecord,
+                status: "pending" as const,
+                updated_at: timestamp,
+                submitted_at: timestamp,
+              })
+              .select()
+              .single();
 
       if (result.error) {
+        console.error("Failed to save request", result.error);
         setBanner("We couldn't save this request right now. Please try again.");
         return;
+      }
+
+      if (editMode === "admin" && actorId) {
+        const { error: eventError } = await supabase.from("request_events").insert({
+          request_id: result.data.id,
+          actor_id: actorId,
+          actor_email: actorEmail ?? null,
+          action: "edit",
+          note: null,
+          changes: { payload: payloadRecord },
+        });
+        if (eventError) console.error("Failed to record admin request edit", eventError);
+      }
+
+      if (submittedOnBehalf && actorId && actorId !== userId) {
+        const { error: eventError } = await supabase.from("request_events").insert({
+          request_id: result.data.id,
+          actor_id: actorId,
+          actor_email: actorEmail ?? null,
+          action: "submit_on_behalf",
+          note: null,
+          changes: { requester_id: userId },
+        });
+        if (eventError) console.error("Failed to record submission representative", eventError);
       }
 
       if (onSaved) {
@@ -186,7 +259,7 @@ export function RequestForm({
               Close
             </Button>
             <Button type="submit" disabled={pending}>
-              {pending ? "Saving..." : isEditing ? "Update Request" : "Submit Request"}
+              {pending ? "Saving..." : editMode === "admin" ? "Save changes" : isEditing ? "Update Request" : "Submit Request"}
             </Button>
           </div>
         </form>

@@ -13,6 +13,28 @@ export type RequestStatus =
 
 export type UserRole = "user" | "admin";
 
+export type UnitMembershipRole = "member" | "unit_viewer" | "unit_admin";
+
+export type UnitRecord = {
+  id: string;
+  code: string;
+  name: string;
+  parent_unit_id: string | null;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type UnitMembershipRecord = {
+  profile_id: string;
+  unit_id: string;
+  membership_role: UnitMembershipRole;
+  starts_at: string | null;
+  ends_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 export type ReportSickStatusType =
   | "MC"
   | "Light Duty"
@@ -68,6 +90,7 @@ export type ExternalAppointmentPayload = {
 
 export type RequestRecord = {
   id: string;
+  unit_id: string;
   kind: RequestKind;
   status: RequestStatus;
   requester_id: string;
@@ -98,12 +121,27 @@ export type RequestUpdateRecord = {
   updated_at: string;
 };
 
+export type StrengthManualCategory = "guard_duty" | "on_medication" | "others";
+
+export type StrengthManualRecord = {
+  id: string;
+  unit_id: string;
+  category: StrengthManualCategory;
+  profile_id: string;
+  duty_date: string;
+  note: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 export type ProfileRecord = {
   id: string;
   email: string;
   full_name: string | null;
   rank: string | null;
   role: UserRole;
+  unit_id: string | null;
   batch_id: string | null;
   common_term_platoon: string | null;
   sscc_batch: string | null;
@@ -116,6 +154,7 @@ export type BatchRecord = {
   id: string;
   firestore_id: string | null;
   name: string;
+  unit_id: string;
   description: string | null;
   course_start: string | null;
   common_term_end: string | null;

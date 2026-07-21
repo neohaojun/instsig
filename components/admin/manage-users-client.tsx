@@ -16,7 +16,8 @@ import { formatCoursePlatoon } from "@/lib/batch-display";
 import { formatDisplayDate } from "@/lib/display-date";
 import { formatProfileName } from "@/lib/profile-display";
 import { readSpreadsheetRows } from "@/lib/spreadsheet-import";
-import type { BatchRecord, ProfileRecord, UserRole } from "@/lib/types";
+import type { BatchRecord, ProfileRecord, UnitRecord, UserRole } from "@/lib/types";
+import { getBatchUnitIds, getUnitLabel } from "@/lib/unit-scope";
 import { cn } from "@/lib/utils";
 
 type RoleFilter = "all" | UserRole;
@@ -28,6 +29,7 @@ type EditableProfile = Pick<
   | "full_name"
   | "rank"
   | "role"
+  | "unit_id"
   | "batch_id"
   | "common_term_platoon"
   | "sscc_batch"
@@ -42,6 +44,7 @@ type ProfileFormState = {
   full_name: string;
   rank: string;
   role: UserRole;
+  unit_id: string;
   scs_batch: string;
   common_term_platoon: string;
   sscc_batch: string;
@@ -94,6 +97,7 @@ function toFormState(profile: EditableProfile, batchName?: string): ProfileFormS
     full_name: profile.full_name ?? "",
     rank: profile.rank ?? "",
     role: profile.role,
+    unit_id: profile.unit_id ?? "",
     scs_batch: batchName && batchName !== "Not Assigned" && batchName !== "Unknown Batch" ? formatBatchInput(batchName) : "",
     common_term_platoon: profile.common_term_platoon ?? "",
     sscc_batch: formatBatchInput(profile.sscc_batch ?? ""),
@@ -198,11 +202,13 @@ function UserProfileCard({
   profileRow,
   batchName,
   batch,
+  unitName,
   onEdit,
 }: {
   profileRow: EditableProfile;
   batchName: string;
   batch: BatchRecord | null | undefined;
+  unitName: string;
   onEdit: () => void;
 }) {
   const displayName = formatProfileName(profileRow, profileRow.email);
@@ -238,6 +244,7 @@ function UserProfileCard({
       <CardContent className="p-5 pt-0">
           <div className="grid gap-2 sm:grid-cols-2">
             <InfoField label="Role" value={profileRow.role === "admin" ? "Admin" : "User"} />
+            <InfoField label="Unit" value={profileValue(unitName)} />
             <InfoField label="SCS Batch" value={profileValue(batchName)} />
             <InfoField label="Course Code / NR" value={`${profileValue(profileRow.sscc_batch)} · ${profileValue(profileRow.nr)}`} />
             <InfoField label="Course Status" value={profileRow.ooc_date ? `OOC from ${formatDisplayDate(profileRow.ooc_date)}` : "Active"} />
@@ -251,6 +258,7 @@ function UserProfileCard({
 function EditUserDialog({
   profile,
   batchOptions,
+  units,
   formState,
   isSaving,
   isDeleting,
@@ -262,6 +270,7 @@ function EditUserDialog({
 }: {
   profile: EditableProfile | null;
   batchOptions: BatchRecord[];
+  units: UnitRecord[];
   formState: ProfileFormState | null;
   isSaving: boolean;
   isDeleting: boolean;
@@ -272,6 +281,10 @@ function EditUserDialog({
   onChange: (field: keyof ProfileFormState, value: string) => void;
 }) {
   const open = Boolean(profile && formState);
+  const batchUnitIds = getBatchUnitIds(units);
+  const assignableUnits = formState?.role === "admin"
+    ? units
+    : units.filter((unit) => batchUnitIds.has(unit.id));
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => { if (!nextOpen && !isSaving && !isDeleting) onClose(); }}>
       <DialogContent className="h-[100dvh] sm:h-auto sm:max-w-3xl" dismissible={!isSaving && !isDeleting} aria-labelledby="edit-user-title">
@@ -305,9 +318,25 @@ function EditUserDialog({
                       <Input type="email" value={formState.email} onChange={(event) => onChange("email", event.target.value)} />
                     </FormField>
                     <FormField label="Role">
-                      <Select value={formState.role} onChange={(event) => onChange("role", event.target.value)}>
+                      <Select
+                        value={formState.role}
+                        onChange={(event) => {
+                          const nextRole = event.target.value as UserRole;
+                          onChange("role", nextRole);
+                          if (nextRole === "user" && !batchUnitIds.has(formState.unit_id)) {
+                            onChange("unit_id", "");
+                            onChange("scs_batch", "");
+                          }
+                        }}
+                      >
                         <option value="user">User</option>
                         <option value="admin">Admin</option>
+                      </Select>
+                    </FormField>
+                    <FormField label={formState.role === "admin" ? "Admin Scope" : "Unit"}>
+                      <Select value={formState.unit_id} onChange={(event) => { onChange("unit_id", event.target.value); onChange("scs_batch", ""); }}>
+                        <option value="">Not Assigned</option>
+                        {assignableUnits.map((unit) => <option key={unit.id} value={unit.id}>{getUnitLabel(unit)}</option>)}
                       </Select>
                     </FormField>
                     <FormField label="New Password (optional)">
@@ -325,7 +354,7 @@ function EditUserDialog({
                     <FormField label="SCS Batch">
                       <Select value={formState.scs_batch} onChange={(event) => onChange("scs_batch", event.target.value)}>
                         <option value="">Not Assigned</option>
-                        {batchOptions.map((batch) => <option key={batch.id} value={batch.name}>{batch.name}</option>)}
+                        {batchOptions.filter((batch) => batch.unit_id === formState.unit_id).map((batch) => <option key={batch.id} value={batch.name}>{batch.name}</option>)}
                       </Select>
                     </FormField>
                     <FormField label="Course Code">
@@ -379,15 +408,20 @@ function EditUserDialog({
 export function ManageUsersClient({
   initialProfiles,
   batches,
+  units,
+  defaultUnitId,
 }: {
   initialProfiles: EditableProfile[];
   batches: BatchRecord[];
+  units: UnitRecord[];
+  defaultUnitId?: string;
 }) {
   const [profiles, setProfiles] = useState(initialProfiles);
   const [batchOptions, setBatchOptions] = useState(batches);
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState<RoleFilter>("all");
   const [batchFilter, setBatchFilter] = useState("");
+  const [unitFilter, setUnitFilter] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -400,6 +434,7 @@ export function ManageUsersClient({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const batchesById = useMemo(() => Object.fromEntries(batchOptions.map((batch) => [batch.id, batch])), [batchOptions]);
+  const unitsById = useMemo(() => Object.fromEntries(units.map((unit) => [unit.id, unit])), [units]);
   const filteredProfiles = useMemo(() => {
     const normalizedSearchQuery = searchQuery.trim().toLowerCase();
 
@@ -413,6 +448,7 @@ export function ManageUsersClient({
           profile.rank,
           profile.email,
           profile.role,
+          profile.unit_id && unitsById[profile.unit_id] ? getUnitLabel(unitsById[profile.unit_id]!) : null,
           batchName,
           profile.sscc_batch,
           profile.common_term_platoon,
@@ -427,12 +463,13 @@ export function ManageUsersClient({
         return searchableText.includes(normalizedSearchQuery);
       })
       .filter((profile) => roleFilter === "all" || profile.role === roleFilter)
+      .filter((profile) => !unitFilter || profile.unit_id === unitFilter)
       .filter((profile) => {
         if (!batchFilter) return true;
         return batchFilter === "unassigned" ? !profile.batch_id : profile.batch_id === batchFilter;
       })
       .sort((a, b) => formatProfileName(a, a.email).localeCompare(formatProfileName(b, b.email), undefined, { sensitivity: "base" }));
-  }, [batchFilter, batchesById, profiles, roleFilter, searchQuery]);
+  }, [batchFilter, batchesById, profiles, roleFilter, searchQuery, unitFilter, unitsById]);
   const editingProfile = editingId ? profiles.find((profile) => profile.id === editingId) ?? null : null;
 
   function startEditing(profile: EditableProfile) {
@@ -467,6 +504,7 @@ export function ManageUsersClient({
           full_name: formState.full_name.trim(),
           rank: emptyToNull(formState.rank),
           role: formState.role,
+          unit_id: formState.unit_id || null,
           scs_batch: emptyToNull(normalizeBatchName(formState.scs_batch)),
           nr: emptyToNull(formState.nr),
           sscc_batch: emptyToNull(normalizeBatchName(formState.sscc_batch)),
@@ -529,6 +567,7 @@ export function ManageUsersClient({
           full_name: record.full_name,
           rank: record.rank || null,
           role: record.role?.toLowerCase() || "user",
+          unit_id: defaultUnitId,
           scs_batch: record.scs_batch ? normalizeBatchName(record.scs_batch) : null,
           nr: record.nr || null,
           sscc_batch: record.sscc_batch ? normalizeBatchName(record.sscc_batch) : null,
@@ -559,15 +598,15 @@ export function ManageUsersClient({
 
   return (
     <>
-      <Card className="overflow-hidden animate-enter-soft">
-        <CardHeader className="p-5 sm:p-6">
-          <button type="button" className="flex w-full items-center gap-3 text-left" onClick={() => setImportOpen((current) => !current)} aria-expanded={importOpen} aria-controls="account-import-panel">
+      <Card className="min-w-0 overflow-hidden animate-enter-soft">
+        <CardHeader className="p-4 sm:p-6">
+          <button type="button" className="flex w-full min-w-0 items-start gap-3 text-left sm:items-center" onClick={() => setImportOpen((current) => !current)} aria-expanded={importOpen} aria-controls="account-import-panel">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border bg-muted/40 text-muted-foreground">
               <FileSpreadsheet className="h-5 w-5" />
             </div>
             <div className="min-w-0 flex-1">
-              <CardTitle className="text-lg leading-none">Add accounts from spreadsheet</CardTitle>
-              <p className="mt-1 text-sm text-muted-foreground">Download a template or import multiple users.</p>
+              <CardTitle className="text-base leading-snug sm:text-lg">Add accounts from spreadsheet</CardTitle>
+              <p className="mt-1 text-sm leading-snug text-muted-foreground">Download a template or import multiple users.</p>
             </div>
             <ChevronDown className={cn("h-5 w-5 shrink-0 text-muted-foreground transition-transform", importOpen && "rotate-180")} />
           </button>
@@ -611,10 +650,10 @@ export function ManageUsersClient({
         </CardContent> : null}
       </Card>
 
-      <Card className="overflow-hidden animate-enter-soft">
-        <CardHeader className="space-y-4 p-5 sm:p-6">
-          <div className="flex flex-wrap items-end gap-4">
-            <div className="min-w-full flex-1 space-y-2 md:min-w-80 md:flex-[2]">
+      <Card className="min-w-0 overflow-hidden animate-enter-soft">
+        <CardHeader className="p-4 sm:p-6">
+          <div className="grid min-w-0 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="min-w-0 space-y-2 sm:col-span-2 lg:col-span-1">
               <Label htmlFor="user-search">Search users</Label>
               <div className="relative">
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -622,7 +661,7 @@ export function ManageUsersClient({
                   id="user-search"
                   value={searchQuery}
                   onChange={(event) => setSearchQuery(event.target.value)}
-                  placeholder="Search name, rank, email, batch, or platoon"
+                  placeholder="Search users"
                   className="pl-9 pr-10"
                 />
                 {searchQuery ? (
@@ -639,7 +678,7 @@ export function ManageUsersClient({
                 ) : null}
               </div>
             </div>
-            <div className="min-w-48 flex-1 space-y-2">
+            <div className="min-w-0 space-y-2">
               <Label htmlFor="role-filter">Role</Label>
               <Select id="role-filter" value={roleFilter} onChange={(event) => setRoleFilter(event.target.value as RoleFilter)}>
                 <option value="all">All Users</option>
@@ -647,7 +686,14 @@ export function ManageUsersClient({
                 <option value="user">Non-Admins</option>
               </Select>
             </div>
-            <div className="min-w-48 flex-1 space-y-2">
+            <div className="min-w-0 space-y-2">
+              <Label htmlFor="unit-filter">Unit</Label>
+              <Select id="unit-filter" value={unitFilter} onChange={(event) => setUnitFilter(event.target.value)}>
+                <option value="">All Units</option>
+                {units.map((unit) => <option key={unit.id} value={unit.id}>{getUnitLabel(unit)}</option>)}
+              </Select>
+            </div>
+            <div className="min-w-0 space-y-2">
               <Label htmlFor="batch-filter">SCS Batch</Label>
               <Select
                 id="batch-filter"
@@ -659,7 +705,7 @@ export function ManageUsersClient({
                 {batchOptions.map((batch) => <option key={batch.id} value={batch.id}>{batch.name}</option>)}
               </Select>
             </div>
-            <p className="pb-3 text-sm text-muted-foreground md:ml-auto">
+            <p className="text-sm text-muted-foreground sm:col-span-2 lg:col-span-4">
               {filteredProfiles.length} of {profiles.length} users
             </p>
           </div>
@@ -676,6 +722,7 @@ export function ManageUsersClient({
                   profileRow={profileRow}
                   batchName={batchName}
                   batch={profileRow.batch_id ? batchesById[profileRow.batch_id] : null}
+                  unitName={profileRow.unit_id && unitsById[profileRow.unit_id] ? getUnitLabel(unitsById[profileRow.unit_id]!) : "Not Assigned"}
                   onEdit={() => startEditing(profileRow)}
                 />
               </div>
@@ -690,6 +737,7 @@ export function ManageUsersClient({
       <EditUserDialog
         profile={editingProfile}
         batchOptions={batchOptions}
+        units={units}
         formState={formState}
         isSaving={savingId === editingId}
         isDeleting={deletingId === editingId}

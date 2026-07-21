@@ -12,6 +12,7 @@ const profileFieldsSchema = z.object({
   full_name: z.string().trim().min(1).max(120),
   rank: nullableText,
   role: z.enum(["user", "admin"]).default("user"),
+  unit_id: z.string().uuid().nullable().optional(),
   scs_batch: nullableText,
   nr: nullableText,
   sscc_batch: nullableText,
@@ -31,11 +32,11 @@ async function requireAdmin() {
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: NextResponse.json({ message: "Please sign in again." }, { status: 401 }) };
-  const { data: profile } = await supabase.from("profiles").select("id, role").eq("id", user.id).single();
+  const { data: profile } = await supabase.from("profiles").select("id, role, unit_id").eq("id", user.id).single();
   if (profile?.role !== "admin") {
     return { error: NextResponse.json({ message: "You do not have permission to manage accounts." }, { status: 403 }) };
   }
-  return { user };
+  return { user, supabase, profile };
 }
 
 function cleanNullable(value: string | null | undefined) {
@@ -47,23 +48,25 @@ async function getBatchId(
   admin: ReturnType<typeof createSupabaseAdminClient>,
   batchName: string | null | undefined,
   batches: BatchRecord[],
+  unitId: string,
 ) {
   const normalizedName = cleanNullable(batchName);
   if (!normalizedName) return null;
-  const existing = batches.find((batch) => batch.name.toLowerCase() === normalizedName.toLowerCase());
+  const existing = batches.find((batch) => batch.unit_id === unitId && batch.name.toLowerCase() === normalizedName.toLowerCase());
   if (existing) return existing.id;
-  const { data, error } = await admin.from("batches").insert({ name: normalizedName }).select().single();
+  const { data, error } = await admin.from("batches").insert({ name: normalizedName, unit_id: unitId }).select().single();
   if (error || !data) throw error ?? new Error("batch-create-failed");
   batches.push(data as BatchRecord);
   return data.id as string;
 }
 
-function profileValues(input: z.infer<typeof profileFieldsSchema>, batchId: string | null) {
+function profileValues(input: z.infer<typeof profileFieldsSchema>, batchId: string | null, unitId: string) {
   return {
     email: input.email.toLowerCase(),
     full_name: input.full_name,
     rank: cleanNullable(input.rank),
     role: input.role,
+    unit_id: unitId,
     batch_id: batchId,
     nr: cleanNullable(input.nr),
     sscc_batch: cleanNullable(input.sscc_batch),
@@ -80,6 +83,22 @@ function adminClientResponse() {
     console.error("Could not create Supabase admin client", error);
     return { error: NextResponse.json({ message: "Account management is not configured on this server." }, { status: 503 }) };
   }
+}
+
+async function isParentUnit(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  unitId: string,
+) {
+  const { count, error } = await supabase
+    .from("units")
+    .select("id", { count: "exact", head: true })
+    .eq("parent_unit_id", unitId)
+    .eq("active", true);
+  if (error) {
+    console.error("Could not validate account unit", error);
+    return null;
+  }
+  return (count ?? 0) > 0;
 }
 
 export async function POST(request: Request) {
@@ -100,6 +119,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: "We could not prepare the account import. Please try again." }, { status: 500 });
   }
   const batches = (existingBatches ?? []) as BatchRecord[];
+  const { data: defaultUnit } = access.profile.unit_id
+    ? { data: { id: access.profile.unit_id } }
+    : await admin.from("units").select("id").eq("code", "SCTW").single();
+  if (!defaultUnit) return NextResponse.json({ message: "The default unit is not configured." }, { status: 500 });
 
   for (const rawInput of parsed.data.users) {
     const validatedInput = importedUserSchema.safeParse(rawInput);
@@ -124,6 +147,16 @@ export async function POST(request: Request) {
       continue;
     }
     emails.add(email);
+    const targetUnitId = input.unit_id ?? defaultUnit.id;
+    const { data: canManageTargetUnit } = await access.supabase.rpc("can_manage_unit", { p_unit_id: targetUnitId });
+    if (!canManageTargetUnit) {
+      results.push({ row: input.row, email, status: "failed", message: "You cannot create accounts in that unit." });
+      continue;
+    }
+    if (input.role === "user" && (await isParentUnit(access.supabase, targetUnitId)) !== false) {
+      results.push({ row: input.row, email, status: "failed", message: "Users must be assigned to a training unit, not a parent unit." });
+      continue;
+    }
     const { data: authData, error: createError } = await admin.auth.admin.createUser({
       email,
       password: input.password,
@@ -137,13 +170,26 @@ export async function POST(request: Request) {
       continue;
     }
     try {
-      const batchId = await getBatchId(admin, input.scs_batch, batches);
+      const unitId = targetUnitId;
+      const batchId = input.role === "admin" ? null : await getBatchId(admin, input.scs_batch, batches, unitId);
       const { data: profile, error: profileError } = await admin
         .from("profiles")
-        .upsert({ id: authData.user.id, ...profileValues(input, batchId) })
+        .upsert({ id: authData.user.id, ...profileValues(input, batchId, unitId) })
         .select()
         .single();
       if (profileError || !profile) throw profileError ?? new Error("profile-create-failed");
+      const { error: membershipError } = await admin.from("unit_memberships").upsert({
+        profile_id: authData.user.id,
+        unit_id: unitId,
+        membership_role: input.role === "admin" ? "unit_admin" : "member",
+      });
+      if (membershipError) throw membershipError;
+      const { error: staleMembershipError } = await admin
+        .from("unit_memberships")
+        .delete()
+        .eq("profile_id", authData.user.id)
+        .neq("unit_id", unitId);
+      if (staleMembershipError) throw staleMembershipError;
       results.push({ row: input.row, email, status: "created", profile: profile as ProfileRecord });
     } catch (error) {
       console.error(`Could not create imported profile on row ${input.row}`, error);
@@ -167,6 +213,15 @@ export async function PATCH(request: Request) {
   if (input.id === access.user.id && input.role !== "admin") {
     return NextResponse.json({ message: "You cannot remove your own admin access." }, { status: 400 });
   }
+  const { data: scopedProfile } = await access.supabase.from("profiles").select("id, unit_id").eq("id", input.id).maybeSingle();
+  if (!scopedProfile) return NextResponse.json({ message: "You do not have permission to manage this account." }, { status: 403 });
+  const { data: canManageCurrentUnit } = await access.supabase.rpc("can_manage_unit", { p_unit_id: scopedProfile.unit_id });
+  const { data: canManageNextUnit } = input.unit_id
+    ? await access.supabase.rpc("can_manage_unit", { p_unit_id: input.unit_id })
+    : { data: canManageCurrentUnit };
+  if (!canManageCurrentUnit || !canManageNextUnit) {
+    return NextResponse.json({ message: "You do not have permission to move or manage this account." }, { status: 403 });
+  }
   const { data: currentProfile } = await admin.from("profiles").select("*").eq("id", input.id).single();
   if (!currentProfile) return NextResponse.json({ message: "This account no longer exists." }, { status: 404 });
   if (currentProfile.role === "admin" && input.role !== "admin") {
@@ -176,9 +231,26 @@ export async function PATCH(request: Request) {
   const { data: existingBatches } = await admin.from("batches").select("*").order("name");
   try {
     const batches = (existingBatches ?? []) as BatchRecord[];
-    const batchId = await getBatchId(admin, input.scs_batch, batches);
-    const { data: profile, error: profileError } = await admin.from("profiles").update(profileValues(input, batchId)).eq("id", input.id).select().single();
+    const unitId = input.unit_id ?? currentProfile.unit_id;
+    if (!unitId) return NextResponse.json({ message: "Select a unit for this account." }, { status: 400 });
+    if (input.role === "user" && (await isParentUnit(access.supabase, unitId)) !== false) {
+      return NextResponse.json({ message: "Users must be assigned to a training unit, not a parent unit." }, { status: 400 });
+    }
+    const batchId = input.role === "admin" ? null : await getBatchId(admin, input.scs_batch, batches, unitId);
+    const { data: profile, error: profileError } = await admin.from("profiles").update(profileValues(input, batchId, unitId)).eq("id", input.id).select().single();
     if (profileError || !profile) throw profileError ?? new Error("profile-update-failed");
+    const { error: membershipError } = await admin.from("unit_memberships").upsert({
+      profile_id: input.id,
+      unit_id: unitId,
+      membership_role: input.role === "admin" ? "unit_admin" : "member",
+    });
+    if (membershipError) throw membershipError;
+    const { error: staleMembershipError } = await admin
+      .from("unit_memberships")
+      .delete()
+      .eq("profile_id", input.id)
+      .neq("unit_id", unitId);
+    if (staleMembershipError) throw staleMembershipError;
 
     const authUpdates: { email?: string; password?: string; user_metadata: { full_name: string } } = {
       user_metadata: { full_name: input.full_name },
@@ -194,6 +266,7 @@ export async function PATCH(request: Request) {
         full_name: previous.full_name,
         rank: previous.rank,
         role: previous.role,
+        unit_id: previous.unit_id,
         batch_id: previous.batch_id,
         nr: previous.nr,
         sscc_batch: previous.sscc_batch,
@@ -218,6 +291,10 @@ export async function DELETE(request: Request) {
   const parsed = deleteSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ message: "Invalid account." }, { status: 400 });
   if (parsed.data.id === access.user.id) return NextResponse.json({ message: "You cannot delete your own account." }, { status: 400 });
+  const { data: scopedProfile } = await access.supabase.from("profiles").select("id, unit_id").eq("id", parsed.data.id).maybeSingle();
+  if (!scopedProfile) return NextResponse.json({ message: "You do not have permission to delete this account." }, { status: 403 });
+  const { data: canManageTarget } = await access.supabase.rpc("can_manage_unit", { p_unit_id: scopedProfile.unit_id });
+  if (!canManageTarget) return NextResponse.json({ message: "You do not have permission to delete this account." }, { status: 403 });
   const client = adminClientResponse();
   if (client.error || !client.admin) return client.error;
   const admin = client.admin;
