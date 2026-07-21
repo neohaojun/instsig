@@ -86,6 +86,9 @@ export type ExternalAppointmentPayload = {
   when: string;
   lessonsMissed: string;
   why: string;
+  proofPath?: string;
+  proofName?: string;
+  proofDataUrl?: string;
 };
 
 export type RequestRecord = {

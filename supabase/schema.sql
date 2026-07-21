@@ -692,8 +692,10 @@ for insert with check (
     select 1 from public.requests r
     where r.id = request_id
       and r.requester_id = auth.uid()
-      and r.kind = 'report_sick'::public.request_kind
-      and r.status in ('approved', 'submitted', 'needs_changes')
+      and (
+        (r.kind = 'report_sick'::public.request_kind and r.status in ('approved', 'submitted', 'needs_changes'))
+        or (r.kind = 'external_appointment'::public.request_kind and r.status = 'pending')
+      )
   )
 );
 
@@ -703,8 +705,10 @@ for update using (
     select 1 from public.requests r
     where r.id = request_id
       and r.requester_id = auth.uid()
-      and r.kind = 'report_sick'::public.request_kind
-      and r.status in ('approved', 'submitted', 'needs_changes')
+      and (
+        (r.kind = 'report_sick'::public.request_kind and r.status in ('approved', 'submitted', 'needs_changes'))
+        or (r.kind = 'external_appointment'::public.request_kind and r.status = 'pending')
+      )
   )
 )
 with check (
@@ -712,8 +716,10 @@ with check (
     select 1 from public.requests r
     where r.id = request_id
       and r.requester_id = auth.uid()
-      and r.kind = 'report_sick'::public.request_kind
-      and r.status in ('approved', 'submitted', 'needs_changes')
+      and (
+        (r.kind = 'report_sick'::public.request_kind and r.status in ('approved', 'submitted', 'needs_changes'))
+        or (r.kind = 'external_appointment'::public.request_kind and r.status = 'pending')
+      )
   )
 );
 

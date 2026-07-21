@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ApprovalBanner } from "@/components/request/approval-banner";
 import { cn } from "@/lib/utils";
 import { formatDisplayDateTime } from "@/lib/display-date";
+import { RequestAttachmentLink } from "@/components/request/request-attachment-link";
 
 function formatAppointmentWhen(value: unknown) {
   if (typeof value !== "string" || !value) return "";
@@ -110,6 +111,15 @@ export function ExternalAppointmentRequestCard({
               disabled
             />
           </div>
+          {(typeof payload.proofPath === "string" && payload.proofPath)
+            || (typeof payload.proofDataUrl === "string" && payload.proofDataUrl.startsWith("data:image/")) ? (
+            <RequestAttachmentLink
+              label="Photo Proof"
+              path={typeof payload.proofPath === "string" ? payload.proofPath : undefined}
+              dataUrl={typeof payload.proofDataUrl === "string" ? payload.proofDataUrl : undefined}
+              name={typeof payload.proofName === "string" && payload.proofName ? payload.proofName : "Appointment proof"}
+            />
+          ) : null}
           {request.approved_at ? (
             <ReviewBanner
               label="Approved"

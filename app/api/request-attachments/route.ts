@@ -10,7 +10,7 @@ const maxFileBytes = 10 * 1024 * 1024;
 const allowedMimeTypes = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"];
 const requestIdSchema = z.string().uuid();
 const attachmentPathSchema = z.string().regex(
-  /^[0-9a-f-]{36}\/[0-9a-f-]{36}\/proof-of-status$/i,
+  /^[0-9a-f-]{36}\/[0-9a-f-]{36}\/(proof-of-status|external-appointment-proof)$/i,
 );
 
 async function getAccess() {
@@ -73,6 +73,9 @@ export async function POST(request: Request) {
   const formData = await request.formData().catch(() => null);
   const requestId = requestIdSchema.safeParse(formData?.get("requestId"));
   const file = formData?.get("file");
+  const purpose = formData?.get("purpose") === "external-appointment"
+    ? "external-appointment-proof"
+    : "proof-of-status";
 
   if (!requestId.success || !(file instanceof File)) {
     return NextResponse.json({ message: "Choose a valid proof of status photo." }, { status: 400 });
@@ -82,19 +85,25 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: "Choose a supported photo no larger than 10 MB." }, { status: 400 });
   }
 
-  const { data: reportSickRequest, error: requestError } = await access.supabase
+  const { data: attachmentRequest, error: requestError } = await access.supabase
     .from("requests")
     .select("id, kind, status, requester_id")
     .eq("id", requestId.data)
     .single();
 
-  const editableStatuses = new Set(["approved", "submitted", "needs_changes"]);
+  const canAttach = attachmentRequest && (
+    (purpose === "proof-of-status"
+      && attachmentRequest.kind === "report_sick"
+      && new Set(["approved", "submitted", "needs_changes"]).has(attachmentRequest.status))
+    || (purpose === "external-appointment-proof"
+      && attachmentRequest.kind === "external_appointment"
+      && attachmentRequest.status === "pending")
+  );
   if (
     requestError
-    || !reportSickRequest
-    || reportSickRequest.requester_id !== access.user.id
-    || reportSickRequest.kind !== "report_sick"
-    || !editableStatuses.has(reportSickRequest.status)
+    || !attachmentRequest
+    || (!access.isAdmin && attachmentRequest.requester_id !== access.user.id)
+    || !canAttach
   ) {
     console.warn("Rejected proof of status upload", requestError);
     return NextResponse.json({ message: "This request cannot accept an attachment." }, { status: 403 });
@@ -109,7 +118,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: "Attachment storage is unavailable." }, { status: 503 });
   }
 
-  const path = `${access.user.id}/${reportSickRequest.id}/proof-of-status`;
+  const path = `${attachmentRequest.requester_id}/${attachmentRequest.id}/${purpose}`;
   const { error: uploadError } = await client.admin.storage.from(bucket).upload(path, file, {
     cacheControl: "3600",
     contentType: file.type,
