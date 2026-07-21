@@ -5,7 +5,7 @@ import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Calendar as CalendarIcon } from "lucide-react";
+import { Calendar as CalendarIcon, ImageIcon, Upload } from "lucide-react";
 import { format, parseISO, isValid } from "date-fns";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { ExternalAppointmentPayload, ReportSickPayload, RequestKind, RequestRecord } from "@/lib/types";
@@ -38,6 +38,18 @@ const externalAppointmentSchema = z.object({
   lessonsMissed: z.string().min(1, "Lessons missed is required"),
   why: z.string().min(1, "Reason is required"),
 });
+
+const maxProofBytes = 10 * 1024 * 1024;
+const acceptedProofTypes = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"];
+
+function readFileAsDataUrl(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => typeof reader.result === "string" ? resolve(reader.result) : reject(new Error("invalid-file"));
+    reader.onerror = () => reject(reader.error ?? new Error("file-read-failed"));
+    reader.readAsDataURL(file);
+  });
+}
 
 type FormValues = z.infer<typeof reportSickSchema> | z.infer<typeof externalAppointmentSchema>;
 
@@ -97,6 +109,7 @@ export function RequestForm({
   const [pending, startTransition] = useTransition();
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
   const [banner, setBanner] = useState<string | null>(null);
+  const [appointmentProof, setAppointmentProof] = useState<File | null>(null);
 
   const defaultReportSick: z.infer<typeof reportSickSchema> = {
     dateReportingSick: "",
@@ -133,7 +146,12 @@ export function RequestForm({
   async function onSubmit(values: FormValues) {
     setBanner(null);
     const payload = values;
-    const payloadRecord = payload as ReportSickPayload | ExternalAppointmentPayload;
+    const payloadRecord = kind === "external_appointment"
+      ? {
+        ...((initialRequest?.kind === "external_appointment" ? initialRequest.payload : {}) as Partial<ExternalAppointmentPayload>),
+        ...(payload as ExternalAppointmentPayload),
+      }
+      : payload as ReportSickPayload;
 
     startTransition(async () => {
       const timestamp = new Date().toISOString();
@@ -153,45 +171,91 @@ export function RequestForm({
       }
       const result = editMode === "admin" && initialRequest && requestId
         ? await supabase
+          .from("requests")
+          .update({ payload: payloadRecord, updated_at: timestamp })
+          .eq("id", requestId)
+          .select()
+          .single()
+        : requestId
+          ? await supabase
             .from("requests")
-            .update({ payload: payloadRecord, updated_at: timestamp })
+            .update({
+              kind,
+              requester_id: userId,
+              requester_email: userEmail,
+              payload: payloadRecord,
+              status: "pending" as const,
+              updated_at: timestamp,
+              submitted_at: timestamp,
+            })
             .eq("id", requestId)
             .select()
             .single()
-        : requestId
-          ? await supabase
-              .from("requests")
-              .update({
-                kind,
-                requester_id: userId,
-                requester_email: userEmail,
-                payload: payloadRecord,
-                status: "pending" as const,
-                updated_at: timestamp,
-                submitted_at: timestamp,
-              })
-              .eq("id", requestId)
-              .select()
-              .single()
           : await supabase
-              .from("requests")
-              .insert({
-                unit_id: requestUnitId,
-                kind,
-                requester_id: userId,
-                requester_email: userEmail,
-                payload: payloadRecord,
-                status: "pending" as const,
-                updated_at: timestamp,
-                submitted_at: timestamp,
-              })
-              .select()
-              .single();
+            .from("requests")
+            .insert({
+              unit_id: requestUnitId,
+              kind,
+              requester_id: userId,
+              requester_email: userEmail,
+              payload: payloadRecord,
+              status: "pending" as const,
+              updated_at: timestamp,
+              submitted_at: timestamp,
+            })
+            .select()
+            .single();
 
       if (result.error) {
         console.error("Failed to save request", result.error);
         setBanner("We couldn't save this request right now. Please try again.");
         return;
+      }
+
+      if (kind === "external_appointment" && appointmentProof) {
+        const savedPayload = { ...(result.data.payload as ExternalAppointmentPayload) };
+        const attachmentData = new FormData();
+        attachmentData.set("requestId", result.data.id);
+        attachmentData.set("purpose", "external-appointment");
+        attachmentData.set("file", appointmentProof);
+
+        try {
+          const response = await fetch("/api/request-attachments", { method: "POST", body: attachmentData });
+          const uploaded = await response.json().catch(() => null) as { path?: string; name?: string } | null;
+          if (response.ok && uploaded?.path) {
+            savedPayload.proofPath = uploaded.path;
+            savedPayload.proofName = uploaded.name ?? appointmentProof.name;
+            savedPayload.proofDataUrl = undefined;
+          } else {
+            savedPayload.proofPath = undefined;
+            savedPayload.proofName = appointmentProof.name;
+            savedPayload.proofDataUrl = await readFileAsDataUrl(appointmentProof);
+          }
+        } catch (error) {
+          console.warn("Appointment proof storage unavailable; saving it with the request", error);
+          try {
+            savedPayload.proofPath = undefined;
+            savedPayload.proofName = appointmentProof.name;
+            savedPayload.proofDataUrl = await readFileAsDataUrl(appointmentProof);
+          } catch (readError) {
+            console.error("Failed to prepare appointment proof", readError);
+            setBanner("The request was saved, but the photo could not be attached. Please choose it again.");
+            return;
+          }
+        }
+
+        const attachmentResult = await supabase
+          .from("requests")
+          .update({ payload: savedPayload, updated_at: timestamp })
+          .eq("id", result.data.id)
+          .select()
+          .single();
+        if (attachmentResult.error) {
+          console.error("Failed to save appointment proof", attachmentResult.error);
+          setBanner("The request was saved, but the photo could not be attached. Please try again.");
+          return;
+        }
+        result.data = attachmentResult.data;
       }
 
       if (editMode === "admin" && actorId) {
@@ -249,7 +313,17 @@ export function RequestForm({
           {kind === "report_sick" ? (
             <ReportSickFields form={form} />
           ) : (
-            <ExternalAppointmentFields form={form} />
+            <ExternalAppointmentFields
+              form={form}
+              proof={appointmentProof}
+              existingProofName={initialRequest?.kind === "external_appointment"
+                ? (initialRequest.payload as ExternalAppointmentPayload).proofName
+                : undefined}
+              onProofChange={(file, error) => {
+                setAppointmentProof(file);
+                setBanner(error);
+              }}
+            />
           )}
 
           {banner ? <p className="rounded-xl border border-border bg-muted/40 px-4 py-3 text-sm text-foreground">{banner}</p> : null}
@@ -288,17 +362,27 @@ function combineAppointmentWhen(date: string, time: string) {
   return `${date}T${time}`;
 }
 
-function ExternalAppointmentFields({ form }: { form: any }) {
+function ExternalAppointmentFields({
+  form,
+  proof,
+  existingProofName,
+  onProofChange,
+}: {
+  form: any;
+  proof: File | null;
+  existingProofName?: string;
+  onProofChange: (file: File | null, error: string | null) => void;
+}) {
   const [datePickerOpen, setDatePickerOpen] = useState(false);
 
   return (
     <div className="grid gap-6">
       <div className="grid gap-2">
-        <Label htmlFor="what">Appointment Name</Label>
+        <Label htmlFor="what">What appointment do you have?</Label>
         <Input id="what" {...form.register("what")} />
       </div>
       <div className="grid gap-2">
-        <Label htmlFor="where">Appointment Location</Label>
+        <Label htmlFor="where">Where is the appointment held?</Label>
         <Input id="where" {...form.register("where")} />
       </div>
       <Controller
@@ -310,7 +394,7 @@ function ExternalAppointmentFields({ form }: { form: any }) {
           return (
             <div className="grid gap-4 md:grid-cols-2">
               <div className="grid gap-2">
-                <Label>Appointment Date</Label>
+                <Label>Date</Label>
                 <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
                   <PopoverTrigger asChild>
                     <Button type="button" variant="outline" className="w-full justify-start px-4 text-left font-normal">
@@ -331,7 +415,7 @@ function ExternalAppointmentFields({ form }: { form: any }) {
                 </Popover>
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="appointmentTime">Appointment Time</Label>
+                <Label htmlFor="appointmentTime">Time</Label>
                 <Input
                   id="appointmentTime"
                   type="time"
@@ -352,6 +436,38 @@ function ExternalAppointmentFields({ form }: { form: any }) {
       <div className="grid gap-2">
         <Label htmlFor="why">Background</Label>
         <Textarea id="why" {...form.register("why")} />
+      </div>
+      <div className="grid gap-2">
+        <Label htmlFor="appointmentProof">Screenshot of Appointment/Booking</Label>
+        <label
+          htmlFor="appointmentProof"
+          className="flex min-h-28 cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-border bg-background/40 px-4 py-5 text-center transition-colors hover:bg-background/60"
+        >
+          {proof || existingProofName ? <ImageIcon className="h-6 w-6 text-muted-foreground" /> : <Upload className="h-6 w-6 text-muted-foreground" />}
+          <span className="text-sm font-medium text-foreground">{proof?.name ?? existingProofName ?? "Choose a photo"}</span>
+          <span className="text-xs text-muted-foreground">JPEG, PNG, WebP or HEIC, up to 10 MB</span>
+        </label>
+        <Input
+          id="appointmentProof"
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
+          className="sr-only"
+          onChange={(event) => {
+            const file = event.target.files?.[0] ?? null;
+            if (!file) return;
+            if (!acceptedProofTypes.includes(file.type)) {
+              onProofChange(null, "Please choose a JPEG, PNG, WebP or HEIC photo.");
+              event.target.value = "";
+              return;
+            }
+            if (file.size > maxProofBytes) {
+              onProofChange(null, "The screenshot must be 10 MB or smaller.");
+              event.target.value = "";
+              return;
+            }
+            onProofChange(file, null);
+          }}
+        />
       </div>
     </div>
   );

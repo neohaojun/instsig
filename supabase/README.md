@@ -78,7 +78,7 @@ If you are moving data from Firestore, the original document shape can be adapte
 
 ## 5. Request attachment storage
 
-Running [`supabase/schema.sql`](./schema.sql) also creates a private `request-attachments` bucket for report-sick proof photos. The bucket:
+Running [`supabase/schema.sql`](./schema.sql) also creates a private `request-attachments` bucket for report-sick and external-appointment proof photos. The bucket:
 
 - accepts JPEG, PNG, WebP, HEIC, and HEIF images up to 10 MB
 - lets users manage files only within their own user-ID folder
