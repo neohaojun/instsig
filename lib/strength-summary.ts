@@ -6,7 +6,7 @@ import {
 } from "@/lib/active-report-sick-statuses";
 import { formatDisplayDateTime } from "@/lib/display-date";
 import { getBatchPhase, isBatchActiveOnDate } from "@/lib/batch-display";
-import type { BatchRecord, ProfileRecord, RequestRecord, RequestUpdateRecord } from "@/lib/types";
+import type { BatchRecord, ProfileRecord, RequestRecord, RequestUpdateRecord, StrengthManualRecord } from "@/lib/types";
 
 export type StrengthSummary = {
   total: number;
@@ -71,14 +71,14 @@ function isSameDate(value: string | null | undefined, date: Date) {
   return startOfDay(parsed).getTime() === startOfDay(date).getTime();
 }
 
-function isPersonnelProfile(profile: ProfileRecord, batchesById: Record<string, BatchRecord | null | undefined>, date: Date) {
+export function isStrengthPersonnelProfile(
+  profile: ProfileRecord,
+  batchesById: Record<string, BatchRecord | null | undefined>,
+  date: Date,
+) {
   const oocDate = parseDate(profile.ooc_date);
   const isOoc = oocDate ? startOfDay(date).getTime() >= startOfDay(oocDate).getTime() : false;
   return profile.role !== "admin" && !isOoc && Boolean(profile.batch_id && isBatchActiveOnDate(batchesById[profile.batch_id], date));
-}
-
-function hasMedication(value: unknown) {
-  return typeof value === "string" && value.trim().length > 0 && value.trim().toLowerCase() !== "nil";
 }
 
 function formatWhen(value: string | null | undefined) {
@@ -86,14 +86,26 @@ function formatWhen(value: string | null | undefined) {
   return parsed ? formatDisplayDateTime(parsed, "Date not set") : "Date not set";
 }
 
+function getManualRecordsForDate(
+  records: StrengthManualRecord[],
+  category: StrengthManualRecord["category"],
+  personnelIds: Set<string>,
+  date: Date,
+) {
+  return records.filter(
+    (record) => record.category === category && personnelIds.has(record.profile_id) && isSameDate(record.duty_date, date),
+  );
+}
+
 export function buildStrengthSummary(
   profiles: ProfileRecord[],
   requests: RequestRecord[],
   updates: RequestUpdateRecord[],
   batchesById: Record<string, BatchRecord | null | undefined>,
+  manualRecords: StrengthManualRecord[] = [],
   now: Date = new Date(),
 ): StrengthSummary {
-  const personnel = profiles.filter((profile) => isPersonnelProfile(profile, batchesById, now));
+  const personnel = profiles.filter((profile) => isStrengthPersonnelProfile(profile, batchesById, now));
   const personnelIds = new Set(personnel.map((profile) => profile.id));
   const activeStatuses = getActiveReportSickStatuses(requests, updates, now).filter((status) =>
     personnelIds.has(status.request.requester_id),
@@ -111,22 +123,9 @@ export function buildStrengthSummary(
       ...postStatuses.filter((status) => status.entry.type === "MC" && status.daysAfterEnd === 1),
     ].map((status) => status.request.requester_id),
   );
-  const otherIds = new Set(
-    postStatuses
-      .filter((status) => status.entry.type === "Light Duty" || status.daysAfterEnd === 2)
-      .map((status) => status.request.requester_id),
-  );
-  const activeStatusRequestIds = new Set(activeStatuses.map((status) => status.request.id));
-  const onMedicationIds = new Set(
-    updates
-      .filter((update) => update.kind === "doctor_followup" && hasMedication(update.payload?.medication))
-      .flatMap((update) => {
-        const request = requests.find((item) => item.id === update.request_id);
-        if (!request || !personnelIds.has(request.requester_id)) return [];
-        if (!activeStatusRequestIds.has(request.id) && !isSameDate(request.followup_submitted_at, now)) return [];
-        return [request.requester_id];
-      }),
-  );
+  const guardDutyIds = new Set(getManualRecordsForDate(manualRecords, "guard_duty", personnelIds, now).map((record) => record.profile_id));
+  const onMedicationIds = new Set(getManualRecordsForDate(manualRecords, "on_medication", personnelIds, now).map((record) => record.profile_id));
+  const otherIds = new Set(getManualRecordsForDate(manualRecords, "others", personnelIds, now).map((record) => record.profile_id));
   const reportingSickIds = new Set(
     requests
       .filter((request) => {
@@ -156,7 +155,7 @@ export function buildStrengthSummary(
     attendB: attendBIds.size,
     reportingSick: reportingSickIds.size,
     externalAppointment: externalAppointmentIds.size,
-    guardDuty: 0,
+    guardDuty: guardDutyIds.size,
     onMedication: onMedicationIds.size,
     others: otherIds.size,
     activeBatches: Array.from(
@@ -174,23 +173,23 @@ export function buildStrengthDetails(
   requests: RequestRecord[],
   updates: RequestUpdateRecord[],
   batchesById: Record<string, BatchRecord | null | undefined>,
+  manualRecords: StrengthManualRecord[] = [],
   now: Date = new Date(),
 ): StrengthDetails {
-  const summary = buildStrengthSummary(profiles, requests, updates, batchesById, now);
-  const personnelIds = new Set(profiles.filter((profile) => isPersonnelProfile(profile, batchesById, now)).map((profile) => profile.id));
+  const summary = buildStrengthSummary(profiles, requests, updates, batchesById, manualRecords, now);
+  const personnelIds = new Set(profiles.filter((profile) => isStrengthPersonnelProfile(profile, batchesById, now)).map((profile) => profile.id));
   const activeStatuses = getActiveReportSickStatuses(requests, updates, now).filter((status) =>
     personnelIds.has(status.request.requester_id),
   );
   const postStatuses = getPostReportSickStatuses(requests, updates, now).filter((status) =>
     personnelIds.has(status.request.requester_id),
   );
-  const activeStatusRequestIds = new Set(activeStatuses.map((status) => status.request.id));
 
   const batches = Object.values(batchesById)
     .filter((batch): batch is BatchRecord => Boolean(batch && isBatchActiveOnDate(batch, now)))
     .map((batch) => {
       const phase = getBatchPhase(batch, now) === "specialisation" ? "specialisation" : "common";
-      const batchProfiles = profiles.filter((profile) => profile.batch_id === batch.id && isPersonnelProfile(profile, batchesById, now));
+      const batchProfiles = profiles.filter((profile) => profile.batch_id === batch.id && isStrengthPersonnelProfile(profile, batchesById, now));
       const platoonNames = Array.from(
         new Set(
           batchProfiles.map((profile) =>
@@ -223,6 +222,7 @@ export function buildStrengthDetails(
             requests,
             updates,
             batchesById,
+            manualRecords,
             now,
           ),
         })),
@@ -263,14 +263,12 @@ export function buildStrengthDetails(
       id: `${status.request.id}-${status.entry.type}-${status.entry.endDate}-${label}`,
       profileId: status.request.requester_id,
       fallbackName: status.request.requester_email,
-      description: `(${label})`,
+      description: label,
       meta: `Status ended ${status.entry.endDate}`,
     };
 
     if (label === "MC+1") {
       categories.attendB.push(entry);
-    } else {
-      categories.others.push(entry);
     }
   });
 
@@ -311,18 +309,16 @@ export function buildStrengthDetails(
     }
   });
 
-  updates.forEach((update) => {
-    if (update.kind !== "doctor_followup" || !hasMedication(update.payload?.medication)) return;
-    const request = requests.find((item) => item.id === update.request_id);
-    if (!request || !personnelIds.has(request.requester_id)) return;
-    if (!activeStatusRequestIds.has(request.id) && !isSameDate(request.followup_submitted_at, now)) return;
-
-    categories.onMedication.push({
-      id: update.id,
-      profileId: request.requester_id,
-      fallbackName: request.requester_email,
-      description: String(update.payload.medication),
-      meta: "Medication declared",
+  manualRecords.forEach((record) => {
+    if (!personnelIds.has(record.profile_id) || !isSameDate(record.duty_date, now)) return;
+    const categoryKey =
+      record.category === "guard_duty" ? "guardDuty" : record.category === "on_medication" ? "onMedication" : "others";
+    categories[categoryKey].push({
+      id: record.id,
+      profileId: record.profile_id,
+      fallbackName: "Personnel",
+      description: record.note?.trim() || "Admin added",
+      meta: "Manual strength record",
     });
   });
 

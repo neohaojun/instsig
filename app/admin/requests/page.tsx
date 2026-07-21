@@ -8,12 +8,13 @@ import { ChevronLeft, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { StatusPill } from "@/components/request/status-pill";
-import type { BatchRecord, ProfileRecord, RequestRecord, RequestUpdateRecord } from "@/lib/types";
+import type { BatchRecord, ProfileRecord, RequestRecord, RequestUpdateRecord, UnitRecord } from "@/lib/types";
 import { formatProfileName } from "@/lib/profile-display";
 import { cn } from "@/lib/utils";
 import { formatDisplayDateTime } from "@/lib/display-date";
 import { requestKindLabels } from "@/lib/request-meta";
 import { buildRequestCardLines, formatRequestRequesterDescription } from "@/lib/request-card-display";
+import { getDescendantUnitIds, getUnitLabel } from "@/lib/unit-scope";
 
 type RequestStatusView = "pending" | "all";
 type RequestKindView = "report_sick" | "external_appointment";
@@ -200,15 +201,18 @@ function buildQueueHref({
   statusView,
   kindView,
   searchQuery,
+  unitId,
 }: {
   statusView: RequestStatusView;
   kindView: RequestKindView;
   searchQuery: string;
+  unitId?: string;
 }) {
   const query = {
     ...(statusView === "all" ? { status: statusView } : {}),
     kind: kindView,
     ...(searchQuery.trim() ? { q: searchQuery.trim() } : {}),
+    ...(unitId ? { unit: unitId } : {}),
   };
 
   return Object.keys(query).length ? { pathname: "/admin/requests", query } : { pathname: "/admin/requests" };
@@ -218,17 +222,19 @@ function RequestStatusTabs({
   activeView,
   kindView,
   searchQuery,
+  unitId,
 }: {
   activeView: RequestStatusView;
   kindView: RequestKindView;
   searchQuery: string;
+  unitId?: string;
 }) {
   return (
     <div className="w-fit max-w-full rounded-2xl border border-border bg-muted p-1">
       <div className="flex flex-wrap gap-2">
         {statusViews.map((view) => {
           const isActive = view.value === activeView;
-          const href = buildQueueHref({ statusView: view.value, kindView, searchQuery });
+          const href = buildQueueHref({ statusView: view.value, kindView, searchQuery, unitId });
 
           return (
             <Link
@@ -252,15 +258,18 @@ function RequestQueueSearch({
   statusView,
   kindView,
   searchQuery,
+  unitId,
 }: {
   statusView: RequestStatusView;
   kindView: RequestKindView;
   searchQuery: string;
+  unitId?: string;
 }) {
   return (
     <form action="/admin/requests" className="flex flex-wrap items-end gap-3 animate-enter-soft">
       {statusView === "all" ? <input type="hidden" name="status" value={statusView} /> : null}
       <input type="hidden" name="kind" value={kindView} />
+      {unitId ? <input type="hidden" name="unit" value={unitId} /> : null}
       <div className="min-w-full flex-1 md:min-w-96">
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -273,7 +282,7 @@ function RequestQueueSearch({
           />
           {searchQuery ? (
             <Button asChild type="button" size="sm" variant="ghost" className="absolute right-1 top-1/2 h-8 w-8 -translate-y-1/2 px-0">
-              <Link href={buildQueueHref({ statusView, kindView, searchQuery: "" })} aria-label="Clear request search">
+              <Link href={buildQueueHref({ statusView, kindView, searchQuery: "", unitId })} aria-label="Clear request search">
                 <X className="h-4 w-4" />
               </Link>
             </Button>
@@ -417,9 +426,10 @@ function RequestsSection({
 export default async function AdminRequestsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string | string[]; kind?: string | string[]; q?: string | string[] }>;
+  searchParams: Promise<{ status?: string | string[]; kind?: string | string[]; q?: string | string[]; unit?: string | string[] }>;
 }) {
-  const { status, kind, q } = await searchParams;
+  const { status, kind, q, unit } = await searchParams;
+  const unitId = Array.isArray(unit) ? unit[0] : unit;
   const statusView = resolveStatusView(status);
   const kindView = resolveKindView(kind);
   const queueTitle = getQueueTitle(kindView);
@@ -433,8 +443,14 @@ export default async function AdminRequestsPage({
   const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single();
   if (profile?.role !== "admin") redirect("/");
 
-  const { data: requests } = await supabase.from("requests").select("*").order("created_at", { ascending: false });
-  const kindRequests = filterRequestsByKind(requests ?? [], kindView);
+  const [{ data: requests }, { data: units }] = await Promise.all([
+    supabase.from("requests").select("*").order("created_at", { ascending: false }),
+    supabase.from("units").select("*").eq("active", true),
+  ]);
+  const unitIds = unitId ? getDescendantUnitIds((units ?? []) as UnitRecord[], unitId) : null;
+  const selectedUnit = ((units ?? []) as UnitRecord[]).find((item) => item.id === unitId);
+  const unitRequests = unitIds ? (requests ?? []).filter((request) => unitIds.has(request.unit_id)) : (requests ?? []);
+  const kindRequests = filterRequestsByKind(unitRequests, kindView);
   const baseRequests = filterRequestsByView(kindRequests, statusView);
 
   const requesterIds = Array.from(new Set(baseRequests.map((request) => request.requester_id)));
@@ -463,9 +479,10 @@ export default async function AdminRequestsPage({
         <Card className="overflow-hidden animate-enter">
           <CardHeader className="space-y-4 p-8">
             <CardTitle className="text-3xl">{queueTitle}</CardTitle>
+            {selectedUnit ? <p className="text-sm text-muted-foreground">{getUnitLabel(selectedUnit)}</p> : null}
             <div className="flex flex-wrap gap-3">
               <Button asChild variant="outline">
-                <Link href="/">
+                <Link href={unitId ? `/?unit=${unitId}` : "/"}>
                   <ChevronLeft className="h-4 w-4" />
                   Back to dashboard
                 </Link>
@@ -477,10 +494,10 @@ export default async function AdminRequestsPage({
         <QueueStats stats={stats} />
 
         <div className="flex flex-wrap gap-3">
-          <RequestStatusTabs activeView={statusView} kindView={kindView} searchQuery={searchQuery} />
+          <RequestStatusTabs activeView={statusView} kindView={kindView} searchQuery={searchQuery} unitId={unitId} />
         </div>
 
-        <RequestQueueSearch statusView={statusView} kindView={kindView} searchQuery={searchQuery} />
+        <RequestQueueSearch statusView={statusView} kindView={kindView} searchQuery={searchQuery} unitId={unitId} />
 
         <RequestsSection
           requests={visibleRequests}

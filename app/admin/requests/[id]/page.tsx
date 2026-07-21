@@ -4,9 +4,8 @@ import { TopBar } from "@/components/layout/topbar";
 import { RequestSummary } from "@/components/request/request-summary";
 import { AdminReviewPanel } from "@/components/request/admin-review-panel";
 import { AdminReportSickFollowupCard } from "@/components/request/admin-report-sick-followup-card";
-import { ExternalAppointmentRequestCard } from "@/components/request/external-appointment-card";
+import { AdminEditableRequestCard } from "@/components/request/admin-editable-request-card";
 import { PageCloseButton } from "@/components/request/page-close-button";
-import { ReportSickInitialRequestCard } from "@/components/request/report-sick-followup-form";
 import { StatusPill } from "@/components/request/status-pill";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatProfileName } from "@/lib/profile-display";
@@ -84,10 +83,13 @@ export default async function AdminRequestDetailPage({
 
         <div className={`grid gap-6 ${showRightPane ? "xl:grid-cols-2" : "xl:grid-cols-[1fr_0.92fr]"}`}>
           <div className="animate-enter">
-            {request.kind === "report_sick" ? (
-              <ReportSickInitialRequestCard request={request} profilesById={profilesById} />
-            ) : request.kind === "external_appointment" ? (
-              <ExternalAppointmentRequestCard request={request} profilesById={profilesById} />
+            {request.kind === "report_sick" || request.kind === "external_appointment" ? (
+              <AdminEditableRequestCard
+                request={request}
+                profilesById={profilesById}
+                adminId={profile.id}
+                adminEmail={user.email ?? ""}
+              />
             ) : (
               <RequestSummary
                 request={request}

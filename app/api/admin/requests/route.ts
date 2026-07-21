@@ -18,6 +18,11 @@ export async function DELETE(request: Request) {
   const parsed = deleteRequestSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ message: "This request could not be deleted." }, { status: 400 });
 
+  const { data: targetRequest } = await supabase.from("requests").select("id, unit_id").eq("id", parsed.data.id).maybeSingle();
+  if (!targetRequest) return NextResponse.json({ message: "This request no longer exists." }, { status: 404 });
+  const { data: canManage } = await supabase.rpc("can_manage_unit", { p_unit_id: targetRequest.unit_id });
+  if (!canManage) return NextResponse.json({ message: "You do not have permission to delete this request." }, { status: 403 });
+
   let admin: ReturnType<typeof createSupabaseAdminClient>;
   try {
     admin = createSupabaseAdminClient();

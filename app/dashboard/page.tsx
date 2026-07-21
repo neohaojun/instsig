@@ -7,7 +7,7 @@ import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileText, CalendarClock } from "lucide-react";
 import { format, parseISO } from "date-fns";
-import type { BatchRecord, ProfileRecord, RequestRecord, RequestUpdateRecord } from "@/lib/types";
+import type { BatchRecord, ProfileRecord, RequestRecord, RequestUpdateRecord, StrengthManualRecord } from "@/lib/types";
 import { formatProfileName } from "@/lib/profile-display";
 import { StatusPill } from "@/components/request/status-pill";
 import { formatDisplayDateTime } from "@/lib/display-date";
@@ -262,6 +262,9 @@ export default async function DashboardPage() {
   const pendingRequests = requests.filter(isIncompleteRequest);
   const requestHistory = requests.filter((request) => request.requester_id === user.id && request.status !== "draft");
   const isAdmin = profile?.role === "admin";
+  const { data: strengthRecords } = isAdmin
+    ? await supabase.from("strength_records").select("*").order("duty_date", { ascending: false }).order("created_at", { ascending: false })
+    : { data: [] as StrengthManualRecord[] };
   const { data: profilesForDashboard } = isAdmin
     ? await supabase.from("profiles").select("*")
     : pendingRequests.length
@@ -275,6 +278,7 @@ export default async function DashboardPage() {
     requests,
     (requestUpdates ?? []) as RequestUpdateRecord[],
     batchesById,
+    (strengthRecords ?? []) as StrengthManualRecord[],
   );
   const reportSickPendingRequests = requests.filter((request) => request.kind === "report_sick" && isAwaitingDashboardAction(request));
   const externalAppointmentPendingRequests = requests.filter((request) => request.kind === "external_appointment" && isAwaitingDashboardAction(request));

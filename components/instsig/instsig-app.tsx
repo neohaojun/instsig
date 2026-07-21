@@ -21,15 +21,26 @@ import { StatusPill } from "@/components/request/status-pill";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { formatDisplayDateTime } from "@/lib/display-date";
 import { formatProfileName } from "@/lib/profile-display";
 import { buildRequestCardLines, formatRequestRequesterDescription } from "@/lib/request-card-display";
 import { requestKindLabels } from "@/lib/request-meta";
 import { buildStrengthDetails, buildStrengthSummary } from "@/lib/strength-summary";
-import type { BatchRecord, ProfileRecord, RequestKind, RequestRecord, RequestUpdateRecord } from "@/lib/types";
+import { getAccessibleUnitIds, getDescendantUnitIds, getUnitDepth, getUnitLabel } from "@/lib/unit-scope";
+import type {
+  BatchRecord,
+  ProfileRecord,
+  RequestKind,
+  RequestRecord,
+  RequestUpdateRecord,
+  StrengthManualRecord,
+  UnitMembershipRecord,
+  UnitRecord,
+} from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-type ShellView = "dashboard" | "history" | "adminRequests" | "strength" | "requestDetail" | "newReportSick" | "newExternalAppointment";
+type ShellView = "dashboard" | "history" | "adminRequests" | "strength" | "requestDetail" | "newReportSick" | "newExternalAppointment" | "newReportSickOnBehalf" | "newExternalAppointmentOnBehalf";
 type DashboardMode = "admin" | "user";
 type RequestDetailMode = "admin" | "user";
 type RequestStatusView = "pending" | "all";
@@ -311,10 +322,16 @@ function UserHistoryCard({
 
 function DashboardView({
   requests,
+  scopedRequests,
   updates,
+  scopedUpdates,
+  manualRecords,
   profile,
   profilesById,
   batchesById,
+  units,
+  selectedUnitId,
+  setSelectedUnitId,
   dashboardMode,
   setDashboardMode,
   onNavigate,
@@ -322,10 +339,16 @@ function DashboardView({
   onSelectRequest,
 }: {
   requests: RequestRecord[];
+  scopedRequests: RequestRecord[];
   updates: RequestUpdateRecord[];
+  scopedUpdates: RequestUpdateRecord[];
+  manualRecords: StrengthManualRecord[];
   profile: ProfileRecord | null;
   profilesById: Record<string, ProfileRecord | null | undefined>;
   batchesById: Record<string, BatchRecord | null | undefined>;
+  units: UnitRecord[];
+  selectedUnitId: string | null;
+  setSelectedUnitId: (unitId: string) => void;
   dashboardMode: DashboardMode;
   setDashboardMode: (mode: DashboardMode) => void;
   onNavigate: (view: ShellView) => void;
@@ -333,14 +356,15 @@ function DashboardView({
   onSelectRequest: (request: RequestRecord, mode: RequestDetailMode) => void;
 }) {
   const isAdmin = profile?.role === "admin";
-  const reportSickPendingRequests = requests.filter((request) => request.kind === "report_sick" && isAwaitingDashboardAction(request));
-  const externalAppointmentPendingRequests = requests.filter((request) => request.kind === "external_appointment" && isAwaitingDashboardAction(request));
+  const reportSickPendingRequests = scopedRequests.filter((request) => request.kind === "report_sick" && isAwaitingDashboardAction(request));
+  const externalAppointmentPendingRequests = scopedRequests.filter((request) => request.kind === "external_appointment" && isAwaitingDashboardAction(request));
   const requestHistory = requests.filter((request) => request.requester_id === profile?.id && request.status !== "draft");
   const strengthSummary = buildStrengthSummary(
     Object.values(profilesById).filter(Boolean) as ProfileRecord[],
-    requests,
-    updates,
+    scopedRequests,
+    scopedUpdates,
     batchesById,
+    manualRecords,
   );
   const activeMode = isAdmin ? dashboardMode : "user";
 
@@ -427,6 +451,18 @@ function DashboardView({
 
       {activeMode === "admin" ? (
         <>
+          {units.length && selectedUnitId ? (
+            <Card className="overflow-hidden animate-enter-soft">
+              <CardHeader className="space-y-3 p-8">
+                <CardTitle className="text-xl">Unit</CardTitle>
+                <Select value={selectedUnitId} onChange={(event) => setSelectedUnitId(event.target.value)} aria-label="Select dashboard unit">
+                  {units.map((unit) => (
+                    <option key={unit.id} value={unit.id}>{getUnitLabel(unit)}</option>
+                  ))}
+                </Select>
+              </CardHeader>
+            </Card>
+          ) : null}
           <div className="grid gap-6 lg:grid-cols-2">
             <AdminPendingRequestsCard
               title="Report Sick Requests"
@@ -448,8 +484,24 @@ function DashboardView({
 
           <StrengthCard summary={strengthSummary} onSeeMore={() => onNavigate("strength")} />
 
+          <Card className="overflow-hidden animate-enter-soft">
+            <CardHeader className="space-y-4 p-8">
+              <CardTitle className="text-3xl">Submit on Behalf</CardTitle>
+              <div className="grid gap-4 pt-2 sm:grid-cols-2">
+                <Button type="button" size="lg" className="h-auto justify-start gap-4 py-6 text-left" onClick={() => onNavigate("newReportSickOnBehalf")}>
+                  <FileText className="h-5 w-5" />
+                  <span className="text-lg font-semibold">Report Sick</span>
+                </Button>
+                <Button type="button" size="lg" variant="outline" className="h-auto justify-start gap-4 py-6 text-left" onClick={() => onNavigate("newExternalAppointmentOnBehalf")}>
+                  <CalendarClock className="h-5 w-5" />
+                  <span className="text-lg font-semibold">External Appointment</span>
+                </Button>
+              </div>
+            </CardHeader>
+          </Card>
+
           <div className="grid gap-4 animate-enter-soft animate-delay-2 sm:grid-cols-2">
-            <Link href="/admin/users" className="block">
+            <Link href={selectedUnitId ? `/admin/users?unit=${selectedUnitId}` : "/admin/users"} className="block">
               <Card className="overflow-hidden transition hover:bg-accent/50">
                 <CardHeader className="space-y-2 p-8">
                   <div className="flex items-center justify-between gap-4">
@@ -459,7 +511,7 @@ function DashboardView({
                 </CardHeader>
               </Card>
             </Link>
-            <Link href="/admin/batches" className="block">
+            <Link href={selectedUnitId ? `/admin/batches?unit=${selectedUnitId}` : "/admin/batches"} className="block">
               <Card className="overflow-hidden transition hover:bg-accent/50">
                 <CardHeader className="space-y-2 p-8">
                   <div className="flex items-center justify-between gap-4">
@@ -521,15 +573,21 @@ function HistoryView({
 function StrengthView({
   requests,
   updates,
+  manualRecords,
   profilesById,
   batchesById,
   onNavigate,
+  onManualRecordAdded,
+  onManualRecordRemoved,
 }: {
   requests: RequestRecord[];
   updates: RequestUpdateRecord[];
+  manualRecords: StrengthManualRecord[];
   profilesById: Record<string, ProfileRecord | null | undefined>;
   batchesById: Record<string, BatchRecord | null | undefined>;
   onNavigate: (view: ShellView) => void;
+  onManualRecordAdded: (record: StrengthManualRecord) => void;
+  onManualRecordRemoved: (recordId: string) => void;
 }) {
   const todayValue = format(new Date(), "yyyy-MM-dd");
   const [selectedDate, setSelectedDate] = useState(todayValue);
@@ -539,6 +597,7 @@ function StrengthView({
     requests,
     updates,
     batchesById,
+    manualRecords,
     strengthDate,
   );
 
@@ -558,7 +617,14 @@ function StrengthView({
           </div>
         </CardHeader>
       </Card>
-      <StrengthDetail details={details} profilesById={profilesById} showSummaryTitle={false} />
+      <StrengthDetail
+        details={details}
+        profilesById={profilesById}
+        selectedDate={selectedDate}
+        onManualRecordAdded={onManualRecordAdded}
+        onManualRecordRemoved={onManualRecordRemoved}
+        showSummaryTitle={false}
+      />
     </section>
   );
 }
@@ -1123,24 +1189,47 @@ function NewRequestView({
   userEmail,
   onClose,
   onSaved,
+  requesterOptions,
+  actor,
 }: {
   kind: RequestKind;
   profile: ProfileRecord | null;
   userEmail: string | null;
   onClose: () => void;
   onSaved: (request: RequestRecord) => void;
+  requesterOptions?: ProfileRecord[];
+  actor?: ProfileRecord | null;
 }) {
+  const [requesterId, setRequesterId] = useState(requesterOptions?.[0]?.id ?? profile?.id ?? "");
+  const requester = requesterOptions?.find((person) => person.id === requesterId) ?? profile;
+
   return (
     <section className="min-h-dvh bg-background px-4 py-6 text-foreground sm:px-6 lg:px-8">
       <div className="mx-auto max-w-5xl">
         <div className="animate-enter">
+          {requesterOptions ? (
+            <Card className="mb-6">
+              <CardHeader className="space-y-3 p-8">
+                <CardTitle className="text-xl">Submitted for</CardTitle>
+                <Select value={requesterId} onChange={(event) => setRequesterId(event.target.value)} aria-label="Select cadet" disabled={!requesterOptions.length}>
+                  {requesterOptions.length ? requesterOptions.map((person) => (
+                    <option key={person.id} value={person.id}>{formatProfileName(person, person.email)}</option>
+                  )) : <option value="">No cadets available in this unit</option>}
+                </Select>
+              </CardHeader>
+            </Card>
+          ) : null}
           <RequestForm
             kind={kind}
-            userEmail={userEmail ?? ""}
-            userId={profile?.id ?? ""}
+            userEmail={requester?.email ?? userEmail ?? ""}
+            userId={requester?.id ?? ""}
+            unitId={requester?.unit_id}
             requestId={null}
             onClose={onClose}
             onSaved={onSaved}
+            actorId={actor?.id}
+            actorEmail={actor?.email}
+            submittedOnBehalf={Boolean(requesterOptions)}
           />
         </div>
       </div>
@@ -1152,21 +1241,39 @@ export function InstsigApp({
   userEmail,
   profile,
   initialDashboardMode,
+  initialUnitId,
   initialRequests,
   initialUpdates,
+  initialManualRecords,
   profilesById,
   batchesById,
+  units,
+  unitMemberships,
 }: {
   userEmail: string | null;
   profile: ProfileRecord | null;
   initialDashboardMode?: DashboardMode;
+  initialUnitId?: string;
   initialRequests: RequestRecord[];
   initialUpdates: RequestUpdateRecord[];
+  initialManualRecords: StrengthManualRecord[];
   profilesById: Record<string, ProfileRecord | null | undefined>;
   batchesById: Record<string, BatchRecord | null | undefined>;
+  units: UnitRecord[];
+  unitMemberships: UnitMembershipRecord[];
 }) {
   const router = useRouter();
   const lastRefreshAt = useRef(Date.now());
+  const unitsById = Object.fromEntries(units.map((unit) => [unit.id, unit]));
+  const accessibleUnitIds = getAccessibleUnitIds(units, unitMemberships);
+  const accessibleUnits = units
+    .filter((unit) => accessibleUnitIds.has(unit.id))
+    .sort((first, second) => getUnitDepth(first, unitsById) - getUnitDepth(second, unitsById) || first.name.localeCompare(second.name));
+  const defaultUnitId = initialUnitId && accessibleUnitIds.has(initialUnitId)
+    ? initialUnitId
+    : unitMemberships.find((membership) => membership.membership_role === "unit_admin" || membership.membership_role === "unit_viewer")?.unit_id
+      ?? profile?.unit_id
+      ?? null;
   const [view, setView] = useState<ShellView>("dashboard");
   const [returnView, setReturnView] = useState<ShellView>("dashboard");
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
@@ -1177,13 +1284,16 @@ export function InstsigApp({
   const [requestSearchQuery, setRequestSearchQuery] = useState("");
   const [requests, setRequests] = useState(initialRequests);
   const [updates, setUpdates] = useState(initialUpdates);
+  const [manualRecords, setManualRecords] = useState(initialManualRecords);
+  const [selectedUnitId, setSelectedUnitId] = useState<string | null>(defaultUnitId);
   const isAdmin = profile?.role === "admin";
 
   useEffect(() => {
     setRequests(initialRequests);
     setUpdates(initialUpdates);
+    setManualRecords(initialManualRecords);
     lastRefreshAt.current = Date.now();
-  }, [initialRequests, initialUpdates]);
+  }, [initialManualRecords, initialRequests, initialUpdates]);
 
   useEffect(() => {
     function refreshIfVisible() {
@@ -1211,6 +1321,31 @@ export function InstsigApp({
     () => [...requests].sort((first, second) => Date.parse(second.updated_at) - Date.parse(first.updated_at)),
     [requests],
   );
+  const selectedUnitIds = useMemo(
+    () => selectedUnitId ? getDescendantUnitIds(units, selectedUnitId) : new Set<string>(),
+    [selectedUnitId, units],
+  );
+  const scopedRequests = useMemo(
+    () => sortedRequests.filter((request) => selectedUnitIds.has(request.unit_id)),
+    [selectedUnitIds, sortedRequests],
+  );
+  const scopedRequestIds = useMemo(() => new Set(scopedRequests.map((request) => request.id)), [scopedRequests]);
+  const scopedUpdates = useMemo(
+    () => updates.filter((update) => scopedRequestIds.has(update.request_id)),
+    [scopedRequestIds, updates],
+  );
+  const scopedProfilesById = useMemo(
+    () => Object.fromEntries(Object.entries(profilesById).filter(([, person]) => person?.unit_id && selectedUnitIds.has(person.unit_id))),
+    [profilesById, selectedUnitIds],
+  );
+  const scopedBatchesById = useMemo(
+    () => Object.fromEntries(Object.entries(batchesById).filter(([, batch]) => batch?.unit_id && selectedUnitIds.has(batch.unit_id))),
+    [batchesById, selectedUnitIds],
+  );
+  const scopedManualRecords = useMemo(
+    () => manualRecords.filter((record) => selectedUnitIds.has(record.unit_id)),
+    [manualRecords, selectedUnitIds],
+  );
   const selectedRequest = selectedRequestId ? sortedRequests.find((request) => request.id === selectedRequestId) ?? null : null;
   const selectedFollowup = selectedRequest
     ? updates.find((update) => update.request_id === selectedRequest.id && update.kind === "doctor_followup") ?? null
@@ -1237,12 +1372,28 @@ export function InstsigApp({
   }
 
   function openAdminRequests(nextKindView: RequestKindView = "report_sick") {
-    router.push(`/admin/requests?kind=${nextKindView}`);
+    const unitQuery = selectedUnitId ? `&unit=${selectedUnitId}` : "";
+    router.push(`/admin/requests?kind=${nextKindView}${unitQuery}`);
+  }
+
+  function handleUnitChange(unitId: string) {
+    if (!accessibleUnitIds.has(unitId)) return;
+    setSelectedUnitId(unitId);
+    const url = new URL(window.location.href);
+    url.searchParams.set("unit", unitId);
+    window.history.replaceState(window.history.state, "", url);
   }
 
   function handleSavedRequest(request: RequestRecord) {
     setRequests((current) => [request, ...current.filter((item) => item.id !== request.id)]);
     setDashboardMode("user");
+    setView("dashboard");
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }
+
+  function handleSavedRequestOnBehalf(request: RequestRecord) {
+    setRequests((current) => [request, ...current.filter((item) => item.id !== request.id)]);
+    setDashboardMode("admin");
     setView("dashboard");
     window.scrollTo({ top: 0, behavior: "instant" });
   }
@@ -1273,6 +1424,14 @@ export function InstsigApp({
     navigate(returnView);
   }
 
+  function handleManualRecordAdded(record: StrengthManualRecord) {
+    setManualRecords((current) => [record, ...current.filter((item) => item.id !== record.id)]);
+  }
+
+  function handleManualRecordRemoved(recordId: string) {
+    setManualRecords((current) => current.filter((record) => record.id !== recordId));
+  }
+
   return (
     <main className="min-h-screen bg-background text-foreground">
       <TopBar
@@ -1286,10 +1445,16 @@ export function InstsigApp({
       {view === "dashboard" ? (
         <DashboardView
           requests={sortedRequests}
+          scopedRequests={scopedRequests}
           updates={updates}
+          scopedUpdates={scopedUpdates}
+          manualRecords={scopedManualRecords}
           profile={profile}
-          profilesById={profilesById}
-          batchesById={batchesById}
+          profilesById={scopedProfilesById}
+          batchesById={scopedBatchesById}
+          units={accessibleUnits}
+          selectedUnitId={selectedUnitId}
+          setSelectedUnitId={handleUnitChange}
           dashboardMode={dashboardMode}
           setDashboardMode={setDashboardMode}
           onNavigate={navigate}
@@ -1302,10 +1467,10 @@ export function InstsigApp({
       ) : null}
       {view === "adminRequests" && isAdmin ? (
         <AdminRequestsView
-          requests={sortedRequests}
-          requestUpdates={updates}
-          profilesById={profilesById}
-          batchesById={batchesById}
+          requests={scopedRequests}
+          requestUpdates={scopedUpdates}
+          profilesById={scopedProfilesById}
+          batchesById={scopedBatchesById}
           statusView={statusView}
           setStatusView={setStatusView}
           kindView={kindView}
@@ -1317,11 +1482,14 @@ export function InstsigApp({
       ) : null}
       {view === "strength" && isAdmin ? (
         <StrengthView
-          requests={sortedRequests}
-          updates={updates}
-          profilesById={profilesById}
-          batchesById={batchesById}
+          requests={scopedRequests}
+          updates={scopedUpdates}
+          manualRecords={scopedManualRecords}
+          profilesById={scopedProfilesById}
+          batchesById={scopedBatchesById}
           onNavigate={navigate}
+          onManualRecordAdded={handleManualRecordAdded}
+          onManualRecordRemoved={handleManualRecordRemoved}
         />
       ) : null}
       {view === "requestDetail" && selectedRequest ? (
@@ -1366,6 +1534,28 @@ export function InstsigApp({
           userEmail={userEmail}
           onClose={() => navigate("dashboard")}
           onSaved={handleSavedRequest}
+        />
+      ) : null}
+      {view === "newReportSickOnBehalf" && isAdmin ? (
+        <NewRequestView
+          kind="report_sick"
+          profile={profile}
+          userEmail={userEmail}
+          requesterOptions={(Object.values(scopedProfilesById).filter((person): person is ProfileRecord => Boolean(person && person.role === "user")))}
+          actor={profile}
+          onClose={() => navigate("dashboard")}
+          onSaved={handleSavedRequestOnBehalf}
+        />
+      ) : null}
+      {view === "newExternalAppointmentOnBehalf" && isAdmin ? (
+        <NewRequestView
+          kind="external_appointment"
+          profile={profile}
+          userEmail={userEmail}
+          requesterOptions={(Object.values(scopedProfilesById).filter((person): person is ProfileRecord => Boolean(person && person.role === "user")))}
+          actor={profile}
+          onClose={() => navigate("dashboard")}
+          onSaved={handleSavedRequestOnBehalf}
         />
       ) : null}
     </main>

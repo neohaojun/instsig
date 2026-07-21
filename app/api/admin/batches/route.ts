@@ -4,6 +4,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const dateField = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Set all three course dates.");
 const batchFields = z.object({
+  unit_id: z.string().uuid(),
   name: z.string().trim().min(1).max(80),
   course_start: dateField,
   specialisation_phase_start: dateField,
@@ -25,7 +26,7 @@ async function requireAdmin() {
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: NextResponse.json({ message: "Please sign in again." }, { status: 401 }) };
-  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
+  const { data: profile } = await supabase.from("profiles").select("role, unit_id").eq("id", user.id).single();
   if (profile?.role !== "admin") {
     return { error: NextResponse.json({ message: "You do not have permission to manage batches." }, { status: 403 }) };
   }
@@ -34,6 +35,7 @@ async function requireAdmin() {
 
 function batchValues(input: z.infer<typeof batchFields>) {
   return {
+    unit_id: input.unit_id,
     name: input.name,
     course_start: input.course_start,
     common_term_end: input.specialisation_phase_start,
@@ -41,11 +43,24 @@ function batchValues(input: z.infer<typeof batchFields>) {
   };
 }
 
+async function validateBatchUnit(supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>, unitId: string) {
+  const [{ data: canManage }, { count, error }] = await Promise.all([
+    supabase.rpc("can_manage_unit", { p_unit_id: unitId }),
+    supabase.from("units").select("id", { count: "exact", head: true }).eq("parent_unit_id", unitId).eq("active", true),
+  ]);
+  if (error) console.error("Could not validate batch unit", error);
+  if (!canManage) return "You do not have permission to manage batches for that unit.";
+  if (error || (count ?? 0) > 0) return "Batches can only be assigned to a training unit, not a parent unit.";
+  return null;
+}
+
 export async function POST(request: Request) {
   const access = await requireAdmin();
   if (access.error || !access.supabase) return access.error;
   const parsed = batchSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ message: parsed.error.issues[0]?.message ?? "Check the batch details." }, { status: 400 });
+  const unitError = await validateBatchUnit(access.supabase, parsed.data.unit_id);
+  if (unitError) return NextResponse.json({ message: unitError }, { status: 400 });
 
   const { data, error } = await access.supabase.from("batches").insert(batchValues(parsed.data)).select().single();
   if (error || !data) {
@@ -60,6 +75,8 @@ export async function PATCH(request: Request) {
   if (access.error || !access.supabase) return access.error;
   const parsed = updateBatchSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ message: parsed.error.issues[0]?.message ?? "Check the batch details." }, { status: 400 });
+  const unitError = await validateBatchUnit(access.supabase, parsed.data.unit_id);
+  if (unitError) return NextResponse.json({ message: unitError }, { status: 400 });
 
   const { data, error } = await access.supabase
     .from("batches")

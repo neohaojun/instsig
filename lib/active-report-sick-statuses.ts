@@ -109,6 +109,6 @@ export function formatStatusDuration(status: ActiveReportSickStatus) {
   const remaining = status.remainingDays === 1 ? "ends today" : `${status.remainingDays} days left`;
   const total = status.totalDays === 1 ? "1 day" : `${status.totalDays} days`;
 
-  if (!endDate) return `${total}, ${remaining}`;
-  return `${total}, ${remaining} until ${format(endDate, "dd/MM/yyyy")}`;
+  if (!endDate) return `${total} (${remaining})`;
+  return `${total}, until ${format(endDate, "dd/MM/yyyy")} (${remaining})`;
 }
