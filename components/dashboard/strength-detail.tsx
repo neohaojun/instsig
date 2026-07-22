@@ -1,14 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
-import { Check, Copy, Plus, X } from "lucide-react";
+import { Check, Copy, Plus, Search, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { StrengthCard } from "@/components/dashboard/strength-card";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { formatProfileName } from "@/lib/profile-display";
 import { buildStrengthMessage, type StrengthMessageKind } from "@/lib/strength-message";
@@ -101,6 +101,7 @@ export function StrengthDetail({
   const [selectedTab, setSelectedTab] = useState("overall");
   const [addCategory, setAddCategory] = useState<StrengthManualCategory | null>(null);
   const [selectedProfileId, setSelectedProfileId] = useState("");
+  const [personSearch, setPersonSearch] = useState("");
   const [note, setNote] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [copyMessage, setCopyMessage] = useState<string | null>(null);
@@ -137,16 +138,42 @@ export function StrengthDetail({
     [activeProfileIds, profilesById],
   );
   const dialogOptions = addCategory === "stay_in_perm_staff" ? permStaffOptions : personnelOptions;
+  const filteredDialogOptions = useMemo(() => {
+    const query = personSearch.trim().toLocaleLowerCase();
+    if (!query) return dialogOptions;
+
+    return dialogOptions.filter((profile) =>
+      [
+        formatProfileName(profile, profile.email),
+        profile.full_name,
+        profile.rank,
+        profile.email,
+        profile.nr,
+        profile.sscc_batch,
+        profile.common_term_platoon,
+        profile.specialisation_phase_platoon,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLocaleLowerCase()
+        .includes(query),
+    );
+  }, [dialogOptions, personSearch]);
 
   useEffect(() => {
     if (!addCategory) return;
-    setSelectedProfileId((current) => (current && dialogOptions.some((profile) => profile.id === current) ? current : dialogOptions[0]?.id ?? ""));
-  }, [addCategory, dialogOptions]);
+    setSelectedProfileId((current) =>
+      current && filteredDialogOptions.some((profile) => profile.id === current)
+        ? current
+        : filteredDialogOptions[0]?.id ?? "",
+    );
+  }, [addCategory, filteredDialogOptions]);
 
   function openAddDialog(category: StrengthManualCategory) {
     setAddCategory(category);
     const options = category === "stay_in_perm_staff" ? permStaffOptions : personnelOptions;
     setSelectedProfileId(options[0]?.id ?? "");
+    setPersonSearch("");
     setNote("");
     setMessage(null);
   }
@@ -384,23 +411,59 @@ export function StrengthDetail({
             </div>
             <div className="grid gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="strength-person">Person</Label>
-                <Select
-                  id="strength-person"
-                  value={selectedProfileId}
-                  onChange={(event) => setSelectedProfileId(event.target.value)}
-                  disabled={!dialogOptions.length || isPending}
+                <Label htmlFor="strength-person-search">Person</Label>
+                <div className="relative">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    id="strength-person-search"
+                    value={personSearch}
+                    onChange={(event) => setPersonSearch(event.target.value)}
+                    placeholder="Search cadets by name, rank, NR, batch or platoon"
+                    className="pl-9"
+                    autoComplete="off"
+                    disabled={!dialogOptions.length || isPending}
+                    autoFocus
+                  />
+                </div>
+                <div
+                  className="max-h-56 overflow-y-auto rounded-xl border border-border bg-background/50 p-1"
+                  role="listbox"
+                  aria-label="Eligible personnel"
                 >
-                  {dialogOptions.length ? (
-                    dialogOptions.map((person) => (
-                      <option key={person.id} value={person.id}>
-                        {formatProfileName(person, person.email)}
-                      </option>
-                    ))
+                  {filteredDialogOptions.length ? (
+                    filteredDialogOptions.map((person) => {
+                      const selected = person.id === selectedProfileId;
+                      const detail = [person.nr ? `NR ${person.nr}` : null, person.sscc_batch, person.common_term_platoon || person.specialisation_phase_platoon]
+                        .filter(Boolean)
+                        .join(" · ");
+
+                      return (
+                        <button
+                          key={person.id}
+                          type="button"
+                          role="option"
+                          aria-selected={selected}
+                          onClick={() => setSelectedProfileId(person.id)}
+                          disabled={isPending}
+                          className={cn(
+                            "flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-left transition hover:bg-muted",
+                            selected && "bg-muted text-foreground",
+                          )}
+                        >
+                          <span className="min-w-0">
+                            <span className="block truncate text-sm font-medium">{formatProfileName(person, person.email)}</span>
+                            {detail ? <span className="block truncate text-xs text-muted-foreground">{detail}</span> : null}
+                          </span>
+                          {selected ? <Check className="h-4 w-4 shrink-0" /> : null}
+                        </button>
+                      );
+                    })
                   ) : (
-                    <option value="">No eligible personnel</option>
+                    <p className="px-3 py-6 text-center text-sm text-muted-foreground">
+                      {dialogOptions.length ? "No cadets match your search." : "No eligible personnel."}
+                    </p>
                   )}
-                </Select>
+                </div>
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="strength-note">Note</Label>
