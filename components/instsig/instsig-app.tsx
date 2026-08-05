@@ -24,11 +24,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { formatDisplayDateTime } from "@/lib/display-date";
+import { isBatchActiveOnDate } from "@/lib/batch-display";
 import { formatProfileName } from "@/lib/profile-display";
 import { buildRequestCardLines, formatRequestRequesterDescription } from "@/lib/request-card-display";
 import { requestKindLabels } from "@/lib/request-meta";
 import { buildStrengthDetails, buildStrengthSummary } from "@/lib/strength-summary";
-import { getAccessibleUnitIds, getDescendantUnitIds, getUnitDepth, getUnitLabel } from "@/lib/unit-scope";
 import type {
   BatchRecord,
   ProfileRecord,
@@ -36,7 +36,6 @@ import type {
   RequestRecord,
   RequestUpdateRecord,
   StrengthManualRecord,
-  UnitMembershipRecord,
   UnitRecord,
 } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -330,12 +329,10 @@ function DashboardView({
   profile,
   profilesById,
   batchesById,
-  units,
-  selectedUnitId,
-  setSelectedUnitId,
   dashboardMode,
   setDashboardMode,
   onNavigate,
+  onOpenStrength,
   onOpenAdminRequests,
   onSelectRequest,
 }: {
@@ -347,12 +344,10 @@ function DashboardView({
   profile: ProfileRecord | null;
   profilesById: Record<string, ProfileRecord | null | undefined>;
   batchesById: Record<string, BatchRecord | null | undefined>;
-  units: UnitRecord[];
-  selectedUnitId: string | null;
-  setSelectedUnitId: (unitId: string) => void;
   dashboardMode: DashboardMode;
   setDashboardMode: (mode: DashboardMode) => void;
   onNavigate: (view: ShellView) => void;
+  onOpenStrength: (batchId: string) => void;
   onOpenAdminRequests: (kindView: RequestKindView) => void;
   onSelectRequest: (request: RequestRecord, mode: RequestDetailMode) => void;
 }) {
@@ -360,13 +355,9 @@ function DashboardView({
   const reportSickPendingRequests = scopedRequests.filter((request) => request.kind === "report_sick" && isAwaitingDashboardAction(request));
   const externalAppointmentPendingRequests = scopedRequests.filter((request) => request.kind === "external_appointment" && isAwaitingDashboardAction(request));
   const requestHistory = requests.filter((request) => request.requester_id === profile?.id && request.status !== "draft");
-  const strengthSummary = buildStrengthSummary(
-    Object.values(profilesById).filter(Boolean) as ProfileRecord[],
-    scopedRequests,
-    scopedUpdates,
-    batchesById,
-    manualRecords,
-  );
+  const activeBatches = Object.values(batchesById)
+    .filter((batch): batch is BatchRecord => Boolean(batch && isBatchActiveOnDate(batch, new Date())))
+    .sort((first, second) => first.name.localeCompare(second.name, undefined, { numeric: true }));
   const activeMode = isAdmin ? dashboardMode : "user";
 
   return (
@@ -452,18 +443,12 @@ function DashboardView({
 
       {activeMode === "admin" ? (
         <>
-          {units.length && selectedUnitId ? (
-            <Card className="overflow-hidden animate-enter-soft">
-              <CardHeader className="space-y-3 p-8">
-                <CardTitle className="text-xl">Unit</CardTitle>
-                <Select value={selectedUnitId} onChange={(event) => setSelectedUnitId(event.target.value)} aria-label="Select dashboard unit">
-                  {units.map((unit) => (
-                    <option key={unit.id} value={unit.id}>{getUnitLabel(unit)}</option>
-                  ))}
-                </Select>
-              </CardHeader>
-            </Card>
-          ) : null}
+          <Card className="overflow-hidden animate-enter-soft">
+            <CardHeader className="space-y-2 p-8">
+              <p className="text-sm text-muted-foreground">Unit</p>
+              <CardTitle className="text-xl">SCTW</CardTitle>
+            </CardHeader>
+          </Card>
           <div className="grid gap-6 lg:grid-cols-2">
             <AdminPendingRequestsCard
               title="Report Sick Requests"
@@ -483,7 +468,25 @@ function DashboardView({
             />
           </div>
 
-          <StrengthCard summary={strengthSummary} onSeeMore={() => onNavigate("strength")} />
+          <div className="grid gap-6">
+            {activeBatches.length ? activeBatches.map((batch) => (
+              <StrengthCard
+                key={batch.id}
+                summary={buildStrengthSummary(
+                  (Object.values(profilesById).filter(Boolean) as ProfileRecord[]).filter((person) => person.batch_id === batch.id),
+                  scopedRequests,
+                  scopedUpdates,
+                  { [batch.id]: batch },
+                  manualRecords,
+                )}
+                onSeeMore={() => onOpenStrength(batch.id)}
+              />
+            )) : (
+              <Card className="overflow-hidden animate-enter-soft animate-delay-2">
+                <CardContent className="p-8 text-sm text-muted-foreground">No active batch for today.</CardContent>
+              </Card>
+            )}
+          </div>
 
           <Card className="overflow-hidden animate-enter-soft">
             <CardHeader className="space-y-4 p-8">
@@ -502,7 +505,7 @@ function DashboardView({
           </Card>
 
           <div className="grid gap-4 animate-enter-soft animate-delay-2 sm:grid-cols-2">
-            <Link href={selectedUnitId ? `/admin/users?unit=${selectedUnitId}` : "/admin/users"} className="block">
+            <Link href="/admin/users" className="block">
               <Card className="overflow-hidden transition hover:bg-accent/50">
                 <CardHeader className="space-y-2 p-8">
                   <div className="flex items-center justify-between gap-4">
@@ -512,7 +515,7 @@ function DashboardView({
                 </CardHeader>
               </Card>
             </Link>
-            <Link href={selectedUnitId ? `/admin/batches?unit=${selectedUnitId}` : "/admin/batches"} className="block">
+            <Link href="/admin/batches" className="block">
               <Card className="overflow-hidden transition hover:bg-accent/50">
                 <CardHeader className="space-y-2 p-8">
                   <div className="flex items-center justify-between gap-4">
@@ -572,6 +575,7 @@ function HistoryView({
 }
 
 function StrengthView({
+  initialBatchId,
   requests,
   updates,
   manualRecords,
@@ -581,6 +585,7 @@ function StrengthView({
   onManualRecordAdded,
   onManualRecordRemoved,
 }: {
+  initialBatchId: string | null;
   requests: RequestRecord[];
   updates: RequestUpdateRecord[];
   manualRecords: StrengthManualRecord[];
@@ -592,12 +597,23 @@ function StrengthView({
 }) {
   const todayValue = format(new Date(), "yyyy-MM-dd");
   const [selectedDate, setSelectedDate] = useState(todayValue);
+  const [selectedBatchId, setSelectedBatchId] = useState(initialBatchId ?? "");
   const strengthDate = parseISO(selectedDate || todayValue);
+  const activeBatches = Object.values(batchesById)
+    .filter((batch): batch is BatchRecord => Boolean(batch && isBatchActiveOnDate(batch, strengthDate)))
+    .sort((first, second) => first.name.localeCompare(second.name, undefined, { numeric: true }));
+  const effectiveBatchId = activeBatches.some((batch) => batch.id === selectedBatchId)
+    ? selectedBatchId
+    : activeBatches[0]?.id ?? "";
+  const visibleProfiles = (Object.values(profilesById).filter(Boolean) as ProfileRecord[]).filter(
+    (person) => person.batch_id === effectiveBatchId,
+  );
+  const visibleBatchesById = effectiveBatchId ? { [effectiveBatchId]: batchesById[effectiveBatchId] } : {};
   const details = buildStrengthDetails(
-    Object.values(profilesById).filter(Boolean) as ProfileRecord[],
+    visibleProfiles,
     requests,
     updates,
-    batchesById,
+    visibleBatchesById,
     manualRecords,
     strengthDate,
   );
@@ -606,9 +622,21 @@ function StrengthView({
     <section className="mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-6 lg:px-8">
       <Card className="relative z-10 overflow-visible animate-enter">
         <CardHeader className="space-y-4 p-8">
-          <div className="flex items-start justify-between gap-3">
+          <div className="flex flex-wrap items-start justify-between gap-3">
             <CardTitle className="text-3xl">Strength</CardTitle>
-            <StrengthDatePicker value={selectedDate} onValueChange={setSelectedDate} />
+            <div className="flex flex-wrap items-center justify-end gap-3">
+              <Select
+                value={effectiveBatchId}
+                onChange={(event) => setSelectedBatchId(event.target.value)}
+                aria-label="Select strength batch"
+                className="w-auto min-w-44"
+              >
+                {activeBatches.map((batch) => (
+                  <option key={batch.id} value={batch.id}>{batch.name} SSCC</option>
+                ))}
+              </Select>
+              <StrengthDatePicker value={selectedDate} onValueChange={setSelectedDate} />
+            </div>
           </div>
           <div className="flex flex-wrap gap-3">
             <Button type="button" variant="outline" onClick={() => onNavigate("dashboard")}>
@@ -1259,39 +1287,26 @@ export function InstsigApp({
   userEmail,
   profile,
   initialDashboardMode,
-  initialUnitId,
   initialRequests,
   initialUpdates,
   initialManualRecords,
   profilesById,
   batchesById,
   units,
-  unitMemberships,
 }: {
   userEmail: string | null;
   profile: ProfileRecord | null;
   initialDashboardMode?: DashboardMode;
-  initialUnitId?: string;
   initialRequests: RequestRecord[];
   initialUpdates: RequestUpdateRecord[];
   initialManualRecords: StrengthManualRecord[];
   profilesById: Record<string, ProfileRecord | null | undefined>;
   batchesById: Record<string, BatchRecord | null | undefined>;
   units: UnitRecord[];
-  unitMemberships: UnitMembershipRecord[];
 }) {
   const router = useRouter();
   const lastRefreshAt = useRef(Date.now());
-  const unitsById = Object.fromEntries(units.map((unit) => [unit.id, unit]));
-  const accessibleUnitIds = getAccessibleUnitIds(units, unitMemberships);
-  const accessibleUnits = units
-    .filter((unit) => accessibleUnitIds.has(unit.id))
-    .sort((first, second) => getUnitDepth(first, unitsById) - getUnitDepth(second, unitsById) || first.name.localeCompare(second.name));
-  const defaultUnitId = initialUnitId && accessibleUnitIds.has(initialUnitId)
-    ? initialUnitId
-    : unitMemberships.find((membership) => membership.membership_role === "unit_admin" || membership.membership_role === "unit_viewer")?.unit_id
-    ?? profile?.unit_id
-    ?? null;
+  const accessibleUnitIds = useMemo(() => new Set(units.map((unit) => unit.id)), [units]);
   const [view, setView] = useState<ShellView>("dashboard");
   const [returnView, setReturnView] = useState<ShellView>("dashboard");
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
@@ -1300,10 +1315,10 @@ export function InstsigApp({
   const [statusView, setStatusView] = useState<RequestStatusView>("pending");
   const [kindView, setKindView] = useState<RequestKindView>("report_sick");
   const [requestSearchQuery, setRequestSearchQuery] = useState("");
+  const [selectedStrengthBatchId, setSelectedStrengthBatchId] = useState<string | null>(null);
   const [requests, setRequests] = useState(initialRequests);
   const [updates, setUpdates] = useState(initialUpdates);
   const [manualRecords, setManualRecords] = useState(initialManualRecords);
-  const [selectedUnitId, setSelectedUnitId] = useState<string | null>(defaultUnitId);
   const isAdmin = profile?.role === "admin";
 
   useEffect(() => {
@@ -1339,10 +1354,7 @@ export function InstsigApp({
     () => [...requests].sort((first, second) => Date.parse(second.updated_at) - Date.parse(first.updated_at)),
     [requests],
   );
-  const selectedUnitIds = useMemo(
-    () => selectedUnitId ? getDescendantUnitIds(units, selectedUnitId) : new Set<string>(),
-    [selectedUnitId, units],
-  );
+  const selectedUnitIds = accessibleUnitIds;
   const scopedRequests = useMemo(
     () => sortedRequests.filter((request) => selectedUnitIds.has(request.unit_id)),
     [selectedUnitIds, sortedRequests],
@@ -1390,16 +1402,12 @@ export function InstsigApp({
   }
 
   function openAdminRequests(nextKindView: RequestKindView = "report_sick") {
-    const unitQuery = selectedUnitId ? `&unit=${selectedUnitId}` : "";
-    router.push(`/admin/requests?kind=${nextKindView}${unitQuery}`);
+    router.push(`/admin/requests?kind=${nextKindView}`);
   }
 
-  function handleUnitChange(unitId: string) {
-    if (!accessibleUnitIds.has(unitId)) return;
-    setSelectedUnitId(unitId);
-    const url = new URL(window.location.href);
-    url.searchParams.set("unit", unitId);
-    window.history.replaceState(window.history.state, "", url);
+  function openStrength(batchId: string) {
+    setSelectedStrengthBatchId(batchId);
+    navigate("strength");
   }
 
   function handleSavedRequest(request: RequestRecord) {
@@ -1470,12 +1478,10 @@ export function InstsigApp({
           profile={profile}
           profilesById={scopedProfilesById}
           batchesById={scopedBatchesById}
-          units={accessibleUnits}
-          selectedUnitId={selectedUnitId}
-          setSelectedUnitId={handleUnitChange}
           dashboardMode={dashboardMode}
           setDashboardMode={setDashboardMode}
           onNavigate={navigate}
+          onOpenStrength={openStrength}
           onOpenAdminRequests={openAdminRequests}
           onSelectRequest={handleSelectRequest}
         />
@@ -1500,6 +1506,7 @@ export function InstsigApp({
       ) : null}
       {view === "strength" && isAdmin ? (
         <StrengthView
+          initialBatchId={selectedStrengthBatchId}
           requests={scopedRequests}
           updates={scopedUpdates}
           manualRecords={scopedManualRecords}

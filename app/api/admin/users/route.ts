@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { formatNr } from "@/lib/profile-display";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { BatchRecord, ProfileRecord } from "@/lib/types";
 
@@ -68,7 +69,7 @@ function profileValues(input: z.infer<typeof profileFieldsSchema>, batchId: stri
     role: input.role,
     unit_id: unitId,
     batch_id: batchId,
-    nr: cleanNullable(input.nr),
+    nr: cleanNullable(formatNr(input.nr)),
     sscc_batch: cleanNullable(input.sscc_batch),
     common_term_platoon: cleanNullable(input.common_term_platoon),
     specialisation_phase_platoon: cleanNullable(input.specialisation_phase_platoon),
@@ -112,7 +113,7 @@ export async function POST(request: Request) {
   if (client.error || !client.admin) return client.error;
   const admin = client.admin;
   const emails = new Set<string>();
-  const results: Array<{ row: number; email: string; status: "created" | "failed"; message?: string; profile?: ProfileRecord }> = [];
+  const results: Array<{ row: number; email: string; status: "created" | "updated" | "failed"; message?: string; profile?: ProfileRecord }> = [];
   const { data: existingBatches, error: batchesError } = await admin.from("batches").select("*").order("name");
   if (batchesError) {
     console.error("Could not load batches for account import", batchesError);
@@ -155,6 +156,61 @@ export async function POST(request: Request) {
     }
     if (input.role === "user" && (await isParentUnit(access.supabase, targetUnitId)) !== false) {
       results.push({ row: input.row, email, status: "failed", message: "Users must be assigned to a training unit, not a parent unit." });
+      continue;
+    }
+    const { data: existingProfile, error: existingProfileError } = await admin
+      .from("profiles")
+      .select("*")
+      .ilike("email", email)
+      .maybeSingle();
+    if (existingProfileError) {
+      console.error(`Could not check imported account on row ${input.row}`, existingProfileError);
+      results.push({ row: input.row, email, status: "failed", message: "Account could not be checked." });
+      continue;
+    }
+    if (existingProfile) {
+      const { data: canManageCurrentUnit } = await access.supabase.rpc("can_manage_unit", { p_unit_id: existingProfile.unit_id });
+      if (!canManageCurrentUnit) {
+        results.push({ row: input.row, email, status: "failed", message: "You cannot update this account." });
+        continue;
+      }
+      if (existingProfile.role === "admin" && input.role !== "admin") {
+        const { count } = await admin.from("profiles").select("id", { count: "exact", head: true }).eq("role", "admin");
+        if ((count ?? 0) <= 1) {
+          results.push({ row: input.row, email, status: "failed", message: "The last admin account cannot be changed to a user." });
+          continue;
+        }
+      }
+      try {
+        const batchId = input.role === "admin" ? null : await getBatchId(admin, input.scs_batch, batches, targetUnitId);
+        const { data: profile, error: profileError } = await admin
+          .from("profiles")
+          .update(profileValues(input, batchId, targetUnitId))
+          .eq("id", existingProfile.id)
+          .select()
+          .single();
+        if (profileError || !profile) throw profileError ?? new Error("profile-update-failed");
+        const { error: membershipError } = await admin.from("unit_memberships").upsert({
+          profile_id: existingProfile.id,
+          unit_id: targetUnitId,
+          membership_role: input.role === "admin" ? "unit_admin" : "member",
+        });
+        if (membershipError) throw membershipError;
+        const { error: staleMembershipError } = await admin
+          .from("unit_memberships")
+          .delete()
+          .eq("profile_id", existingProfile.id)
+          .neq("unit_id", targetUnitId);
+        if (staleMembershipError) throw staleMembershipError;
+        const { error: authError } = await admin.auth.admin.updateUserById(existingProfile.id, {
+          user_metadata: { full_name: input.full_name },
+        });
+        if (authError) throw authError;
+        results.push({ row: input.row, email, status: "updated", profile: profile as ProfileRecord });
+      } catch (error) {
+        console.error(`Could not update imported account on row ${input.row}`, error);
+        results.push({ row: input.row, email, status: "failed", message: "Account could not be updated." });
+      }
       continue;
     }
     const { data: authData, error: createError } = await admin.auth.admin.createUser({

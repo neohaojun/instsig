@@ -10,7 +10,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { formatProfileName } from "@/lib/profile-display";
+import { formatNr, formatProfileName } from "@/lib/profile-display";
 import { buildStrengthMessage, type StrengthMessageKind } from "@/lib/strength-message";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
@@ -433,7 +433,7 @@ export function StrengthDetail({
                   {filteredDialogOptions.length ? (
                     filteredDialogOptions.map((person) => {
                       const selected = person.id === selectedProfileId;
-                      const detail = [person.nr ? `NR ${person.nr}` : null, person.sscc_batch, person.common_term_platoon || person.specialisation_phase_platoon]
+                      const detail = [person.nr ? `NR ${formatNr(person.nr)}` : null, person.sscc_batch, person.common_term_platoon || person.specialisation_phase_platoon]
                         .filter(Boolean)
                         .join(" · ");
 
