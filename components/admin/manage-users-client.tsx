@@ -3,7 +3,7 @@
 import { useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { format, isValid, parseISO } from "date-fns";
-import { Calendar as CalendarIcon, ChevronDown, Download, Edit2, FileSpreadsheet, Mail, Save, Search, Trash2, Upload, UserRound, X } from "lucide-react";
+import { Calendar as CalendarIcon, ChevronDown, Download, Edit2, FileSpreadsheet, Loader2, Mail, Save, Search, Trash2, Upload, UserRound, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,7 +14,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select } from "@/components/ui/select";
 import { formatCoursePlatoon } from "@/lib/batch-display";
 import { formatDisplayDate } from "@/lib/display-date";
-import { formatProfileName } from "@/lib/profile-display";
+import { formatNr, formatProfileName } from "@/lib/profile-display";
 import { readSpreadsheetRows } from "@/lib/spreadsheet-import";
 import type { BatchRecord, ProfileRecord, UnitRecord, UserRole } from "@/lib/types";
 import { getBatchUnitIds, getUnitLabel } from "@/lib/unit-scope";
@@ -56,7 +56,7 @@ type ProfileFormState = {
 type ImportResult = {
   row: number;
   email: string;
-  status: "created" | "failed";
+  status: "created" | "updated" | "failed";
   message?: string;
   profile?: EditableProfile;
 };
@@ -87,6 +87,15 @@ function formatBatchInput(value: string) {
 }
 
 function normalizeBatchName(value: string) {
+  const numericValue = Number(value);
+  if (/^\d{5}(?:\.\d+)?$/.test(value.trim()) && Number.isFinite(numericValue)) {
+    const excelEpoch = Date.UTC(1899, 11, 30);
+    const date = new Date(excelEpoch + Math.floor(numericValue) * 86_400_000);
+    const year = date.getUTCFullYear();
+    if (year >= 2000 && year <= 2099) {
+      return `${String(date.getUTCMonth() + 1).padStart(2, "0")}/${String(year).slice(-2)}`;
+    }
+  }
   return formatBatchInput(value).trim();
 }
 
@@ -102,7 +111,7 @@ function toFormState(profile: EditableProfile, batchName?: string): ProfileFormS
     common_term_platoon: profile.common_term_platoon ?? "",
     sscc_batch: formatBatchInput(profile.sscc_batch ?? ""),
     specialisation_phase_platoon: profile.specialisation_phase_platoon ?? "",
-    nr: profile.nr ?? "",
+    nr: formatNr(profile.nr),
     ooc_date: profile.ooc_date ?? "",
   };
 }
@@ -243,7 +252,7 @@ function UserProfileCard({
             <InfoField label="Role" value={profileRow.role === "admin" ? "Admin" : "User"} />
             <InfoField label="Unit" value={profileValue(unitName)} />
             <InfoField label="SCS Batch" value={profileValue(batchName)} />
-            <InfoField label="Course Code / NR" value={`${profileValue(profileRow.sscc_batch)} · ${profileValue(profileRow.nr)}`} />
+            <InfoField label="Course Code / NR" value={`${profileValue(profileRow.sscc_batch)} · ${profileValue(formatNr(profileRow.nr))}`} />
             <InfoField label="Course Status" value={profileRow.ooc_date ? `OOC from ${formatDisplayDate(profileRow.ooc_date)}` : "Active"} />
             <InfoField label="Current Platoon" value={profileValue(formatCoursePlatoon(profileRow, batch))} />
           </div>
@@ -358,7 +367,7 @@ function EditUserDialog({
                       <Input inputMode="numeric" placeholder="--/--" value={formState.sscc_batch} onChange={(event) => onChange("sscc_batch", formatBatchInput(event.target.value))} />
                     </FormField>
                     <FormField label="NR">
-                      <Input value={formState.nr} onChange={(event) => onChange("nr", event.target.value)} />
+                      <Input inputMode="numeric" value={formState.nr} onChange={(event) => onChange("nr", event.target.value.replace(/\D/g, ""))} />
                     </FormField>
                     <FormField label="OOC (Out of Course)">
                       <OocDateField value={formState.ooc_date} onChange={(value) => onChange("ooc_date", value)} />
@@ -425,6 +434,7 @@ export function ManageUsersClient({
   const [formState, setFormState] = useState<ProfileFormState | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
+  const [importStage, setImportStage] = useState<"reading" | "saving" | null>(null);
   const [importOpen, setImportOpen] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
   const [importResults, setImportResults] = useState<ImportResult[]>([]);
@@ -503,7 +513,7 @@ export function ManageUsersClient({
           role: formState.role,
           unit_id: formState.unit_id || null,
           scs_batch: emptyToNull(normalizeBatchName(formState.scs_batch)),
-          nr: emptyToNull(formState.nr),
+          nr: emptyToNull(formatNr(formState.nr)),
           sscc_batch: emptyToNull(normalizeBatchName(formState.sscc_batch)),
           common_term_platoon: emptyToNull(formState.common_term_platoon),
           specialisation_phase_platoon: emptyToNull(formState.specialisation_phase_platoon),
@@ -547,6 +557,7 @@ export function ManageUsersClient({
 
   async function importAccounts(file: File) {
     setImporting(true);
+    setImportStage("reading");
     setImportError(null);
     setImportResults([]);
     try {
@@ -566,12 +577,13 @@ export function ManageUsersClient({
           role: record.role?.toLowerCase() || "user",
           unit_id: defaultUnitId,
           scs_batch: record.scs_batch ? normalizeBatchName(record.scs_batch) : null,
-          nr: record.nr || null,
+          nr: formatNr(record.nr) || null,
           sscc_batch: record.sscc_batch ? normalizeBatchName(record.sscc_batch) : null,
           common_term_platoon: record.common_term_platoon || null,
           specialisation_phase_platoon: record.specialisation_phase_platoon || null,
         };
       });
+      setImportStage("saving");
       const response = await fetch("/api/admin/users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -582,13 +594,15 @@ export function ManageUsersClient({
       const results = payload.results as ImportResult[];
       setImportResults(results);
       const created = results.flatMap((result) => (result.status === "created" && result.profile ? [result.profile] : []));
-      setProfiles((current) => [...created, ...current]);
+      const updated = new Map(results.flatMap((result) => (result.status === "updated" && result.profile ? [[result.profile.id, result.profile] as const] : [])));
+      setProfiles((current) => [...created, ...current.map((profile) => updated.get(profile.id) ?? profile)]);
       setBatchOptions(payload.batches ?? batchOptions);
     } catch (error) {
       console.error("Failed to import accounts", error);
       setImportError(spreadsheetErrorMessage(error));
     } finally {
       setImporting(false);
+      setImportStage(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   }
@@ -602,8 +616,8 @@ export function ManageUsersClient({
               <FileSpreadsheet className="h-5 w-5" />
             </div>
             <div className="min-w-0 flex-1">
-              <CardTitle className="text-base leading-snug sm:text-lg">Add accounts from spreadsheet</CardTitle>
-              <p className="mt-1 text-sm leading-snug text-muted-foreground">Download a template or import multiple users.</p>
+              <CardTitle className="text-base leading-snug sm:text-lg">Import accounts from spreadsheet</CardTitle>
+              <p className="mt-1 text-sm leading-snug text-muted-foreground">New emails create accounts; existing emails update profile details.</p>
             </div>
             <ChevronDown className={cn("h-5 w-5 shrink-0 text-muted-foreground transition-transform", importOpen && "rotate-180")} />
           </button>
@@ -615,8 +629,8 @@ export function ManageUsersClient({
               Download template
             </Button>
             <Button type="button" className="w-full sm:w-auto" onClick={() => fileInputRef.current?.click()} disabled={importing}>
-              <Upload className="h-4 w-4" />
-              {importing ? "Importing..." : "Upload spreadsheet"}
+              {importing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+              {importStage === "reading" ? "Reading spreadsheet..." : importStage === "saving" ? "Updating accounts..." : "Upload spreadsheet"}
             </Button>
             <input
               ref={fileInputRef}
@@ -629,11 +643,20 @@ export function ManageUsersClient({
               }}
             />
           </div>
+          {importing ? (
+            <div className="flex items-start gap-3 rounded-xl border border-border bg-muted/30 p-3" role="status" aria-live="polite">
+              <Loader2 className="mt-0.5 h-4 w-4 shrink-0 animate-spin text-muted-foreground" />
+              <div className="min-w-0 text-sm">
+                <p className="font-medium">{importStage === "reading" ? "Reading your spreadsheet" : "Creating and updating accounts"}</p>
+                <p className="mt-0.5 text-muted-foreground">{importStage === "reading" ? "Checking the columns and preparing each row." : "Please keep this page open. Larger imports can take a moment."}</p>
+              </div>
+            </div>
+          ) : null}
           {importError ? <p className="text-sm text-destructive">{importError}</p> : null}
           {importResults.length ? (
             <div className="rounded-xl border border-border bg-muted/20 p-3 text-sm">
               <p className="font-medium">
-                {importResults.filter((result) => result.status === "created").length} created, {importResults.filter((result) => result.status === "failed").length} failed
+                {importResults.filter((result) => result.status === "created").length} created, {importResults.filter((result) => result.status === "updated").length} updated, {importResults.filter((result) => result.status === "failed").length} failed
               </p>
               {importResults.some((result) => result.status === "failed") ? (
                 <ul className="mt-2 space-y-1 text-muted-foreground">

@@ -8,7 +8,6 @@ import type {
   RequestRecord,
   RequestUpdateRecord,
   StrengthManualRecord,
-  UnitMembershipRecord,
   UnitRecord,
 } from "@/lib/types";
 
@@ -16,12 +15,10 @@ function buildProfilesMap(profiles: ProfileRecord[] | null | undefined) {
   return Object.fromEntries((profiles ?? []).map((profile) => [profile.id, profile]));
 }
 
-export default async function HomePage({
-  searchParams,
-}: {
-  searchParams: Promise<{ mode?: string; unit?: string }>;
+export default async function HomePage({ searchParams }: {
+  searchParams: Promise<{ mode?: string }>;
 }) {
-  const { mode, unit } = await searchParams;
+  const { mode } = await searchParams;
   let supabase;
 
   try {
@@ -50,7 +47,7 @@ export default async function HomePage({
   const requests = (allRequests ?? []) as RequestRecord[];
   const relevantRequests = profile?.role === "admin" ? requests : requests.filter((request) => request.requester_id === user.id);
   const relevantRequestIds = relevantRequests.map((request) => request.id);
-  const [{ data: requestUpdates }, { data: batches }, { data: strengthRecords }, { data: units }, { data: unitMemberships }] = await Promise.all([
+  const [{ data: requestUpdates }, { data: batches }, { data: strengthRecords }, { data: units }] = await Promise.all([
     relevantRequestIds.length
       ? supabase.from("request_updates").select("*").in("request_id", relevantRequestIds).order("created_at", { ascending: true })
       : Promise.resolve({ data: [] as RequestUpdateRecord[] }),
@@ -59,9 +56,6 @@ export default async function HomePage({
       ? supabase.from("strength_records").select("*").order("duty_date", { ascending: false }).order("created_at", { ascending: false })
       : Promise.resolve({ data: [] as StrengthManualRecord[] }),
     supabase.from("units").select("*").eq("active", true).order("name", { ascending: true }),
-    profile?.role === "admin"
-      ? supabase.from("unit_memberships").select("*").eq("profile_id", user.id)
-      : Promise.resolve({ data: [] as UnitMembershipRecord[] }),
   ]);
   const profileIds = Array.from(
     new Set(
@@ -88,14 +82,12 @@ export default async function HomePage({
       userEmail={user.email ?? null}
       profile={(profile as ProfileRecord | null) ?? null}
       initialDashboardMode={mode === "user" ? "user" : undefined}
-      initialUnitId={unit}
       initialRequests={relevantRequests}
       initialUpdates={(requestUpdates ?? []) as RequestUpdateRecord[]}
       initialManualRecords={(strengthRecords ?? []) as StrengthManualRecord[]}
       profilesById={buildProfilesMap(profiles)}
       batchesById={Object.fromEntries(batchRecords.map((batch) => [batch.id, batch]))}
       units={(units ?? []) as UnitRecord[]}
-      unitMemberships={(unitMemberships ?? []) as UnitMembershipRecord[]}
     />
   );
 }
