@@ -185,7 +185,7 @@ function RequestSubcard({
       <div
         className={cn(
           "group rounded-2xl border border-border bg-card p-3 transition hover:bg-accent/50",
-          actionLabel && "border-foreground/20 bg-muted/50 shadow-sm ring-1 ring-foreground/10",
+          actionLabel && "border-foreground/20 bg-muted/50 ring-1 ring-foreground/10",
         )}
       >
         <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 text-left sm:gap-4">
