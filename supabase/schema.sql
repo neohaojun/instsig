@@ -71,6 +71,7 @@ insert into public.units (code, name, parent_unit_id)
 values
   ('SCTW', 'SCTW', (select id from public.units where code = 'SALS')),
   ('OCTW', 'OCTW', (select id from public.units where code = 'SALS')),
+  ('DEMO', 'Demo', (select id from public.units where code = 'SALS')),
   ('WAC', 'SVTS WAC', (select id from public.units where code = 'SVTS')),
   ('TAC', 'SVTS TAC', (select id from public.units where code = 'SVTS'))
 on conflict (code) do update set

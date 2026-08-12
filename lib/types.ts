@@ -38,6 +38,7 @@ export type UnitMembershipRecord = {
 export type ReportSickStatusType =
   | "MC"
   | "Light Duty"
+  | "Rest in Bunk"
   | "Excuse RMJ"
   | "Excuse Heavy Load"
   | "Excuse Upper Limb"

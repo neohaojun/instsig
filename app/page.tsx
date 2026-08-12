@@ -1,6 +1,7 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { SupabaseConfigError } from "@/lib/supabase/env";
 import { InstsigApp } from "@/components/instsig/instsig-app";
+import { getAccessibleUnitIds } from "@/lib/unit-scope";
 import LoginPage from "./login/page";
 import type {
   BatchRecord,
@@ -8,6 +9,7 @@ import type {
   RequestRecord,
   RequestUpdateRecord,
   StrengthManualRecord,
+  UnitMembershipRecord,
   UnitRecord,
 } from "@/lib/types";
 
@@ -47,7 +49,7 @@ export default async function HomePage({ searchParams }: {
   const requests = (allRequests ?? []) as RequestRecord[];
   const relevantRequests = profile?.role === "admin" ? requests : requests.filter((request) => request.requester_id === user.id);
   const relevantRequestIds = relevantRequests.map((request) => request.id);
-  const [{ data: requestUpdates }, { data: batches }, { data: strengthRecords }, { data: units }] = await Promise.all([
+  const [{ data: requestUpdates }, { data: batches }, { data: strengthRecords }, { data: units }, { data: memberships }] = await Promise.all([
     relevantRequestIds.length
       ? supabase.from("request_updates").select("*").in("request_id", relevantRequestIds).order("created_at", { ascending: true })
       : Promise.resolve({ data: [] as RequestUpdateRecord[] }),
@@ -56,6 +58,9 @@ export default async function HomePage({ searchParams }: {
       ? supabase.from("strength_records").select("*").order("duty_date", { ascending: false }).order("created_at", { ascending: false })
       : Promise.resolve({ data: [] as StrengthManualRecord[] }),
     supabase.from("units").select("*").eq("active", true).order("name", { ascending: true }),
+    profile?.role === "admin"
+      ? supabase.from("unit_memberships").select("*").eq("profile_id", user.id)
+      : Promise.resolve({ data: [] as UnitMembershipRecord[] }),
   ]);
   const profileIds = Array.from(
     new Set(
@@ -75,7 +80,12 @@ export default async function HomePage({ searchParams }: {
       : profileIds.length
         ? await supabase.from("profiles").select("*").in("id", profileIds)
         : { data: [] as ProfileRecord[] };
-  const batchRecords = (batches ?? []) as BatchRecord[];
+  const unitRecords = (units ?? []) as UnitRecord[];
+  const accessibleUnitIds = profile?.role === "admin"
+    ? getAccessibleUnitIds(unitRecords, (memberships ?? []) as UnitMembershipRecord[])
+    : new Set(profile?.unit_id ? [profile.unit_id] : []);
+  const accessibleUnits = unitRecords.filter((unit) => accessibleUnitIds.has(unit.id));
+  const batchRecords = ((batches ?? []) as BatchRecord[]).filter((batch) => accessibleUnitIds.has(batch.unit_id));
 
   return (
     <InstsigApp
@@ -87,7 +97,7 @@ export default async function HomePage({ searchParams }: {
       initialManualRecords={(strengthRecords ?? []) as StrengthManualRecord[]}
       profilesById={buildProfilesMap(profiles)}
       batchesById={Object.fromEntries(batchRecords.map((batch) => [batch.id, batch]))}
-      units={(units ?? []) as UnitRecord[]}
+      units={accessibleUnits}
     />
   );
 }

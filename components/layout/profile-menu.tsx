@@ -49,23 +49,23 @@ export function ProfileMenu({
   }, []);
 
   return (
-    <div ref={menuRef} className="relative">
+    <div ref={menuRef} className="relative min-w-0">
       <button
         type="button"
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((value) => !value)}
-        className="rounded-2xl border border-border bg-background px-3 py-2 text-sm text-foreground transition hover:bg-accent hover:text-accent-foreground"
+        className="max-w-full rounded-2xl border border-border bg-background px-3 py-2 text-sm text-foreground transition hover:bg-accent hover:text-accent-foreground"
       >
-        <span className="flex items-center gap-3">
-          <span className="flex h-8 w-8 items-center justify-center rounded-xl border border-border bg-secondary text-xs font-semibold text-secondary-foreground">
+        <span className="flex min-w-0 items-center gap-3">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-border bg-secondary text-xs font-semibold text-secondary-foreground">
             {initials || "U"}
           </span>
-          <span className="hidden max-w-36 flex-col items-start sm:flex">
-            <span className="truncate font-medium text-foreground">{displayName}</span>
-            <span className="truncate text-xs text-muted-foreground">{email}</span>
+          <span className="hidden w-36 min-w-0 flex-col items-start sm:flex">
+            <span className="w-full truncate text-left font-medium text-foreground">{displayName}</span>
+            <span className="w-full truncate text-left text-xs text-muted-foreground">{email}</span>
           </span>
-          <ChevronDown className={`h-4 w-4 text-muted-foreground transition ${open ? "rotate-180" : ""}`} />
+          <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition ${open ? "rotate-180" : ""}`} />
         </span>
       </button>
       {open ? (

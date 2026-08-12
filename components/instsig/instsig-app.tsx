@@ -181,14 +181,14 @@ function RequestSubcard({
   const actionLabel = showAdminAction ? getAdminActionLabel(request) : null;
 
   return (
-    <button type="button" onClick={() => onSelect(request)} className="block w-full text-left">
+    <button type="button" onClick={() => onSelect(request)} className="block w-full min-w-0 max-w-full overflow-hidden text-left">
       <div
         className={cn(
           "group rounded-2xl border border-border bg-card p-3 transition hover:bg-accent/50",
           actionLabel && "border-foreground/20 bg-muted/50 shadow-sm ring-1 ring-foreground/10",
         )}
       >
-        <div className="flex items-center justify-between gap-4 text-left">
+        <div className="flex min-w-0 flex-col gap-3 text-left sm:flex-row sm:items-center sm:justify-between sm:gap-4">
           <div className="min-w-0 space-y-1">
             <p className="flex min-w-0 items-center gap-2 text-sm font-medium text-card-foreground">
               {actionLabel ? (
@@ -199,10 +199,10 @@ function RequestSubcard({
               ) : null}
               <span className="truncate">{title}</span>
             </p>
-            {description ? <p className="max-w-[36rem] text-sm leading-5 text-muted-foreground">{description}</p> : null}
+            {description ? <p className="max-w-[36rem] break-words text-sm leading-5 text-muted-foreground">{description}</p> : null}
             <p className="text-xs text-muted-foreground">{meta}</p>
           </div>
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="flex shrink-0 items-center justify-between gap-2 sm:justify-start">
             <StatusPill status={request.status} />
             <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
           </div>
@@ -228,18 +228,18 @@ function AdminPendingRequestsCard({
   onViewAll: () => void;
 }) {
   return (
-    <Card className="overflow-hidden animate-enter-soft animate-delay-1">
-      <CardHeader className="space-y-4 p-8">
+    <Card className="mx-auto w-full min-w-0 max-w-full overflow-hidden animate-enter-soft animate-delay-1">
+      <CardHeader className="space-y-2 p-4 sm:space-y-4 sm:p-8">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="space-y-2">
-            <CardTitle className="text-3xl">{title}</CardTitle>
+            <CardTitle className="text-xl sm:text-3xl">{title}</CardTitle>
             <p className="text-sm text-muted-foreground">
               {requests.length} awaiting action
             </p>
           </div>
         </div>
       </CardHeader>
-      <CardContent className="grid gap-3 p-8 pt-0">
+      <CardContent className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-3 p-4 pt-1 sm:p-8 sm:pt-0">
         {requests.length ? (
           sortActionableRequests(requests).slice(0, 2).map((request) => {
             const requester = profilesById[request.requester_id];
@@ -262,7 +262,7 @@ function AdminPendingRequestsCard({
             No pending requests found.
           </div>
         )}
-        <div className="pt-2">
+        <div className="pt-0 sm:pt-2">
           <Button type="button" variant="link" className="h-auto px-0" onClick={onViewAll}>
             View all
           </Button>
@@ -327,6 +327,7 @@ function DashboardView({
   scopedUpdates,
   manualRecords,
   profile,
+  units,
   profilesById,
   batchesById,
   dashboardMode,
@@ -342,6 +343,7 @@ function DashboardView({
   scopedUpdates: RequestUpdateRecord[];
   manualRecords: StrengthManualRecord[];
   profile: ProfileRecord | null;
+  units: UnitRecord[];
   profilesById: Record<string, ProfileRecord | null | undefined>;
   batchesById: Record<string, BatchRecord | null | undefined>;
   dashboardMode: DashboardMode;
@@ -352,6 +354,7 @@ function DashboardView({
   onSelectRequest: (request: RequestRecord, mode: RequestDetailMode) => void;
 }) {
   const isAdmin = profile?.role === "admin";
+  const profileUnit = units.find((unit) => unit.id === profile?.unit_id);
   const reportSickPendingRequests = scopedRequests.filter((request) => request.kind === "report_sick" && isAwaitingDashboardAction(request));
   const externalAppointmentPendingRequests = scopedRequests.filter((request) => request.kind === "external_appointment" && isAwaitingDashboardAction(request));
   const requestHistory = requests.filter((request) => request.requester_id === profile?.id && request.status !== "draft");
@@ -446,7 +449,7 @@ function DashboardView({
           <Card className="overflow-hidden animate-enter-soft">
             <CardHeader className="space-y-2 p-8">
               <p className="text-sm text-muted-foreground">Unit</p>
-              <CardTitle className="text-xl">SCTW</CardTitle>
+              <CardTitle className="text-xl">{profileUnit?.name ?? "Not assigned"}</CardTitle>
             </CardHeader>
           </Card>
           <div className="grid gap-6 lg:grid-cols-2">
@@ -1476,6 +1479,7 @@ export function InstsigApp({
           scopedUpdates={scopedUpdates}
           manualRecords={scopedManualRecords}
           profile={profile}
+          units={units}
           profilesById={scopedProfilesById}
           batchesById={scopedBatchesById}
           dashboardMode={dashboardMode}

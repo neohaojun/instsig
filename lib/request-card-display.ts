@@ -19,6 +19,7 @@ function compactDate(value: unknown) {
 
 function statusTypeLabel(value: unknown) {
   if (value === "Light Duty") return "LD";
+  if (value === "Rest in Bunk") return "RIB";
   return displayText(value);
 }
 
