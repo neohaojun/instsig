@@ -20,6 +20,7 @@ import { formatDisplayDate, formatDisplayDateTime } from "@/lib/display-date";
 const statusTypeOptions = [
   "MC",
   "Light Duty",
+  "Rest in Bunk",
   "Excuse RMJ",
   "Excuse Heavy Load",
   "Excuse Upper Limb",
