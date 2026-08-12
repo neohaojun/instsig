@@ -188,21 +188,21 @@ function RequestSubcard({
           actionLabel && "border-foreground/20 bg-muted/50 shadow-sm ring-1 ring-foreground/10",
         )}
       >
-        <div className="flex min-w-0 flex-col gap-3 text-left sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+        <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 text-left sm:gap-4">
           <div className="min-w-0 space-y-1">
-            <p className="flex min-w-0 items-center gap-2 text-sm font-medium text-card-foreground">
+            <p className="flex min-w-0 items-start gap-2 text-sm font-medium text-card-foreground">
               {actionLabel ? (
                 <span className="shrink-0 text-[15px] leading-none" aria-label={actionLabel}>
                   <span aria-hidden="true">⚠️</span>
                   <span className="sr-only">{actionLabel}</span>
                 </span>
               ) : null}
-              <span className="truncate">{title}</span>
+              <span className="min-w-0 break-words">{title}</span>
             </p>
             {description ? <p className="max-w-[36rem] break-words text-sm leading-5 text-muted-foreground">{description}</p> : null}
             <p className="text-xs text-muted-foreground">{meta}</p>
           </div>
-          <div className="flex shrink-0 items-center justify-between gap-2 sm:justify-start">
+          <div className="flex shrink-0 items-center gap-2 self-center">
             <StatusPill status={request.status} />
             <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
           </div>
